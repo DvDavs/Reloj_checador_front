@@ -111,8 +111,9 @@ export default function RegistrarEmpleadoPage() {
         const fullName = [createdEmpleado.primerNombre, createdEmpleado.segundoNombre, createdEmpleado.primerApellido, createdEmpleado.segundoApellido].filter(Boolean).join(" ");
 
         // Redirigir a la asignación de huella
-        router.push(`/empleados/asignar-huella?id=<span class="math-inline">\{createdEmpleado\.id\}&nombre\=</span>{encodeURIComponent(fullName)}`);
-         // La redirección debería ocurrir, no necesitamos setIsSubmitting(false) aquí normalmente
+        router.push(`/empleados/asignar-huella?id=${createdEmpleado.id}&nombre=${encodeURIComponent(fullName)}`);
+
+        // La redirección debería ocurrir, no necesitamos setIsSubmitting(false) aquí normalmente
 
     } catch (err: any) {
         console.error("Error creating empleado:", err);

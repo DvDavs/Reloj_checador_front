@@ -269,7 +269,7 @@ export default function EmpleadosPage() {
                 disabled={isLoading}
               />
             </div>
-             {/* Filtros adicionales deshabilitados por ahora */}
+             {/* Filtros adicionales deshabilitados por ahora 
             <div>
               <Select disabled={true}>
                 <SelectTrigger><SelectValue placeholder="Filtrar por área..." /></SelectTrigger>
@@ -281,7 +281,7 @@ export default function EmpleadosPage() {
                 <SelectTrigger><SelectValue placeholder="Filtrar por estado..." /></SelectTrigger>
                 <SelectContent><SelectItem value="todos">Todos los estados</SelectItem></SelectContent>
               </Select>
-            </div>
+            </div>*/}
           </div>
 
           {/* Tabla */}
