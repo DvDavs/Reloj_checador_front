@@ -117,13 +117,13 @@ export default function Sidebar() {
                 icon={<UserPlus size={18} />}
                 text="Registrar"
                 isActive={pathname === "/empleados/registrar"}
-              /> */}
+              /> 
               <NavItem
                 href="/empleados/asignar-huella" // Quizás quitar este link directo y acceder solo desde la tabla
                 icon={<Fingerprint size={18} />}
                 text="Asignar Huella"
                 isActive={pathname === "/empleados/asignar-huella"}
-              />
+              />*/}
             </motion.div>
           )}
         </div>
