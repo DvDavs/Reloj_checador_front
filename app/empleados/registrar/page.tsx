@@ -7,16 +7,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Save, Loader2, AlertCircle } from "lucide-react"
+import { ArrowLeft, Save, Loader2, AlertCircle, Info } from "lucide-react"
 import Link from "next/link"
 import axios from 'axios';
 
-// --- Tipo del Backend User ---
-interface BackendUser {
-    id: number;
-    name: string;
-    email: string | null;
-    fingerprintTemplate: string | null;
+// Interfaz Empleado Backend (simplificada)
+interface EmpleadoBackend {
+  id: number;
+  primerNombre: string | null;
+  segundoNombre: string | null;
+  primerApellido: string | null;
+  segundoApellido: string | null;
+  // ...otros campos si los necesitas después de crear
 }
 
 // --- Constantes ---
@@ -24,69 +26,104 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function RegistrarEmpleadoPage() {
   const router = useRouter();
+  // Ajustar estado inicial para reflejar mejor los campos necesarios
   const [formData, setFormData] = useState({
-    numeroTarjeta: "",
-    nombre: "",
+    primerNombre: "",
+    segundoNombre: "",
+    primerApellido: "",
+    segundoApellido: "",
     rfc: "",
     curp: "",
-    area: "",
-    // Añadir email si quieres pedirlo explícitamente
-    // email: "",
+    // Añade aquí IDs/valores para departamento, nombramiento, estatus si los pides en el form
+    departamentoAcademicoId: null as number | null,
+    departamentoAdministrativoId: null as number | null,
+    tipoNombramientoPrincipal: "",
+    tipoNombramientoSecundario: "",
+    estatusId: 1, // Default a activo
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value.toUpperCase() })); // Convertir a mayúsculas
+    // Convertir a mayúsculas solo para RFC y CURP
+    const finalValue = (name === 'rfc' || name === 'curp') ? value.toUpperCase() : value;
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  // Handler genérico para Selects (si usas IDs numéricos para depto/estatus)
+  const handleSelectChange = (name: keyof typeof formData, value: string) => {
+    // Convertir a número si es un ID, o mantener como string
+    const isIdField = name.includes('Id');
+    setFormData((prev) => ({
+      ...prev,
+      [name]: isIdField ? (value ? parseInt(value, 10) : null) : value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // *** LÓGICA HABILITADA ***
     setIsSubmitting(true);
     setError(null);
 
-    // *** Adaptar datos al payload esperado por POST /api/users ***
+    // *** Payload ajustado a EmpleadoCreateDto ***
     const payload = {
-      name: formData.nombre.trim(), // Asegurar que no haya espacios extra
-      // Email: Derivado o de un campo de formulario. Asegúrate que sea único si el backend lo requiere.
-      // Ejemplo: usando el RFC si existe, si no, uno temporal (¡OJO! esto puede no ser ideal)
-      email: formData.rfc ? `${formData.rfc}@itoaxaca.edu.mx` : `sinemail_${Date.now()}@itoaxaca.edu.mx`,
-      // fingerprintTemplate será null al crear el usuario base
+        rfc: formData.rfc || null,
+        curp: formData.curp || null,
+        primerNombre: formData.primerNombre || null,
+        segundoNombre: formData.segundoNombre || null,
+        primerApellido: formData.primerApellido || null,
+        segundoApellido: formData.segundoApellido || null,
+        departamentoAcademicoId: formData.departamentoAcademicoId,
+        departamentoAdministrativoId: formData.departamentoAdministrativoId,
+        tipoNombramientoPrincipal: formData.tipoNombramientoPrincipal || null,
+        tipoNombramientoSecundario: formData.tipoNombramientoSecundario || null,
+        estatusId: formData.estatusId,
     };
 
-    // Validación simple (añade más si es necesario)
-    if (!payload.name) {
-        setError("El nombre completo es obligatorio.");
+    // Validación básica en frontend
+    if (!payload.primerNombre || !payload.primerApellido || !payload.rfc || !payload.curp) {
+        setError("Primer Nombre, Primer Apellido, RFC y CURP son obligatorios.");
         setIsSubmitting(false);
         return;
     }
+    if (payload.rfc && payload.rfc.length < 10) { // Ejemplo validación longitud
+         setError("RFC inválido."); setIsSubmitting(false); return;
+    }
+     if (payload.curp && payload.curp.length !== 18) {
+         setError("CURP inválido."); setIsSubmitting(false); return;
+    }
+
 
     try {
-      console.log("Enviando payload:", payload);
-      const response = await axios.post<BackendUser>( // Espera BackendUser como respuesta
-        `${API_BASE_URL}/api/users`,
-        payload
-      );
+        console.log("Enviando payload a POST /api/empleados:", payload);
+        // *** LLAMAR AL NUEVO ENDPOINT ***
+        const response = await axios.post<EmpleadoBackend>( // Espera EmpleadoBackend
+           `${API_BASE_URL}/api/empleados`,
+           payload
+        );
 
-      const createdUser = response.data;
-      console.log("Usuario creado:", createdUser);
-      const userId = createdUser.id;
-      const userName = createdUser.name;
+        const createdEmpleado = response.data;
+        console.log("Empleado creado:", createdEmpleado);
 
-      // Redirigir a la página de asignación de huella con los datos del usuario creado
-      router.push(`/empleados/asignar-huella?id=${userId}&nombre=${encodeURIComponent(userName)}`);
-      // La redirección ocurre, no necesitamos setIsSubmitting(false) aquí
+        // Usar helper para nombre completo
+        const fullName = [createdEmpleado.primerNombre, createdEmpleado.segundoNombre, createdEmpleado.primerApellido, createdEmpleado.segundoApellido].filter(Boolean).join(" ");
+
+        // Redirigir a la asignación de huella
+        router.push(`/empleados/asignar-huella?id=<span class="math-inline">\{createdEmpleado\.id\}&nombre\=</span>{encodeURIComponent(fullName)}`);
+         // La redirección debería ocurrir, no necesitamos setIsSubmitting(false) aquí normalmente
 
     } catch (err: any) {
-      console.error("Error creating user:", err);
-      const backendError = err.response?.data?.message || err.response?.data || err.message || "Error desconocido";
-      setError(`Error al crear el usuario: ${backendError}`);
-      setIsSubmitting(false); // Permitir reintentar
+        console.error("Error creating empleado:", err);
+        const backendError = err.response?.data?.message // Captura mensaje de ApiException si existe
+                          || err.response?.data?.error // Captura error genérico
+                          || err.response?.data // A veces el error viene directo en data
+                          || err.message
+                          || "Error desconocido";
+         let displayError = typeof backendError === 'string' ? backendError : JSON.stringify(backendError);
+        setError(`Error al crear el empleado: ${displayError}`);
+        setIsSubmitting(false); // Permitir reintento
     }
   };
 
@@ -105,105 +142,72 @@ export default function RegistrarEmpleadoPage() {
         <CardHeader>
           <CardTitle>Información del Empleado</CardTitle>
           <CardDescription>
-            Ingrese los datos básicos. La asignación de huella se realizará en el siguiente paso.
-             <br/><strong className="text-yellow-400">Nota:</strong> Los campos RFC, CURP, Tarjeta y Área son informativos por ahora y no se guardan en el backend actual.
+             Ingrese los datos básicos. La asignación de huella se realizará en el siguiente paso.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
+          {/* *** QUITAR opacity-50 pointer-events-none *** */}
           <CardContent className="space-y-6">
-             {/* Mensaje de Error */}
             {error && (
-                <div className="p-3 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg flex items-center gap-2 text-sm">
-                    <AlertCircle className="h-4 w-4" />
-                    <p>{error}</p>
-                </div>
+              <div className="p-3 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg flex items-center gap-2 text-sm">
+                <AlertCircle className="h-4 w-4" /> <p>{error}</p>
+              </div>
             )}
 
-            {/* Campos del Formulario */}
-             <div className="space-y-2">
-              <Label htmlFor="nombre">Nombre Completo <span className="text-red-500">*</span></Label>
-              <Input
-                id="nombre"
-                name="nombre"
-                placeholder="Nombre(s) Apellido Paterno Apellido Materno"
-                value={formData.nombre}
-                onChange={handleChange}
-                required
-                className="uppercase"
-              />
-            </div>
-
-             {/* Campos informativos (no se guardan en backend actual) */}
+            {/* Campos del Formulario - AJUSTAR NOMBRES Y AÑADIR LOS NECESARIOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="space-y-2">
-                <Label htmlFor="numeroTarjeta">Número de Tarjeta (Informativo)</Label>
-                <Input
-                  id="numeroTarjeta"
-                  name="numeroTarjeta"
-                  placeholder="EMP-2024-XXXX"
-                  value={formData.numeroTarjeta}
-                  onChange={handleChange}
-                  className="uppercase"
-                />
-              </div>
-               <div className="space-y-2">
-                <Label htmlFor="area">Área (Informativo)</Label>
-                <Select value={formData.area} onValueChange={(value) => handleSelectChange("area", value)}>
-                  <SelectTrigger id="area">
-                    <SelectValue placeholder="Seleccionar área" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Llena con tus áreas */}
-                    <SelectItem value="Sistemas">Sistemas</SelectItem>
-                    <SelectItem value="Administración">Administración</SelectItem>
-                    <SelectItem value="Docencia">Docencia</SelectItem>
-                    <SelectItem value="Recursos Humanos">Recursos Humanos</SelectItem>
-                    <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
-                    <SelectItem value="Biblioteca">Biblioteca</SelectItem>
-                    <SelectItem value="Otro">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                    <Label htmlFor="primerNombre">Primer Nombre <span className="text-red-500">*</span></Label>
+                    <Input id="primerNombre" name="primerNombre" value={formData.primerNombre} onChange={handleChange} required />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="segundoNombre">Segundo Nombre</Label>
+                    <Input id="segundoNombre" name="segundoNombre" value={formData.segundoNombre} onChange={handleChange} />
+                </div>
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="space-y-2">
-                <Label htmlFor="rfc">RFC (Informativo, usado para email temporal)</Label>
-                <Input
-                  id="rfc"
-                  name="rfc"
-                  placeholder="XXXX000000XXX"
-                  value={formData.rfc}
-                  onChange={handleChange}
-                  maxLength={13}
-                  className="uppercase"
-                />
+                 <div className="space-y-2">
+                    <Label htmlFor="primerApellido">Primer Apellido <span className="text-red-500">*</span></Label>
+                    <Input id="primerApellido" name="primerApellido" value={formData.primerApellido} onChange={handleChange} required />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="segundoApellido">Segundo Apellido</Label>
+                    <Input id="segundoApellido" name="segundoApellido" value={formData.segundoApellido} onChange={handleChange} />
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="rfc">RFC <span className="text-red-500">*</span></Label>
+                <Input id="rfc" name="rfc" placeholder="XXXX000000XXX" value={formData.rfc} onChange={handleChange} maxLength={13} className="uppercase" required />
               </div>
-
-               <div className="space-y-2">
-                <Label htmlFor="curp">CURP (Informativo)</Label>
-                <Input
-                  id="curp"
-                  name="curp"
-                  placeholder="XXXX000000XXXXXX00"
-                  value={formData.curp}
-                  onChange={handleChange}
-                   maxLength={18}
-                  className="uppercase"
-                />
+              <div className="space-y-2">
+                <Label htmlFor="curp">CURP <span className="text-red-500">*</span></Label>
+                <Input id="curp" name="curp" placeholder="XXXX000000XXXXXX00" value={formData.curp} onChange={handleChange} maxLength={18} className="uppercase" required />
               </div>
             </div>
-              {/* Podrías añadir un campo de Email aquí si prefieres pedirlo */}
-               {/* <div className="space-y-2">
-                <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
-                <Input id="email" name="email" type="email" placeholder="correo@ejemplo.com" value={formData.email} onChange={handleChange} required />
-               </div> */}
+             {/* Añade Selects para departamento, nombramiento, estatus si los necesitas */}
+             {/* Ejemplo para Nombramiento Principal */}
+             <div className="space-y-2">
+                 <Label htmlFor="tipoNombramientoPrincipal">Nombramiento Principal</Label>
+                 <Select value={formData.tipoNombramientoPrincipal} onValueChange={(value) => handleSelectChange("tipoNombramientoPrincipal", value)}>
+                     <SelectTrigger id="tipoNombramientoPrincipal"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                     <SelectContent>
+                         <SelectItem value="DOCENTE">Docente</SelectItem>
+                         <SelectItem value="ADMINISTRATIVO">Administrativo</SelectItem>
+                         {/* Añade más si aplica */}
+                     </SelectContent>
+                 </Select>
+             </div>
+             {/* ... Añade más selects o inputs para otros campos del DTO ... */}
 
           </CardContent>
 
           <CardFooter className="flex justify-between">
             <Link href="/empleados">
+              {/* *** HABILITAR BOTÓN CANCELAR *** */}
               <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
             </Link>
+            {/* *** HABILITAR BOTÓN GUARDAR *** */}
             <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={isSubmitting}>
               {isSubmitting ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>
