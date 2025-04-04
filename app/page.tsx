@@ -27,6 +27,7 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          {/*}
           <Link href="/admin" className="block">
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 h-full hover:border-blue-500 transition-colors">
               <div className="flex justify-center mb-4">
@@ -39,7 +40,7 @@ export default function Home() {
                 Gestione la asistencia del personal con el sistema biométrico.
               </p>
             </div>
-          </Link>
+          </Link>*/}
 
           <Link href="/empleados" className="block">
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 h-full hover:border-green-500 transition-colors">
@@ -52,7 +53,7 @@ export default function Home() {
               <p className="text-zinc-400 text-center">Administre la información del personal y sus registros.</p>
             </div>
           </Link>
-
+{/*
           <Link href="/empleados/asignar-huella" className="block">
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 h-full hover:border-purple-500 transition-colors">
               <div className="flex justify-center mb-4">
@@ -64,6 +65,7 @@ export default function Home() {
               <p className="text-zinc-400 text-center">Registre y gestione las huellas digitales del personal.</p>
             </div>
           </Link>
+          */ }
         </div>
 
         <div className="text-center">
