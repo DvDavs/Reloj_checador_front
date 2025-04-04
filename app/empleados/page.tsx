@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"; // *** IMPORTAR useRouter ***
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -36,11 +37,10 @@ interface EmpleadoBackend {
     departamentoAdministrativoId: number | null;
     tipoNombramientoPrincipal: string | null;
     tipoNombramientoSecundario: string | null;
-    estatusId: number | null; // ID numérico (puede ser null)
-    estatusNombre: string | null; // *** CAMPO PARA EL NOMBRE DEL ESTATUS ***
+    estatusId: number | null;
+    estatusNombre: string | null;
     correoInstitucional: string | null;
     uuid: string | null;
-    // Añade más campos si tu backend los devuelve y los necesitas mostrar
 }
 
 interface EmployeeDisplayData {
@@ -50,7 +50,7 @@ interface EmployeeDisplayData {
     rfc: string;
     curp: string;
     area: string;
-    estado: string; // Usaremos estatusNombre aquí
+    estado: string;
 }
 
 // --- Constantes ---
@@ -59,7 +59,7 @@ const ITEMS_PER_PAGE = 10;
 
 // --- Helper para Paginación ---
 const getPaginationRange = (currentPage: number, totalPages: number, siblingCount = 1): (number | '...')[] => {
-    const totalPageNumbers = siblingCount + 5;
+    const totalPageNumbers = siblingCount + 5; // Siblings + first + last + 2x dots + current
 
     if (totalPages <= totalPageNumbers) {
         return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -91,13 +91,14 @@ const getPaginationRange = (currentPage: number, totalPages: number, siblingCoun
         return [firstPageIndex, '...', ...middleRange, '...', lastPageIndex];
     }
 
-    // Fallback (no debería ocurrir con la lógica anterior)
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
+    // Fallback (should not be reached with the logic above)
+     return Array.from({ length: totalPages }, (_, i) => i + 1);
 };
 
 
 // --- Componente ---
 export default function EmpleadosPage() {
+  const router = useRouter(); // *** INICIALIZAR ROUTER ***
   const [allEmployees, setAllEmployees] = useState<EmpleadoBackend[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<EmpleadoBackend[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -111,7 +112,7 @@ export default function EmpleadosPage() {
   const getFullName = useCallback((emp: EmpleadoBackend | null): string => {
     if (!emp) return 'N/A';
     const nameParts = [emp.primerNombre, emp.segundoNombre, emp.primerApellido, emp.segundoApellido]
-                        .filter(Boolean); // Filtra null, undefined, ""
+                        .filter(Boolean);
     return nameParts.join(" ") || 'Nombre no disponible';
   }, []);
 
@@ -120,13 +121,13 @@ export default function EmpleadosPage() {
     setIsLoading(true);
     setError(null);
     try {
-      console.log(`Workspaceing employees from: ${API_BASE_URL}/api/empleados`);
+      console.log(`Fetching employees from: ${API_BASE_URL}/api/empleados`);
       const response = await axios.get<EmpleadoBackend[]>(`${API_BASE_URL}/api/empleados`);
       const data = response.data || [];
-      console.log(`Raw data received (${data.length} employees):`, data.slice(0, 5)); // Log primeros 5
+      console.log(`Raw data received (${data.length} employees). Sample:`, data.slice(0, 2));
       setAllEmployees(data);
-      setFilteredEmployees(data); // Inicializar filtrados
-      setCurrentPage(1);
+      setFilteredEmployees(data);
+      // setCurrentPage(1); // Evitar resetear página en refresh manual
     } catch (err: any) {
       console.error("Error fetching employees:", err);
       const errorMsg = err.response?.data?.message || err.message || "No se pudo cargar la lista de empleados.";
@@ -148,6 +149,7 @@ export default function EmpleadosPage() {
     const lowerSearchTerm = searchTerm.toLowerCase();
     const filtered = allEmployees.filter((employee) => {
       const fullName = getFullName(employee).toLowerCase();
+      // Ampliar búsqueda
       const matchesSearch =
         employee.id.toString().includes(lowerSearchTerm) ||
         fullName.includes(lowerSearchTerm) ||
@@ -156,19 +158,19 @@ export default function EmpleadosPage() {
         (employee.correoInstitucional && employee.correoInstitucional.toLowerCase().includes(lowerSearchTerm)) ||
         (employee.estatusNombre && employee.estatusNombre.toLowerCase().includes(lowerSearchTerm)); // Buscar por nombre de estatus
 
-      // Añadir más filtros aquí si es necesario
       return matchesSearch;
     });
 
     setFilteredEmployees(filtered);
 
+    // Resetear a página 1 si la página actual queda vacía por el filtro
     const newTotalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
     if (currentPage > newTotalPages && newTotalPages > 0) {
       setCurrentPage(1);
-    } else if (filtered.length === 0) {
-      setCurrentPage(1);
+    } else if (newTotalPages === 0) {
+        setCurrentPage(1); // O mantener 1 si no hay resultados
     }
-  }, [searchTerm, allEmployees, currentPage, getFullName]);
+  }, [searchTerm, allEmployees, currentPage, getFullName]); // currentPage debe estar aquí para recalcular si cambia
 
   // Calcular paginación sobre los empleados *filtrados*
   const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
@@ -177,89 +179,82 @@ export default function EmpleadosPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // --- Mapeo para Visualización (con estatusNombre) ---
+  // --- Mapeo para Visualización ---
   const mapEmployeeToDisplay = useCallback((emp: EmpleadoBackend): EmployeeDisplayData => {
     let area = 'N/A';
-    if (emp.departamentoAcademicoId) area = `Académico ${emp.departamentoAcademicoId}`; // Idealmente buscar nombre
-    else if (emp.departamentoAdministrativoId) area = `Admin. ${emp.departamentoAdministrativoId}`; // Idealmente buscar nombre
+    // Idealmente, tendrías los nombres de los departamentos, no solo IDs
+    if (emp.departamentoAcademicoId) area = `Académico`; // Simplificado
+    else if (emp.departamentoAdministrativoId) area = `Admin.`; // Simplificado
 
-    // *** USA EL CAMPO estatusNombre DIRECTAMENTE ***
-    const estadoNombre = emp.estatusNombre ?? 'Desconocido';
+    const estadoNombre = emp.estatusNombre ?? 'Desconocido'; // Usa el nombre del estatus
 
     return {
       id: emp.id,
-      numeroTarjeta: `ID-${emp.id}`,
+      numeroTarjeta: `ID-${emp.id}`, // Puedes usar el ID directo o un campo específico si existe
       nombre: getFullName(emp),
       rfc: emp.rfc ?? 'N/A',
       curp: emp.curp ?? 'N/A',
       area: area,
-      estado: estadoNombre, // Asigna el nombre directo
+      estado: estadoNombre,
     };
   }, [getFullName]);
 
-  // --- Funciones de Acciones (Editar, Borrar) ---
+  // --- Funciones de Acciones ---
+
+  // *** ACTUALIZAR handleEdit ***
   const handleEdit = (employeeId: number) => {
-    alert(`Funcionalidad EDITAR para empleado ID: ${employeeId} pendiente.`);
-    // router.push(`/empleados/editar/${employeeId}`);
+    console.log(`Navigating to edit page for ID: ${employeeId}`);
+    router.push(`/empleados/editar/${employeeId}`); // Navegar a la página de edición
   };
 
   const confirmDelete = (employee: EmpleadoBackend) => {
     setEmployeeToDelete(employee);
-    // setShowDeleteConfirm(true); // Esto se maneja por el trigger del AlertDialog ahora
+    setShowDeleteConfirm(true); // Abre el AlertDialog
   };
 
   const handleDelete = async () => {
     if (!employeeToDelete) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      console.log(`Attempting to delete employee ID: ${employeeToDelete.id}`);
-      alert(`Simulación: Empleado ID ${employeeToDelete.id} eliminado (ENDPOINT DELETE PENDIENTE). Recargando lista...`);
-      // await axios.delete(`${API_BASE_URL}/api/empleados/${employeeToDelete.id}`); // Descomentar cuando esté la API
-      await fetchEmployees(); // Recargar lista
-    } catch (err: any) {
-      console.error("Error deleting employee:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Error desconocido";
-      setError(`Error al eliminar empleado "${getFullName(employeeToDelete)}": ${errorMsg}`);
-    } finally {
-      setIsLoading(false);
-      setShowDeleteConfirm(false); // Cierra el diálogo (si onOpenChange no lo hace)
-      setEmployeeToDelete(null);
-    }
+    // *** PENDIENTE: Implementar llamada DELETE a /api/empleados/{id} ***
+    alert(`FUNCIONALIDAD BORRAR EMPLEADO (ID: ${employeeToDelete.id}) PENDIENTE EN API.\nSimulando borrado y recarga.`);
+    setShowDeleteConfirm(false);
+    setEmployeeToDelete(null);
+    // await fetchEmployees(); // Recargar lista después de borrado exitoso
   };
 
   // --- Renderizado ---
   return (
-    <AlertDialog onOpenChange={setShowDeleteConfirm} open={showDeleteConfirm}> {/* Mover AlertDialog aquí */}
+    // Envolver todo en AlertDialog para que funcione el Trigger/Content
+    <AlertDialog onOpenChange={setShowDeleteConfirm} open={showDeleteConfirm}>
       <div className="p-6 md:p-8">
+        {/* --- Encabezado --- */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <h1 className="text-2xl md:text-3xl font-bold">Gestión de Empleados</h1>
           <div className="flex gap-2">
             <Button variant="outline" size="icon" onClick={fetchEmployees} disabled={isLoading} title="Refrescar lista">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
-            {/* Link para registrar (deshabilitado temporalmente) */}
             <Link href="/empleados/registrar" legacyBehavior>
-               <Button className="bg-green-600 hover:bg-green-700" disabled={false}> {/* Habilitar cuando POST funcione */}
+               <Button className="bg-green-600 hover:bg-green-700">
                    <UserPlus className="mr-2 h-4 w-4" /> Registrar Nuevo
                </Button>
             </Link>
           </div>
         </div>
 
-        {/* Mensaje de Error Global */}
+        {/* --- Mensaje de Error Global --- */}
         {error && (
           <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg flex items-center gap-2 text-sm">
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
             <span>{error}</span>
-            <button onClick={() => setError(null)} className="ml-auto text-red-300 hover:text-white">&times;</button>
+            <button onClick={() => setError(null)} className="ml-auto text-red-300 hover:text-white">×</button>
           </div>
         )}
 
+        {/* --- Contenedor Principal (Filtros + Tabla) --- */}
         <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4 md:p-6 mb-6">
-          {/* Filtros */}
+          {/* --- Filtros --- */}
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
-            <div className="relative md:col-span-2 lg:col-span-2">
+            <div className="relative md:col-span-2 lg:col-span-3"> {/* Ajustar span */}
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
               <Input
                 placeholder="Buscar por Nombre, ID, RFC, CURP, Correo, Estado..."
@@ -269,22 +264,10 @@ export default function EmpleadosPage() {
                 disabled={isLoading}
               />
             </div>
-             {/* Filtros adicionales deshabilitados por ahora 
-            <div>
-              <Select disabled={true}>
-                <SelectTrigger><SelectValue placeholder="Filtrar por área..." /></SelectTrigger>
-                <SelectContent><SelectItem value="todos">Todas las áreas</SelectItem></SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Select disabled={true} >
-                <SelectTrigger><SelectValue placeholder="Filtrar por estado..." /></SelectTrigger>
-                <SelectContent><SelectItem value="todos">Todos los estados</SelectItem></SelectContent>
-              </Select>
-            </div>*/}
+             {/* Puedes añadir más filtros Select si son necesarios */}
           </div>
 
-          {/* Tabla */}
+          {/* --- Tabla --- */}
           <div className="rounded-md border border-zinc-700 overflow-x-auto">
             <Table>
               <TableHeader className="bg-zinc-800">
@@ -310,20 +293,19 @@ export default function EmpleadosPage() {
                 ) : paginatedEmployees.length > 0 ? (
                   paginatedEmployees.map((employee) => {
                     const displayData = mapEmployeeToDisplay(employee);
-                    const fullName = displayData.nombre; // Usar nombre completo calculado
                     return (
                       <TableRow key={employee.id} className="hover:bg-zinc-800/50">
                         <TableCell className="font-medium">{displayData.id}</TableCell>
-                        <TableCell>{fullName}</TableCell>
+                        <TableCell>{displayData.nombre}</TableCell>
                         <TableCell>{displayData.rfc}</TableCell>
                         <TableCell>{displayData.curp}</TableCell>
                         <TableCell>{displayData.area}</TableCell>
                         <TableCell>
                           <span
                             className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                               displayData.estado.toLowerCase() === 'activo'
+                               displayData.estado?.toLowerCase() === 'activo' // Null check
                                 ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                : displayData.estado.toLowerCase().includes('baja') || displayData.estado.toLowerCase().includes('inactivo')
+                                : displayData.estado?.toLowerCase().includes('baja') || displayData.estado?.toLowerCase().includes('inactivo')
                                 ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                                 : 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/30'
                             }`}
@@ -333,29 +315,30 @@ export default function EmpleadosPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex space-x-1 justify-end">
+                             {/* *** BOTÓN EDITAR HABILITADO Y FUNCIONAL *** */}
                             <Button
                               variant="ghost" size="icon"
                               className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-900/30"
-                              onClick={() => handleEdit(employee.id)}
-                              title="Editar empleado (pendiente)"
-                              disabled // Habilitar cuando API PUT esté lista
+                              onClick={() => handleEdit(employee.id)} // Llama a handleEdit
+                              title="Editar empleado"
+                              // disabled // Quitar o comentar para habilitar
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            {/* Trigger para el AlertDialog */}
+                            {/* Botón Borrar (Trigger del AlertDialog) */}
                             <AlertDialogTrigger asChild>
                                <Button
                                 variant="ghost" size="icon"
                                 className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-900/30"
-                                onClick={() => confirmDelete(employee)} // Prepara el empleado a borrar
+                                onClick={() => confirmDelete(employee)} // Solo prepara, no borra
                                 title="Eliminar empleado (pendiente de API)"
-                                disabled // Habilitar cuando API DELETE esté lista
+                                // disabled // Habilitar cuando API DELETE esté lista
                               >
                                 <UserMinus className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
                             {/* Link para Asignar Huella */}
-                             <Link href={`/empleados/asignar-huella?id=${employee.id}&nombre=${encodeURIComponent(fullName)}`}>
+                             <Link href={`/empleados/asignar-huella?id=${employee.id}&nombre=${encodeURIComponent(displayData.nombre)}`}>
                                 <Button
                                   variant="ghost" size="icon"
                                   className="h-8 w-8 text-purple-500 hover:text-purple-400 hover:bg-purple-900/30"
@@ -372,7 +355,7 @@ export default function EmpleadosPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-16 text-zinc-500">
-                      {!isLoading && error ? "Error al cargar datos." : "No se encontraron empleados con los filtros aplicados."}
+                      {error ? "Error al cargar datos." : "No se encontraron empleados."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -380,75 +363,73 @@ export default function EmpleadosPage() {
             </Table>
           </div>
 
-          {/* Paginación (CORREGIDA) */}
+          {/* --- Paginación --- */}
           {totalPages > 1 && !isLoading && (
-          <div className="mt-6 flex justify-center">
-              <Pagination>
-                  <PaginationContent>
-                      <PaginationItem>
-                      <PaginationPrevious
-                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          href="#" // Previene navegación real
-                          aria-disabled={currentPage === 1}
-                      />
-                      </PaginationItem>
+            <div className="mt-6 flex justify-center">
+                <Pagination>
+                    <PaginationContent>
+                        <PaginationItem>
+                            <PaginationPrevious
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                className={currentPage === 1 ? "pointer-events-none opacity-50 cursor-default" : "cursor-pointer"}
+                                href="#" // Prevents default navigation
+                                aria-disabled={currentPage === 1}
+                                tabIndex={currentPage === 1 ? -1 : undefined}
+                            />
+                        </PaginationItem>
 
-                      {/* *** USA LA FUNCIÓN HELPER *** */}
-                      {getPaginationRange(currentPage, totalPages).map((pageNumber, index) => {
-                      if (pageNumber === '...') {
-                          // Asegúrate de tener una key única para los puntos
-                          return <PaginationItem key={`dots-${index}`}><span className="px-4 py-2 text-sm text-zinc-500">...</span></PaginationItem>;
-                      }
-                      return (
-                          <PaginationItem key={pageNumber}>
-                              <PaginationLink
-                                  isActive={currentPage === pageNumber}
-                                  onClick={(e) => {
-                                      e.preventDefault(); // Previene comportamiento default del link
-                                      setCurrentPage(pageNumber as number)
-                                  }}
-                                  href="#" // Previene navegación real
-                                  className="cursor-pointer"
-                                  aria-current={currentPage === pageNumber ? 'page' : undefined}
-                              >
-                                  {pageNumber}
-                              </PaginationLink>
-                          </PaginationItem>
-                      );
-                      })}
+                        {getPaginationRange(currentPage, totalPages).map((pageNumber, index) => (
+                            <PaginationItem key={typeof pageNumber === 'number' ? pageNumber : `dots-${index}`}>
+                                {pageNumber === '...' ? (
+                                    <span className="px-4 py-2 text-sm text-zinc-500">...</span>
+                                ) : (
+                                    <PaginationLink
+                                        isActive={currentPage === pageNumber}
+                                        onClick={(e) => { e.preventDefault(); setCurrentPage(pageNumber as number); }}
+                                        href="#" // Prevents default navigation
+                                        className="cursor-pointer"
+                                        aria-current={currentPage === pageNumber ? 'page' : undefined}
+                                    >
+                                        {pageNumber}
+                                    </PaginationLink>
+                                )}
+                            </PaginationItem>
+                        ))}
 
-                      <PaginationItem>
-                      <PaginationNext
-                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          href="#" // Previene navegación real
-                          aria-disabled={currentPage === totalPages}
-                      />
-                      </PaginationItem>
-                  </PaginationContent>
-              </Pagination>
-          </div>
-          )}
-        </div>
+                        <PaginationItem>
+                            <PaginationNext
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                className={currentPage === totalPages ? "pointer-events-none opacity-50 cursor-default" : "cursor-pointer"}
+                                href="#" // Prevents default navigation
+                                aria-disabled={currentPage === totalPages}
+                                tabIndex={currentPage === totalPages ? -1 : undefined}
+                            />
+                        </PaginationItem>
+                    </PaginationContent>
+                </Pagination>
+            </div>
+           )}
+        </div> {/* Fin Contenedor Principal */}
 
-        {/* Contenido del AlertDialog para Confirmar Eliminación */}
-        <AlertDialogContent>
+        {/* --- AlertDialog para Confirmar Eliminación --- */}
+        <AlertDialogContent className="bg-zinc-900 border-zinc-800 text-white">
           <AlertDialogHeader>
             <AlertDialogTitle>¿Confirmar Eliminación?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-zinc-400">
               ¿Está seguro de que desea eliminar al empleado <strong className="text-white">{getFullName(employeeToDelete)}</strong> (ID: {employeeToDelete?.id})?
-              Esta acción no se puede deshacer (funcionalidad de borrado pendiente en API).
+               <br /> <span className="text-red-500 font-bold">Esta acción es irreversible (funcionalidad API pendiente).</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setEmployeeToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="border-zinc-600 hover:bg-zinc-700">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Eliminar
+              {/* {isLoading && isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} */}
+               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </div>
-    </AlertDialog> // Mover AlertDialog para envolver todo
+
+      </div> {/* Fin div p-6/p-8 */}
+    </AlertDialog> // Fin AlertDialog Wrapper
   )
 }

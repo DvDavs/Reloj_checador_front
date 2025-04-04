@@ -793,7 +793,7 @@ function AsignarHuellaContent() {
                              {/* ... Animación SVG y Botón Capturar sin cambios ... */}
                               <div className="relative mb-6 flex h-56 w-56 items-center justify-center">
                                  {/* ... (SVG paths) ... */}
-                                  <motion.div key={scanState} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3 }}>
+                                  <motion.div key={scanState} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }}>
                                         {scanState === 'idle' && <Fingerprint className="h-32 w-32 text-purple-500/70 animate-pulse" />}
                                         {scanState === 'scanning' && <Loader2 className="h-32 w-32 text-purple-400 animate-spin" />}
                                         {scanState === 'success' && <CheckCircle className="h-32 w-32 text-green-500" />}
@@ -807,7 +807,7 @@ function AsignarHuellaContent() {
                                     disabled={scanState !== "idle" || isLoading || captureAttempts >= TOTAL_CAPTURE_ATTEMPTS || !enrollmentSessionId}
                                 >
                                     {isLoading && scanState === 'scanning' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Fingerprint className="mr-2 h-5 w-5" />}
-                                    {isLoading && scanState === 'scanning' ? 'Capturando...' : `Capturar (${captureAttempts + 1}/${TOTAL_CAPTURE_ATTEMPTS})`}
+                                    {isLoading && scanState === 'scanning' ? 'Capturando...' : `Capturar (${captureAttempts}/${TOTAL_CAPTURE_ATTEMPTS})`}
 
                                 </Button>
                          </CardContent>
