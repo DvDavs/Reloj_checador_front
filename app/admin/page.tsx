@@ -162,10 +162,15 @@ export default function AdminDashboard() {
         {/* Contenido principal */}
         {isLoading ? (
           // Esqueletos de carga (sin cambios)
-          /* ... */
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {Array.from({ length: 3 }).map((_, index) => ( <div key={`skeleton-${index}`} className="bg-zinc-900/50 border border-zinc-800 rounded-lg h-64 animate-pulse flex flex-col items-center justify-center p-6"> <div className="h-20 w-20 rounded-full bg-zinc-800 mb-4"></div> <div className="h-6 w-3/4 rounded bg-zinc-800 mb-4"></div> <div className="h-10 w-2/4 rounded bg-zinc-800"></div> </div> ))}
-             </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, index) => ( 
+                <div key={`skeleton-${index}`} className="bg-zinc-900/50 border border-zinc-800 rounded-lg h-64 animate-pulse flex flex-col items-center justify-center p-6"> 
+                  <div className="h-20 w-20 rounded-full bg-zinc-800 mb-4"></div> 
+                  <div className="h-6 w-3/4 rounded bg-zinc-800 mb-4"></div> 
+                  <div className="h-10 w-2/4 rounded bg-zinc-800"></div> 
+                </div> 
+              ))}
+          </div>
         ) : scanners.length > 0 ? (
           // Lista de escáneres (Ajuste visual leve)
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -200,7 +205,6 @@ export default function AdminDashboard() {
           </div>
         ) : !errorMessage ? (
              // Mensaje "No hay lectores" (sin cambios)
-             /* ... */
              <div className="flex flex-col items-center justify-center h-96 text-center"> <AlertCircle className="h-24 w-24 text-zinc-700 mb-6" /> <h3 className="text-2xl font-bold text-zinc-400 mb-2">No hay lectores disponibles</h3> <p className="text-zinc-500 mb-6 max-w-md"> Asegúrese de que los lectores estén conectados y el servicio de huellas esté funcionando correctamente en el servidor. </p> <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleRefreshScanners} disabled={isLoading}> {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="h-5 w-5 mr-2" />} Volver a intentar </Button> </div>
         ) : null /* Si hay errorMessage, ya se muestra arriba */ }
       </div>

@@ -94,32 +94,54 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
     return () => clearInterval(interval);
   }, []);
 
+  // Reservar lector para esta sesión
+  const reserveReaderForSession = async () => {
+    try {
+      console.log(`Reservando lector ${readerName} para sesión ${sessionId}`);
+      await axios.post(`${API_BASE_URL}/api/v1/multi-fingerprint/reserve/${selectedReader}?sessionId=${sessionId}`);
+      console.log(`Lector ${readerName} reservado exitosamente`);
+      return true;
+    } catch (error: any) {
+      console.error(`Error al reservar lector ${readerName}:`, error);
+      setConnectionError(`Error al reservar lector: ${error.response?.data || error.message}`);
+      setScanState("error");
+      return false;
+    }
+  };
+
    // Conexión WebSocket y Lógica Principal
   useEffect(() => {
     if (!selectedReader || !sessionId) return;
 
     setConnectionError(null);
 
-    // 1. Iniciar Modo Checador en Backend
-    const startChecadorBackend = async () => {
-      setScanState("idle"); // Estado inicial mientras intenta iniciar
+    // 1. Reservar e iniciar Modo Checador en Backend
+    const initializeChecador = async () => {
+      setScanState("idle"); 
       try {
-        console.log(`Intentando iniciar checador para: ${readerName} (encoded: ${selectedReader})`);
-        await axios.post(`${API_BASE_URL}/api/v1/multi-fingerprint/checador/start/${selectedReader}`);
+        // Primero reservar el lector para esta sesión
+        const reserved = await reserveReaderForSession();
+        if (!reserved) return;
+        
+        // Luego iniciar modo checador, PASANDO EL SESSION ID
+        console.log(`Iniciando checador para: ${readerName} con sesión ${sessionId}`);
+        await axios.post(`${API_BASE_URL}/api/v1/multi-fingerprint/checador/start/${selectedReader}?sessionId=${sessionId}`);
         console.log(`Checador iniciado en backend para ${readerName}`);
-        // No marcar como ready aún, esperar conexión WS
       } catch (error: any) {
         console.error(`Error al iniciar checador para ${readerName}:`, error);
-        setConnectionError(`Error al iniciar lector: ${error.response?.data || error.message}`);
+        // Usar mensaje de error del backend si está disponible, sino mensaje genérico
+        const backendErrorMsg = error.response?.data?.message || error.response?.data || error.message;
+        setConnectionError(`Error al iniciar lector: ${backendErrorMsg}`);
         setScanState("error");
       }
     };
-    startChecadorBackend(); // Iniciar al montar
+    
+    initializeChecador();
 
     // 2. Configurar Cliente STOMP
     stompClient.current = new Client({
       webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws-fingerprint`),
-      debug: (str) => { /* console.log('STOMP DEBUG:', str); */ }, // Desactivar debug verboso
+      debug: (str) => { /* console.log('STOMP DEBUG:', str); */ },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
@@ -128,7 +150,7 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
         console.log('STOMP Conectado');
         setIsConnected(true);
         setConnectionError(null);
-        setScanState("ready"); // Ahora sí está listo
+        setScanState("ready");
 
         const topic = `/topic/checador/${selectedReader}`;
         console.log(`Suscribiendo a: ${topic}`);
@@ -137,10 +159,10 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
             const eventData = JSON.parse(message.body);
             console.log("ChecadorEvent recibido:", eventData);
             handleChecadorEvent(eventData);
-            audioSuccess.current?.play(); // Reproducir sonido éxito
+            audioSuccess.current?.play();
           } catch (e) {
             console.error("Error procesando mensaje de checador:", e);
-             audioError.current?.play(); // Reproducir sonido error
+            audioError.current?.play();
           }
         },
         { id: `sub-checador-${selectedReader}` });
@@ -150,7 +172,6 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
         console.log('STOMP Desconectado');
         setIsConnected(false);
          if (scanState !== "error") {
-           // No establecer error si ya hay uno por API, pero sí indicar desconexión
            setConnectionError("Conexión perdida. Intentando reconectar...");
            setScanState("idle");
          }
@@ -173,7 +194,6 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
        onWebSocketClose: (event) => {
             console.log("WebSocket Closed:", event);
             setIsConnected(false);
-            // Solo marcar error si la desactivación no fue intencional
             if (stompClient.current?.active) {
                  setConnectionError("Conexión cerrada inesperadamente. Intentando reconectar...");
                  if (scanState !== 'error') setScanState('idle');
@@ -182,7 +202,7 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
     });
 
     // 3. Activar Cliente STOMP
-    if (scanState !== "error") { // Solo intentar activar si no hubo error al iniciar checador
+    if (scanState !== "error") {
         console.log("Activando cliente STOMP...");
         stompClient.current.activate();
     }
@@ -190,54 +210,95 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
     // 4. Función de Limpieza
     return () => {
       console.log(`Limpiando TimeClock para lector ${readerName}...`);
-       if (subscriptionChecador.current) {
-           try { subscriptionChecador.current.unsubscribe(); console.log("Desuscrito de checador"); }
-           catch (e) { console.error("Error al desuscribir:", e); }
-       }
-      stompClient.current?.deactivate().then(() => console.log("STOMP desactivado."))
-          .catch(err => console.error("Error al desactivar STOMP:", err));
+      if (subscriptionChecador.current) {
+          try { 
+            subscriptionChecador.current.unsubscribe(); 
+            console.log("Desuscrito de checador"); 
+          } catch (e) { 
+            console.error("Error al desuscribir:", e); 
+          }
+      }
+      
+      stompClient.current?.deactivate()
+        .then(() => console.log("STOMP desactivado."))
+        .catch(err => console.error("Error al desactivar STOMP:", err));
 
       const stopAndRelease = async () => {
         if (selectedReader && sessionId) {
-          try { await axios.post(`${API_BASE_URL}/api/v1/multi-fingerprint/checador/stop/${selectedReader}`); console.log(`Checador detenido en backend para ${readerName}`); }
-          catch (error) { console.error(`Error deteniendo checador para ${readerName}:`, error); }
-          try { await axios.post(`${API_BASE_URL}/api/v1/multi-fingerprint/release/${selectedReader}?sessionId=${sessionId}`); console.log(`Lector ${readerName} liberado en backend para sesión ${sessionId}`); }
-          catch (error) { console.error(`Error liberando lector ${readerName}:`, error); }
+          try { 
+            await axios.post(`${API_BASE_URL}/api/v1/multi-fingerprint/checador/stop/${selectedReader}`); 
+            console.log(`Checador detenido en backend para ${readerName}`); 
+          } catch (error) { 
+            console.error(`Error deteniendo checador para ${readerName}:`, error); 
+          }
+          
+          try { 
+            await axios.post(`${API_BASE_URL}/api/v1/multi-fingerprint/release/${selectedReader}?sessionId=${sessionId}`); 
+            console.log(`Lector ${readerName} liberado en backend para sesión ${sessionId}`); 
+          } catch (error) { 
+            console.error(`Error liberando lector ${readerName}:`, error); 
+          }
         }
       };
+      
       stopAndRelease();
       setIsConnected(false);
       if (scanState !== 'error') setScanState('idle');
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedReader, sessionId]); // La dependencia de soundEnabled se quitó para evitar reconexiones al cambiar sonido
+  }, [selectedReader, sessionId]);
 
   // Procesar evento de checador recibido por WebSocket
-  const handleChecadorEvent = (eventData: { userId: number; userName: string; userEmail: string }) => {
+  const handleChecadorEvent = (eventData: { 
+    readerName: string;
+    identificado: boolean;
+    empleadoId: number;
+    nombreCompleto: string;
+    rfc: string; 
+  }) => {
+      if (!eventData.identificado) {
+        // Si no se identificó correctamente, mostrar error
+        setScanState("failed");
+        setPanelFlash("failed");
+        setShowOverlayMessage(true);
+        setShowInstructionMessage(false);
+        audioError.current?.play();
+        
+        setTimeout(() => {
+          setPanelFlash(null);
+          setScanState("ready");
+          setShowOverlayMessage(false);
+          setShowInstructionMessage(true);
+        }, 2000);
+        
+        return;
+      }
+      
       setScanState("success");
       setPanelFlash("success");
-      setShowOverlayMessage(true); // Mostrar mensaje overlay
-      setShowInstructionMessage(false); // Ocultar "Coloque dedo"
+      setShowOverlayMessage(true);
+      setShowInstructionMessage(false);
 
-      const employeeIdStr = eventData.userId.toString();
-      const employeeName = eventData.userName;
+      const employeeIdStr = eventData.empleadoId.toString();
+      const employeeName = eventData.nombreCompleto;
 
-      // Lógica placeholder para determinar acción
-      const determinedAction = lastAction === 'entrada' ? 'salida' : 'entrada';
+      // Determine si la acción es entrada o salida por el tiempo y última acción
+      const now = new Date();
+      const hour = now.getHours();
+      const isEntry = hour < 15; // Simplemente usando hora del día como heurística (antes de las 3pm = entrada)
+      const determinedAction = isEntry ? 'entrada' : 'salida';
       setLastAction(determinedAction);
 
       setCurrentEmployee({ id: employeeIdStr, name: employeeName });
 
       const newScan: ScanHistoryItem = {
         name: employeeName,
-        time: new Date(),
+        time: now,
         success: true,
         action: determinedAction,
         employeeId: employeeIdStr,
       };
+      
       setScanHistory(prev => [newScan, ...prev.slice(0, 4)]);
-
-      console.warn("Actualización de WorkSessions necesita lógica real");
       setShowAttendance(true);
 
       setTimeout(() => setPanelFlash(null), 1500);
@@ -247,8 +308,8 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
           if (!quickMode) {
               setScanState("ready");
               setShowAttendance(false);
-              setShowOverlayMessage(false); // Ocultar overlay al resetear
-              setShowInstructionMessage(true); // Mostrar instrucción de nuevo
+              setShowOverlayMessage(false);
+              setShowInstructionMessage(true);
               setCurrentEmployee(null);
               setLastAction(null);
           } else {
@@ -278,30 +339,26 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
   // --- Renderizado ---
   const getResultMessage = () => {
     if (scanState === "success") return lastAction === "entrada" ? "Entrada Registrada" : "Salida Registrada";
+    if (scanState === "failed") return "Huella No Reconocida";
     return "";
   };
 
   const getInstructionMessage = () => {
-      // Priorizar error de conexión
       if (scanState === "error") return connectionError || "Error de conexión";
-      if (!isConnected) return "Conectando con el lector..."; // Mensaje mientras WS no está listo
-      // Estados normales
+      if (!isConnected) return "Conectando con el lector...";
       if (scanState === "ready" || scanState === "idle") return "Coloque su dedo en el escáner";
       if (scanState === "scanning" || scanState === "analyzing") return "Procesando...";
       if (scanState === "success") return `Bienvenido ${currentEmployee?.name || ''}`;
+      if (scanState === "failed") return "Huella no reconocida. Intente nuevamente.";
       return "Esperando...";
   };
 
   return (
-    // El JSX principal no necesita cambios significativos respecto al anterior,
-    // solo asegúrate que use los estados correctos (showOverlayMessage, showInstructionMessage)
-    // y las funciones (getInstructionMessage, getResultMessage) definidas aquí.
     <div className="flex min-h-screen items-center justify-center bg-black p-4">
         <div className="flex flex-col gap-4 w-full max-w-7xl">
             {/* Reloj y Fecha */}
             <div className="flex justify-between items-center bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800">
-                {/* ... (Reloj y Fecha sin cambios) ... */}
-                 <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
                     <Clock className="h-10 w-10 text-zinc-400" />
                     <span className="text-4xl font-bold text-white">{format(currentTime, "HH:mm:ss")}</span>
                 </div>
@@ -321,7 +378,6 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
             <div className="flex flex-col md:flex-row gap-4">
                 {/* Panel Izquierdo: Sesiones */}
                 <div className="w-full md:w-80 bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800">
-                    {/* ... (Contenido sesiones placeholder) ... */}
                      <div className="flex items-center gap-2 mb-4">
                       <Calendar className="h-6 w-6 text-zinc-400" />
                       <h3 className="text-xl font-bold text-zinc-300">Sesiones de Hoy</h3>
@@ -335,16 +391,18 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
                 <Card
                     className={`relative flex-1 overflow-hidden bg-zinc-900 p-4 text-white shadow-lg border-2 transition-colors duration-300 ${
                     panelFlash === "success" ? "border-green-500 bg-green-900/10"
-                    : panelFlash === "failed" ? "border-red-500 bg-red-900/10" // Necesitarías 'failed' state si aplica
+                    : panelFlash === "failed" ? "border-red-500 bg-red-900/10"
                     : isConnected ? "border-blue-500/30" : "border-red-500/50"} `}
                 >
                     {/* Mensaje Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                         <div
                             className={`text-5xl font-bold transition-opacity duration-300 ${
-                                scanState === "success" ? "text-green-400 drop-shadow-[0_0_20px_rgba(74,222,128,0.8)]" : "text-transparent"
+                                scanState === "success" ? "text-green-400 drop-shadow-[0_0_20px_rgba(74,222,128,0.8)]" 
+                                : scanState === "failed" ? "text-red-400 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]" 
+                                : "text-transparent"
                             }`}
-                            style={{ opacity: showOverlayMessage ? 0.95 : 0 }} // Usar estado correcto
+                            style={{ opacity: showOverlayMessage ? 0.95 : 0 }}
                         >
                             {getResultMessage()}
                         </div>
@@ -353,7 +411,6 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
                     <div className="flex flex-col items-center justify-center h-full">
                         {/* Animación de Huella */}
                         <div className="relative mb-6 flex h-64 w-64 items-center justify-center">
-                            {/* ... (SVG base) ... */}
                             <svg className="absolute h-56 w-56" viewBox="0 0 100 100">
                                 <g className="fingerprint-base" stroke={ isConnected ? "rgba(59, 130, 246, 0.3)" : "rgba(239, 68, 68, 0.3)" } fill="none" strokeWidth="2">
                                     <path d="M50,15 C25,15 15,30 15,50 C15,70 25,85 50,85 C75,85 85,70 85,50 C85,30 75,15 50,15 Z" />
@@ -379,17 +436,16 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
                                 )}
                                 {isConnected && (scanState === 'scanning' || scanState === 'analyzing') && <Loader2 className="h-36 w-36 text-blue-400 animate-spin" />}
                                 {isConnected && scanState === 'success' && <CheckCircle2 className="h-36 w-36 text-green-500" />}
-                                {/* Podrías añadir un icono XCircle si tuvieras estado 'failed' */}
+                                {isConnected && scanState === 'failed' && <XCircle className="h-36 w-36 text-red-500" />}
                             </motion.div>
                         </div>
 
                         {/* Mensaje de Instrucción */}
                         <div className="h-12 flex items-center justify-center text-center px-4">
-                            {/* Usar estado showInstructionMessage */}
                             <AnimatePresence>
                                 {showInstructionMessage && (
                                     <motion.p
-                                        className={`text-xl font-medium ${scanState === 'error' ? 'text-red-400' : 'text-zinc-300'}`}
+                                        className={`text-xl font-medium ${scanState === 'error' ? 'text-red-400' : scanState === 'failed' ? 'text-red-400' : 'text-zinc-300'}`}
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
@@ -407,7 +463,6 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
                                     className="mt-4 w-full border-t-2 border-zinc-700 pt-6"
                                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }}
                                 >
-                                   {/* ... (Contenido de datos del empleado sin cambios) ... */}
                                     <div className="mb-4 flex items-center gap-4">
                                         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800"> <User className="h-8 w-8 text-zinc-400" /> </div>
                                         <div> <h2 className="text-2xl font-bold text-white">{currentEmployee.name}</h2> <p className="text-lg text-zinc-400">{currentEmployee.id}</p> </div>
@@ -430,7 +485,6 @@ export default function TimeClock({ selectedReader, sessionId }: TimeClockProps)
 
                 {/* Panel Derecho: Historial y Foto */}
                 <div className="w-full md:w-80 bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800">
-                   {/* ... (Contenido del panel derecho sin cambios significativos) ... */}
                     <div className="flex justify-between items-center mb-4">
                       <div className="flex items-center gap-3"> <History className="h-6 w-6 text-zinc-400" /> <h3 className="text-xl font-bold text-zinc-300">Últimos Registros</h3> </div>
                       <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={toggleFullscreen}> {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />} </Button>
