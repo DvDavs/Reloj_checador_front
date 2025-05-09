@@ -130,6 +130,9 @@ type BackendChecadorEvent = {
   rfc?: string
   errorMessage?: string
   accion?: 'entrada' | 'salida'
+  statusCode?: string  // Nuevo: código de estado del backend
+  statusType?: string  // Nuevo: tipo de estado (OK, INFO, ERROR)
+  data?: Record<string, any>  // Nuevo: datos adicionales del evento
 }
 
 // Actualizar el tipo ScanHistoryItem para incluir información de la sesión
@@ -155,170 +158,171 @@ type ScanState =
   | "background-success"
   | "background-failed"
 
-// Añadir datos de prueba más variados para las sesiones de trabajo
-const mockWorkSessions: WorkSession[] = [
-  // Empleado 1: Alejandro Jiménez - Jornada completa con entrada tarde
-  {
-    id: 1,
-    entryTime: "08:05",
-    exitTime: "15:00",
-    scheduledEntry: "08:00",
-    scheduledExit: "15:00",
-    entryStatus: "entrada-tarde",
-    exitStatus: "salida-ok",
-    isCurrent: false,
-    employeeId: "EMP-2023-0042",
-  },
-  // Empleado 2: María García - Jornada actual sin salida
-  {
-    id: 2,
-    entryTime: "08:00",
-    exitTime: null,
-    scheduledEntry: "08:00",
-    scheduledExit: "15:00",
-    entryStatus: "entrada-ok",
-    exitStatus: "pendiente",
-    isCurrent: true,
-    employeeId: "EMP-2023-0078",
-  },
-  // Empleado 3: David Chávez - Jornada pendiente
-  {
-    id: 3,
-    entryTime: null,
-    exitTime: null,
-    scheduledEntry: "16:00",
-    scheduledExit: "20:00",
-    entryStatus: "pendiente",
-    exitStatus: "pendiente",
-    isCurrent: false,
-    employeeId: "EMP-2023-0103",
-  },
-  // Empleado 4: Laura Martínez - Jornada con salida temprana
-  {
-    id: 4,
-    entryTime: "09:00",
-    exitTime: "13:45",
-    scheduledEntry: "09:00",
-    scheduledExit: "14:00",
-    entryStatus: "entrada-ok",
-    exitStatus: "salida-incidente",
-    isCurrent: false,
-    employeeId: "EMP-2023-0115",
-  },
-  // Empleado 5: Carlos Rodríguez - Jornada completa
-  {
-    id: 5,
-    entryTime: "07:00",
-    exitTime: "15:00",
-    scheduledEntry: "07:00",
-    scheduledExit: "15:00",
-    entryStatus: "entrada-ok",
-    exitStatus: "salida-ok",
-    isCurrent: false,
-    employeeId: "EMP-2023-0127",
-  },
-  // Empleado 1: Alejandro Jiménez - Jornada anterior
-  {
-    id: 6,
-    entryTime: "08:00",
-    exitTime: "15:00",
-    scheduledEntry: "08:00",
-    scheduledExit: "15:00",
-    entryStatus: "entrada-ok",
-    exitStatus: "salida-ok",
-    isCurrent: false,
-    employeeId: "EMP-2023-0042",
-  },
-  // Empleado 1: Alejandro Jiménez - Jornada con ausencia
-  {
-    id: 7,
-    entryTime: null,
-    exitTime: null,
-    scheduledEntry: "08:00",
-    scheduledExit: "15:00",
-    entryStatus: "ausente",
-    exitStatus: "ausente",
-    isCurrent: false,
-    employeeId: "EMP-2023-0042",
-  },
-]
+// Mapeo de códigos de estado a mensajes amigables para el usuario
+const getUserFriendlyMessage = (code: string | undefined, data: Record<string, any> | undefined, nombreEmpleado?: string) => {
+  if (!code) return "Estado desconocido";
+  
+  const name = nombreEmpleado || data?.employeeName || "Usuario";
+  
+  switch (code) {
+    // Códigos de éxito (2xx)
+    case "200":
+      return `¡Listo, ${name}! Tu entrada está registrada.`;
+    case "201":
+      return `¡Hasta luego, ${name}! Tu salida está registrada.`;
+    case "202":
+      return `Entrada Registrada, ${name}. Se anotó un retardo.`;
+    
+    // Códigos de información (3xx)
+    case "300": {
+      const lastTime = data?.lastRecordTime ? `${data.lastRecordTime}` : "";
+      const minWait = data?.minWaitMinutes || 10;
+      return `Espera un momento. Intenta registrarte de nuevo en ${minWait} minutos${lastTime ? ` (último registro: ${lastTime})` : ""}.`;
+    }
+    case "301": {
+      const existingTime = data?.existingTime ? ` a las ${data.existingTime}` : "";
+      return `Ya registraste tu entrada hoy${existingTime}.`;
+    }
+    case "302": {
+      const existingTime = data?.existingTime ? ` a las ${data.existingTime}` : "";
+      return `Ya registraste tu salida hoy${existingTime}.`;
+    }
+    
+    // Códigos de error de reglas de negocio (4xx)
+    case "400":
+      return "Huella no reconocida. Intenta de nuevo, por favor.";
+    case "401": {
+      const validRanges = data?.validRanges ? ` ${data.validRanges}` : "";
+      return `Fuera de horario. No es posible registrar en este momento.${validRanges}`;
+    }
+    case "402":
+      return "No tienes un horario asignado para hoy.";
+    case "403":
+      return "Recurso no encontrado. Contacta a soporte.";
+    
+    // Códigos de error técnicos (5xx)
+    case "500": {
+      const errorDesc = data?.errorDescription || "";
+      return `Problema con el lector${errorDesc ? `: ${errorDesc}` : ""}. Intenta de nuevo o avisa a soporte.`;
+    }
+    case "501":
+      return "Ups, algo salió mal. Intenta de nuevo.";
+    
+    default:
+      return "Estado desconocido. Contacta a soporte.";
+  }
+};
 
-// Datos de empleados de prueba
-const mockEmployees = [
-  {
-    id: "EMP-2023-0042",
-    name: "Alejandro Jiménez",
-    totalHours: "8h 45m",
-    weeklyHours: "34h 15m",
-  },
-  {
-    id: "EMP-2023-0078",
-    name: "María García",
-    totalHours: "6h 30m",
-    weeklyHours: "28h 45m",
-  },
-  {
-    id: "EMP-2023-0103",
-    name: "David Chávez",
-    totalHours: "7h 15m",
-    weeklyHours: "32h 20m",
-  },
-  {
-    id: "EMP-2023-0115",
-    name: "Laura Martínez",
-    totalHours: "5h 45m",
-    weeklyHours: "29h 30m",
-  },
-  {
-    id: "EMP-2023-0127",
-    name: "Carlos Rodríguez",
-    totalHours: "9h 15m",
-    weeklyHours: "38h 45m",
-  },
-]
-
-// Historial de escaneos inicial
-const initialScanHistory: ScanHistoryItem[] = [
-  {
-    name: "Carlos Rodríguez",
-    time: new Date(new Date().setHours(7, 0, 0)),
-    success: true,
-    action: "entrada",
-    sessionId: 5,
-    employeeId: "EMP-2023-0127",
-  },
-  {
-    name: "Laura Martínez",
-    time: new Date(new Date().setHours(9, 0, 0)),
-    success: true,
-    action: "entrada",
-    sessionId: 4,
-    employeeId: "EMP-2023-0115",
-  },
-  {
-    name: "Desconocido",
-    time: new Date(new Date().setHours(8, 30, 0)),
-    success: false,
-    action: "entrada",
-    employeeId: "",
-  },
-]
+// Función para mapear códigos de estado a estilos visuales
+const getStyleClassesForCode = (code: string | undefined): {
+  panel: string;
+  icon: string;
+  timeBox: string;
+  text: string;
+  bgColor: string;
+} => {
+  if (!code) {
+    // Estado por defecto cuando no hay código
+    return {
+      panel: "bg-zinc-900 border-zinc-800",
+      icon: "text-zinc-500",
+      timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700",
+      text: "text-zinc-300",
+      bgColor: "bg-zinc-700/20"
+    };
+  }
+  
+  // Códigos de éxito (2xx)
+  if (code.startsWith("2")) {
+    // Caso especial para retardo (202)
+    if (code === "202") {
+      return {
+        panel: "bg-yellow-900/50 border-yellow-500",
+        icon: "text-yellow-500",
+        timeBox: "bg-yellow-500/30 text-yellow-300 border-yellow-500",
+        text: "text-yellow-400",
+        bgColor: "bg-yellow-500/20"
+      };
+    }
+    // Otros éxitos (200, 201)
+    return {
+      panel: "bg-green-900/50 border-green-500",
+      icon: "text-green-500",
+      timeBox: "bg-green-500/30 text-green-300 border-green-500",
+      text: "text-green-400",
+      bgColor: "bg-green-500/20"
+    };
+  }
+  
+  // Códigos de información (3xx)
+  if (code.startsWith("3")) {
+    return {
+      panel: "bg-blue-900/50 border-blue-500",
+      icon: "text-blue-500",
+      timeBox: "bg-blue-500/30 text-blue-300 border-blue-500",
+      text: "text-blue-400",
+      bgColor: "bg-blue-500/20"
+    };
+  }
+  
+  // Códigos de error de reglas de negocio (4xx)
+  if (code.startsWith("4")) {
+    return {
+      panel: "bg-red-900/50 border-red-500",
+      icon: "text-red-500",
+      timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700", // Neutral en errores
+      text: "text-red-400",
+      bgColor: "bg-red-500/20"
+    };
+  }
+  
+  // Códigos de error técnicos (5xx)
+  if (code.startsWith("5")) {
+    return {
+      panel: "bg-red-900/50 border-red-500",
+      icon: "text-red-500",
+      timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700", // Neutral en errores técnicos
+      text: "text-red-400",
+      bgColor: "bg-red-500/20"
+    };
+  }
+  
+  // Para cualquier otro código o formato inesperado, usar estilo neutral
+  return {
+    panel: "bg-zinc-900 border-zinc-800",
+    icon: "text-zinc-500",
+    timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700",
+    text: "text-zinc-300",
+    bgColor: "bg-zinc-700/20"
+  };
+};
 
 // Actualizar el componente para incluir las nuevas variables de estado y funciones
 export default function TimeClock({ selectedReader, sessionId }: { selectedReader: string, sessionId: string }) {
-  const [currentTime, setCurrentTime] = useState(new Date())
+  // ==== HOOKS / STATE ====
+  // Socket y estado de conexión
+  const [socket, setSocket] = useState<WebSocket | null>(null)
+  const [isConnected, setIsConnected] = useState<boolean>(false)
+  
+  // Estado relacionado con estado y resultado de escaneo
   const [scanState, setScanState] = useState<ScanState>("idle")
+  const [scanProgress, setScanProgress] = useState<number>(0)
+  const [scanResult, setScanResult] = useState<"success" | "failed" | null>(null)
+  const [lastAction, setLastAction] = useState<"entrada" | "salida">("entrada")
+  const [currentTime, setCurrentTime] = useState(new Date())
+  
+  // Nuevos estados para manejo de códigos de estado y mensajes personalizados
+  const [statusCode, setStatusCode] = useState<string | undefined>(undefined)
+  const [statusData, setStatusData] = useState<Record<string, any> | undefined>(undefined)
+  const [customMessage, setCustomMessage] = useState<string>("")
+  
+  // Estado relacionado con UI y visualización
   const [showAttendance, setShowAttendance] = useState(false)
   const [minutiaePoints, setMinutiaePoints] = useState<{ x: number; y: number }[]>([])
   const [minutiaeLines, setMinutiaeLines] = useState<{ start: number; end: number }[]>([])
-  const [scanProgress, setScanProgress] = useState(0)
-  const [scanResult, setScanResult] = useState<"success" | "failed" | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [demoMode, setDemoMode] = useState(false)
-  const [quickMode, setQuickMode] = useState(false)
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([])
   const [preparingNextScan, setPreparingNextScan] = useState(false)
-  const [lastAction, setLastAction] = useState<"entrada" | "salida" | null>(null)
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null)
   const [panelFlash, setPanelFlash] = useState<"success" | "failed" | null>(null)
   const [inactiveTime, setInactiveTime] = useState(0)
@@ -328,7 +332,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   
   // Nuevas variables de estado para integración con backend
   const [stompClient, setStompClient] = useState<any>(null)
-  const [isConnected, setIsConnected] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [readerName, setReaderName] = useState(selectedReader)
   const [browserSessionId, setBrowserSessionId] = useState(sessionId)
@@ -343,7 +346,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
 
   const scanTimeout = useRef<NodeJS.Timeout | null>(null)
   const resetTimeout = useRef<NodeJS.Timeout | null>(null)
-  const demoTimeout = useRef<NodeJS.Timeout | null>(null)
   const inactiveTimeout = useRef<NodeJS.Timeout | null>(null)
   const audioSuccess = useRef<HTMLAudioElement | null>(null)
   const audioError = useRef<HTMLAudioElement | null>(null)
@@ -498,7 +500,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     return () => {
       if (scanTimeout.current) clearTimeout(scanTimeout.current)
       if (resetTimeout.current) clearTimeout(resetTimeout.current)
-      if (demoTimeout.current) clearTimeout(demoTimeout.current)
       if (inactiveTimeout.current) clearTimeout(inactiveTimeout.current)
     }
   }, [])
@@ -646,8 +647,23 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     try {
       console.log("Evento de checador recibido:", event);
       
-      if (event.identificado) {
-        // Escaneo exitoso - empleado identificado
+      // Extraer código de estado, tipo y datos
+      const statusCode = event.statusCode;
+      const statusType = event.statusType || (event.identificado ? "OK" : "ERROR");
+      const statusData = event.data;
+      
+      // Actualizar estado con la información recibida
+      setStatusCode(statusCode);
+      setStatusData(statusData);
+      
+      // Generar mensaje personalizado basado en código y datos
+      if (statusCode) {
+        const message = getUserFriendlyMessage(statusCode, statusData, event.nombreCompleto);
+        setCustomMessage(message);
+      }
+      
+      if (event.identificado || (statusType === "OK" || statusType === "INFO")) {
+        // Escaneo exitoso - empleado identificado o información relevante
         setScanState("success");
         setScanResult("success");
         setPanelFlash("success");
@@ -692,7 +708,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
           }, 3000);
         }
       } else {
-        // Escaneo fallido - empleado no identificado
+        // Escaneo fallido - empleado no identificado u otro error
         setScanState("failed");
         setScanResult("failed");
         setPanelFlash("failed");
@@ -814,56 +830,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     }
   };
 
-  // Iniciar escaneo manualmente (modificado para funcionar mejor con modo real)
-  const startScan = (): void => {
-    if (demoMode) {
-      // En modo demo, simular eventos del backend
-      setScanState("scanning");
-      setScanProgress(0);
-      setShowInstructionMessage(true);
-      setShowOverlayMessage(false);
-      setScanResult(null);
-      
-      // Simular progreso
-      const progressInterval = setInterval(() => {
-        setScanProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
-            setScanState("analyzing");
-            
-            // Simular análisis
-            setTimeout(() => {
-              const isSuccess = Math.random() > 0.2; // 80% tasa de éxito
-              
-              // Simular un evento del backend
-              const mockEvent: BackendChecadorEvent = {
-                readerName,
-                identificado: isSuccess,
-                ...(isSuccess ? {
-                  empleadoId: 123,
-                  nombreCompleto: "Empleado Simulado",
-                  rfc: "SIMU800101XXX",
-                  accion: Math.random() > 0.5 ? "entrada" : "salida"
-                } : {})
-              };
-              
-              handleChecadorEvent(mockEvent);
-            }, 800);
-            
-            return 100;
-          }
-          return prev + 5;
-        });
-      }, 50);
-    } else if (stompClientRef.current && isConnected) {
-      // En modo real, no necesitamos hacer nada especial aquí
-      // El proceso de escaneo es continuo después de initiateChecadorProcess
-      
-      // Podemos reiniciar el proceso checador si es necesario
-      initiateChecadorProcess();
-    }
-  };
-
   // Modificar determineNextAction para usar datos reales
   const determineNextAction = (): "entrada" | "salida" => {
     // Si no hay jornadas o empleado, no podemos determinar la acción
@@ -918,6 +884,22 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
 
   // Función auxiliar para obtener icono y color de estado
   const getStatusIndicator = (status: SessionStatus | string) => {
+    // Si hay un código de estado, usar el mapeo de estilos basado en código
+    if (statusCode) {
+      const styles = getStyleClassesForCode(statusCode);
+      
+      return {
+        icon: statusCode.startsWith("2") ? 
+          <CheckCircle2 className={`h-5 w-5 ${styles.icon}`} /> : 
+          statusCode.startsWith("3") ? 
+            <Clock className={`h-5 w-5 ${styles.icon}`} /> :
+            <XCircle className={`h-5 w-5 ${styles.icon}`} />,
+        color: "border-zinc-700",
+        textColor: styles.text,
+        bgColor: styles.bgColor,
+      };
+    }
+    
     if (typeof status === 'string') {
       // Nuevos estados del backend
       switch (status) {
@@ -1025,6 +1007,19 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
 
   // Obtener color de caja de hora de entrada/salida
   const getTimeBoxColor = (status: SessionStatus | string, action: "entrada" | "salida" | null = null) => {
+    // Si hay un código de estado específico, usar el mapeo de estilos basado en código
+    if (statusCode) {
+      const styles = getStyleClassesForCode(statusCode);
+      
+      // Si se registró una entrada o salida específica, usar color específico
+      if (action === "entrada" && lastAction === "entrada") {
+        return styles.timeBox;
+      }
+      if (action === "salida" && lastAction === "salida") {
+        return styles.timeBox;
+      }
+    }
+    
     // Si se proporciona una acción específica, usar colores específicos
     if (action === "entrada") {
       return "bg-green-500/30 text-green-300 border-green-500"
@@ -1077,6 +1072,12 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
 
   // Obtener mensaje de resultado según el estado
   const getResultMessage = () => {
+    // Si hay un mensaje personalizado basado en código de estado, usarlo
+    if (customMessage) {
+      return customMessage;
+    }
+    
+    // Si no hay mensaje personalizado, usar los mensajes genéricos
     if (scanState === "success" || scanState === "background-success") {
       return lastAction === "entrada" ? "Entrada Registrada" : "Salida Registrada"
     }
@@ -1084,6 +1085,40 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
       return "Huella No Identificada"
     }
     return ""
+  }
+
+  // Función para obtener el color del texto del mensaje de resultado basado en el código de estado
+  const getResultMessageColor = () => {
+    if (statusCode) {
+      const styles = getStyleClassesForCode(statusCode);
+      return styles.text;
+    }
+    
+    // Si no hay código de estado, usar los colores basados en el estado del escaneo
+    if (scanState === "success" || scanState === "background-success") {
+      return "text-green-400";
+    }
+    if (scanState === "failed" || scanState === "background-failed") {
+      return "text-red-400";
+    }
+    return "text-transparent";
+  }
+  
+  // Función para obtener el color del panel basado en el código de estado
+  const getPanelColor = () => {
+    if (statusCode) {
+      const styles = getStyleClassesForCode(statusCode);
+      return styles.panel;
+    }
+    
+    // Si no hay código de estado, usar los colores basados en el estado de panelFlash
+    if (panelFlash === "success") {
+      return "bg-green-900/50 border-green-500";
+    }
+    if (panelFlash === "failed") {
+      return "bg-red-900/50 border-red-500";
+    }
+    return "bg-zinc-900 border-zinc-800";
   }
 
   // Filtrar sesiones de trabajo para el empleado actual
@@ -1099,37 +1134,9 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   // Determinar si mostrar las sesiones de trabajo
   const shouldShowWorkSessions = true // Siempre mostrar el panel
 
-  // Modo demo de escaneo automático
-  useEffect(() => {
-    if (demoMode) {
-      const startDemoScan = () => {
-        if (
-          scanState === "idle" ||
-          scanState === "ready" ||
-          scanState === "failed" ||
-          scanState === "background-failed"
-        ) {
-          startScan()
-        }
-      }
-
-      // Iniciar primer escaneo después de un retraso
-      demoTimeout.current = setTimeout(startDemoScan, 1500)
-
-      // Programar siguiente escaneo si está en estado de fondo
-      if (scanState === "background-success" || scanState === "background-failed") {
-        demoTimeout.current = setTimeout(startDemoScan, 2000)
-      }
-    }
-
-    return () => {
-      if (demoTimeout.current) clearTimeout(demoTimeout.current)
-    }
-  }, [demoMode, scanState])
-
   // Auto-reset después de mostrar asistencia si no hay nuevo escaneo
   useEffect(() => {
-    if (showAttendance && !quickMode) {
+    if (showAttendance) {
       resetTimeout.current = setTimeout(() => {
         // No resetear completamente, solo ir al estado ready
         setScanState("ready")
@@ -1142,49 +1149,24 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
         setPanelFlash(null)
         setShowOverlayMessage(false)
         setShowInstructionMessage(true)
-      }, 9000) // Mostrar asistencia durante 9 segundos antes de resetear (más rápido)
+        
+        // Limpiar mensajes personalizados y códigos de estado
+        setCustomMessage("")
+        setStatusCode(undefined)
+        setStatusData(undefined)
+      }, 9000) // Mostrar asistencia durante 9 segundos antes de resetear
     }
     return () => {
       if (resetTimeout.current) clearTimeout(resetTimeout.current)
     }
-  }, [showAttendance, quickMode])
+  }, [showAttendance])
 
-  // Generar puntos de minucia aleatorios y líneas de conexión
+  // Este efecto ahora es solo un placeholder para posible implementación futura de visualización
+  // de puntos de minucia reales que vengan del backend
   useEffect(() => {
-    if (scanState === "analyzing" || scanState === "background-analyzing") {
-      // Generar puntos de minucia en toda la huella con mejor distribución
-      const points = []
-      // Generar puntos en diferentes áreas de la huella para mejor cobertura
-      for (let i = 0; i < 20; i++) {
-        // Aumentar número de puntos
-        // Usar diferentes radios para cubrir toda la huella
-        const angle = Math.random() * Math.PI * 2
-        // Distribuir puntos en diferentes radios para cubrir toda la huella
-        const radius = 5 + Math.random() * 40 // Desde cerca del centro hasta el borde
-        points.push({
-          x: Math.cos(angle) * radius,
-          y: Math.sin(angle) * radius,
-        })
-      }
-      setMinutiaePoints(points)
-
-      // Generar más líneas de conexión entre puntos para mejor efecto visual
-      const lines = []
-      for (let i = 0; i < points.length; i++) {
-        // Conectar cada punto con 2-3 puntos aleatorios
-        const numConnections = 2 + Math.floor(Math.random() * 2)
-        for (let j = 0; j < numConnections; j++) {
-          const endIndex = Math.floor(Math.random() * points.length)
-          if (endIndex !== i) {
-            lines.push({
-              start: i,
-              end: endIndex,
-            })
-          }
-        }
-      }
-      setMinutiaeLines(lines)
-    }
+    // Este efecto ya no utiliza generación aleatoria
+    // El backend maneja la captura y análisis de huellas
+    // Este código es solo para visualización con la API real si se implementara
   }, [scanState])
 
   // Reproducir sonidos basados en el estado de escaneo
@@ -1241,6 +1223,17 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
 
   // Obtener color basado en el estado de escaneo
   const getScanColor = (state: ScanState) => {
+    // Si hay un código de estado, usar el mapeo de estilos basado en código
+    if (statusCode) {
+      const styles = getStyleClassesForCode(statusCode);
+      
+      // Extraer el color base sin el prefijo "text-" y el sufijo "-500"
+      const colorMatch = styles.icon.match(/text-(\w+)-\d+/);
+      if (colorMatch && colorMatch[1]) {
+        return colorMatch[1]; // Devuelve "green", "red", "blue", etc.
+      }
+    }
+    
     if (state === "success" || state === "background-success") return "green"
     if (state === "failed" || state === "background-failed") return "red"
     return "blue" // Color neutro
@@ -1366,27 +1359,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                 Sonido
               </label>
             </div>
-
-            {/* Solo mostrar modo demo si no estamos conectados a un lector real */}
-            {!isConnected && (
-              <>
-                <div className="flex items-center space-x-2 bg-zinc-800 p-2 rounded-lg">
-                  <Switch id="demo-toggle" checked={demoMode} onCheckedChange={setDemoMode} />
-                  <label htmlFor="demo-toggle" className="text-sm text-zinc-400 flex items-center gap-1">
-                    <PlayCircle className="h-4 w-4" />
-                    Demo
-                  </label>
-                </div>
-
-                <div className="flex items-center space-x-2 bg-zinc-800 p-2 rounded-lg">
-                  <Switch id="quick-toggle" checked={quickMode} onCheckedChange={setQuickMode} />
-                  <label htmlFor="quick-toggle" className="text-sm text-zinc-400 flex items-center gap-1">
-                    <Zap className="h-4 w-4" />
-                    Rápido
-                  </label>
-                </div>
-              </>
-            )}
             
             {/* Si estamos conectados, mostrar el nombre del lector */}
             {isConnected && (
@@ -1506,24 +1478,18 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
 
           {/* Reloj principal - centrado */}
           <Card
-            className={`relative flex-1 overflow-hidden bg-zinc-900 p-4 text-white shadow-lg border-2 border-zinc-800 transition-colors duration-300 ${
-              panelFlash === "success"
-                ? "bg-green-900/50 border-green-500"
-                : panelFlash === "failed"
-                  ? "bg-red-900/50 border-red-500"
-                  : "bg-zinc-900"
-            }`}
+            className={`relative flex-1 overflow-hidden p-4 text-white shadow-lg border-2 transition-colors duration-300 ${getPanelColor()}`}
             ref={containerRef}
           >
             {/* Mensaje de resultado como overlay - posición fija */}
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
               <div
-                className={`text-5xl font-bold transition-opacity duration-300 ${
+                className={`text-5xl font-bold transition-opacity duration-300 ${getResultMessageColor()} ${
                   scanState === "success" || scanState === "background-success"
-                    ? "text-green-400 drop-shadow-[0_0_20px_rgba(74,222,128,0.8)]"
+                    ? "drop-shadow-[0_0_20px_rgba(74,222,128,0.8)]"
                     : scanState === "failed" || scanState === "background-failed"
-                      ? "text-red-400 drop-shadow-[0_0_20px_rgba(248,113,113,0.8)]"
-                      : "text-transparent"
+                      ? "drop-shadow-[0_0_20px_rgba(248,113,113,0.8)]"
+                      : ""
                 }`}
                 style={{ opacity: showOverlayMessage ? 0.95 : 0 }}
               >
@@ -1779,7 +1745,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                         duration: 0.2,
                       }}
                     >
-                      <CheckCircle2 className="h-32 w-32 text-green-500" />
+                      <CheckCircle2 className={`h-32 w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : "text-green-500"}`} />
                     </motion.div>
                   )}
 
@@ -1795,7 +1761,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                         duration: 0.2,
                       }}
                     >
-                      <XCircle className="h-32 w-32 text-red-500" />
+                      <XCircle className={`h-32 w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : "text-red-500"}`} />
                     </motion.div>
                   )}
                 </div>
@@ -1843,12 +1809,12 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                     }`}
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <LogIn className="h-6 w-6" />
+                      <LogIn className={`h-6 w-6 ${showAttendance && lastAction === "entrada" && statusCode ? getStyleClassesForCode(statusCode).icon : ""}`} />
                       <p className="text-lg font-medium">Entrada</p>
                     </div>
                     <p
                       className={`text-2xl font-bold ${
-                        showAttendance && lastAction === "entrada" ? "text-white" : "text-zinc-600"
+                        showAttendance && lastAction === "entrada" ? (statusCode ? getStyleClassesForCode(statusCode).text : "text-white") : "text-zinc-600"
                       }`}
                     >
                       {showAttendance && lastAction === "entrada" && activeSessionId !== null
@@ -1870,12 +1836,12 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                     }`}
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <LogOut className="h-6 w-6" />
+                      <LogOut className={`h-6 w-6 ${showAttendance && lastAction === "salida" && statusCode ? getStyleClassesForCode(statusCode).icon : ""}`} />
                       <p className="text-lg font-medium">Salida</p>
                     </div>
                     <p
                       className={`text-2xl font-bold ${
-                        showAttendance && lastAction === "salida" ? "text-white" : "text-zinc-600"
+                        showAttendance && lastAction === "salida" ? (statusCode ? getStyleClassesForCode(statusCode).text : "text-white") : "text-zinc-600"
                       }`}
                     >
                       {showAttendance && lastAction === "salida" && activeSessionId !== null
