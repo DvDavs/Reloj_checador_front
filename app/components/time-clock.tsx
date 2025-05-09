@@ -162,54 +162,43 @@ type ScanState =
 const getUserFriendlyMessage = (code: string | undefined, data: Record<string, any> | undefined, nombreEmpleado?: string) => {
   if (!code) return "Estado desconocido";
   
-  const name = nombreEmpleado || data?.employeeName || "Usuario";
-  
   switch (code) {
     // Códigos de éxito (2xx)
     case "200":
-      return `¡Listo, ${name}! Tu entrada está registrada.`;
+      return "¡Entrada registrada!";
     case "201":
-      return `¡Hasta luego, ${name}! Tu salida está registrada.`;
+      return "¡Salida registrada!";
     case "202":
-      return `Entrada Registrada, ${name}. Se anotó un retardo.`;
+      return "Entrada registrada con retardo";
     
     // Códigos de información (3xx)
     case "300": {
-      const lastTime = data?.lastRecordTime ? `${data.lastRecordTime}` : "";
       const minWait = data?.minWaitMinutes || 10;
-      return `Espera un momento. Intenta registrarte de nuevo en ${minWait} minutos${lastTime ? ` (último registro: ${lastTime})` : ""}.`;
+      return `Espera ${minWait} minutos para registrar`;
     }
-    case "301": {
-      const existingTime = data?.existingTime ? ` a las ${data.existingTime}` : "";
-      return `Ya registraste tu entrada hoy${existingTime}.`;
-    }
-    case "302": {
-      const existingTime = data?.existingTime ? ` a las ${data.existingTime}` : "";
-      return `Ya registraste tu salida hoy${existingTime}.`;
-    }
+    case "301":
+      return "Ya registraste tu entrada hoy";
+    case "302":
+      return "Ya registraste tu salida hoy";
     
     // Códigos de error de reglas de negocio (4xx)
     case "400":
-      return "Huella no reconocida. Intenta de nuevo, por favor.";
-    case "401": {
-      const validRanges = data?.validRanges ? ` ${data.validRanges}` : "";
-      return `Fuera de horario. No es posible registrar en este momento.${validRanges}`;
-    }
+      return "Huella no reconocida";
+    case "401":
+      return "Fuera de horario permitido";
     case "402":
-      return "No tienes un horario asignado para hoy.";
+      return "Sin horario asignado hoy";
     case "403":
-      return "Recurso no encontrado. Contacta a soporte.";
+      return "Recurso no encontrado";
     
     // Códigos de error técnicos (5xx)
-    case "500": {
-      const errorDesc = data?.errorDescription || "";
-      return `Problema con el lector${errorDesc ? `: ${errorDesc}` : ""}. Intenta de nuevo o avisa a soporte.`;
-    }
+    case "500":
+      return "Problema con el lector";
     case "501":
-      return "Ups, algo salió mal. Intenta de nuevo.";
+      return "Error del sistema";
     
     default:
-      return "Estado desconocido. Contacta a soporte.";
+      return "Estado desconocido";
   }
 };
 
@@ -339,10 +328,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   const [currentWorkSessions, setCurrentWorkSessions] = useState<HorarioAsignadoDto[]>([])
   const [workSessions, setWorkSessions] = useState<WorkSession[]>([])
   const [jornadasDelDia, setJornadasDelDia] = useState<JornadaEstadoDto[]>([])
-  const [currentEmployee, setCurrentEmployee] = useState<{id: string, name: string, totalHours?: string, weeklyHours?: string}>({
-    id: "",
-    name: "",
-  })
+  const [currentEmployee, setCurrentEmployee] = useState<{id: string, name: string, totalHours?: string, weeklyHours?: string} | null>(null)
 
   const scanTimeout = useRef<NodeJS.Timeout | null>(null)
   const resetTimeout = useRef<NodeJS.Timeout | null>(null)
@@ -642,99 +628,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     }
   };
 
-  // Manejar eventos recibidos por WebSocket desde el backend
-  const handleChecadorEvent = (event: BackendChecadorEvent) => {
-    try {
-      console.log("Evento de checador recibido:", event);
-      
-      // Extraer código de estado, tipo y datos
-      const statusCode = event.statusCode;
-      const statusType = event.statusType || (event.identificado ? "OK" : "ERROR");
-      const statusData = event.data;
-      
-      // Actualizar estado con la información recibida
-      setStatusCode(statusCode);
-      setStatusData(statusData);
-      
-      // Generar mensaje personalizado basado en código y datos
-      if (statusCode) {
-        const message = getUserFriendlyMessage(statusCode, statusData, event.nombreCompleto);
-        setCustomMessage(message);
-      }
-      
-      if (event.identificado || (statusType === "OK" || statusType === "INFO")) {
-        // Escaneo exitoso - empleado identificado o información relevante
-        setScanState("success");
-        setScanResult("success");
-        setPanelFlash("success");
-        setShowOverlayMessage(true);
-        setShowInstructionMessage(false);
-        
-        if (event.empleadoId !== undefined && event.nombreCompleto) {
-          // Actualizar información del empleado actual
-          setCurrentEmployee({
-            id: event.empleadoId.toString(),
-            name: event.nombreCompleto,
-          });
-          
-          // Cargar detalles completos del empleado
-          fetchEmployeeDetails(event.empleadoId);
-          
-          // Vuelve a cargar el estado de las jornadas para reflejar la nueva checada
-          fetchEstadoJornadas(event.empleadoId);
-          
-          // Determinar si fue entrada o salida (esto debería venir del backend idealmente)
-          const action = event.accion || determineNextAction();
-          setLastAction(action);
-          
-          // Añadir al historial local
-          const newScan: ScanHistoryItem = {
-            name: event.nombreCompleto,
-            time: new Date(),
-            success: true,
-            action: action,
-            employeeId: event.empleadoId.toString(),
-          };
-          setScanHistory(prev => [newScan, ...prev.slice(0, 2)]);
-          
-          // Mostrar la información de asistencia
-          setShowAttendance(true);
-          
-          // Preparar para el siguiente escaneo
-          setPreparingNextScan(true);
-          setTimeout(() => {
-            setScanState("ready");
-            setPreparingNextScan(false);
-          }, 3000);
-        }
-      } else {
-        // Escaneo fallido - empleado no identificado u otro error
-        setScanState("failed");
-        setScanResult("failed");
-        setPanelFlash("failed");
-        setShowOverlayMessage(true);
-        setShowInstructionMessage(false);
-        
-        // Añadir al historial local
-        const failedScan: ScanHistoryItem = {
-          name: "Desconocido",
-          time: new Date(),
-          success: false,
-          action: "entrada", // Por defecto
-          employeeId: "",
-        };
-        setScanHistory(prev => [failedScan, ...prev.slice(0, 2)]);
-        
-        // Después del fracaso, resetear al estado ready
-        setTimeout(() => {
-          setScanState("ready");
-        }, 3500);
-      }
-    } catch (error) {
-      console.error("Error al procesar evento de checador:", error);
-    }
-  };
-
   // Cargar detalles completos del empleado
   const fetchEmployeeDetails = async (employeeId: number) => {
     try {
@@ -833,7 +726,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   // Modificar determineNextAction para usar datos reales
   const determineNextAction = (): "entrada" | "salida" => {
     // Si no hay jornadas o empleado, no podemos determinar la acción
-    if (jornadasDelDia.length === 0 || !currentEmployee.id) {
+    if (jornadasDelDia.length === 0 || !currentEmployee?.id) {
       setActiveSessionId(null);
       return "entrada"; // Por defecto, entrada
     }
@@ -880,6 +773,113 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     // Por defecto, si no hay ninguna condición, asumir entrada
     setActiveSessionId(null);
     return "entrada";
+  };
+
+  // Manejar eventos recibidos por WebSocket desde el backend
+  const handleChecadorEvent = (event: BackendChecadorEvent) => {
+    try {
+      console.log("Evento de checador recibido:", event);
+      
+      // Extraer código de estado, tipo y datos
+      const statusCode = event.statusCode;
+      const statusType = event.statusType || (event.identificado ? "OK" : "ERROR");
+      const statusData = event.data;
+      
+      // Actualizar estado con la información recibida
+      setStatusCode(statusCode);
+      setStatusData(statusData);
+      
+      // Generar mensaje personalizado basado en código y datos
+      if (statusCode) {
+        const message = getUserFriendlyMessage(statusCode, statusData, event.nombreCompleto);
+        setCustomMessage(message);
+      }
+      
+      // Si tenemos un empleadoId en el evento, procesamos la información del empleado y sus jornadas
+      // independientemente de si la operación fue exitosa o no
+      if (event.empleadoId !== undefined && event.nombreCompleto) {
+        // Actualizar información del empleado actual
+        setCurrentEmployee({
+          id: event.empleadoId.toString(),
+          name: event.nombreCompleto,
+        });
+        
+        // Cargar detalles completos del empleado y jornadas
+        fetchEmployeeDetails(event.empleadoId);
+        
+        // Mostrar la información de asistencia
+        setShowAttendance(true);
+      }
+      
+      if (event.identificado || (statusType === "OK" || statusType === "INFO")) {
+        // Escaneo exitoso - empleado identificado o información relevante
+        setScanState("success");
+        setScanResult("success");
+        setPanelFlash("success");
+        setShowOverlayMessage(true);
+        setShowInstructionMessage(false);
+        
+        if (event.empleadoId !== undefined && event.nombreCompleto) {
+          // Determinar si fue entrada o salida (esto debería venir del backend idealmente)
+          const action = event.accion || determineNextAction();
+          setLastAction(action);
+          
+          // Añadir al historial local
+          const newScan: ScanHistoryItem = {
+            name: event.nombreCompleto,
+            time: new Date(),
+            success: true,
+            action: action,
+            employeeId: event.empleadoId.toString(),
+          };
+          setScanHistory(prev => [newScan, ...prev.slice(0, 2)]);
+          
+          // Preparar para el siguiente escaneo
+          setPreparingNextScan(true);
+          setTimeout(() => {
+            setScanState("ready");
+            setPreparingNextScan(false);
+          }, 3000);
+        }
+      } else {
+        // Escaneo fallido - empleado no identificado u otro error
+        setScanState("failed");
+        setScanResult("failed");
+        setPanelFlash("failed");
+        setShowOverlayMessage(true);
+        setShowInstructionMessage(false);
+        
+        // Si tenemos empleadoId pero la operación falló (ej: fuera de horario permitido)
+        if (event.empleadoId !== undefined && event.nombreCompleto) {
+          const action = event.accion || determineNextAction();
+          const failedScanForKnownEmployee: ScanHistoryItem = {
+            name: event.nombreCompleto,
+            time: new Date(),
+            success: false, // Marcamos como no exitoso para el registro del historial
+            action: action,
+            employeeId: event.empleadoId.toString(),
+          };
+          setScanHistory(prev => [failedScanForKnownEmployee, ...prev.slice(0, 2)]);
+        } else {
+          // Si no hay empleado identificado, registramos como desconocido
+          const failedScan: ScanHistoryItem = {
+            name: "Desconocido",
+            time: new Date(),
+            success: false,
+            action: "entrada", // Por defecto
+            employeeId: "",
+          };
+          setScanHistory(prev => [failedScan, ...prev.slice(0, 2)]);
+        }
+        
+        // Después del fracaso, resetear al estado ready
+        setTimeout(() => {
+          setScanState("ready");
+        }, 3500);
+      }
+    } catch (error) {
+      console.error("Error al procesar evento de checador:", error);
+    }
   };
 
   // Función auxiliar para obtener icono y color de estado
@@ -1123,7 +1123,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
 
   // Filtrar sesiones de trabajo para el empleado actual
   const filteredWorkSessions = workSessions
-    .filter((session) => session.employeeId === currentEmployee.id)
+    .filter((session) => session.employeeId === currentEmployee?.id)
     .sort((a, b) => {
       if (a.isCurrent && !b.isCurrent) return -1
       if (!a.isCurrent && b.isCurrent) return 1
@@ -1138,28 +1138,34 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   useEffect(() => {
     if (showAttendance) {
       resetTimeout.current = setTimeout(() => {
-        // No resetear completamente, solo ir al estado ready
-        setScanState("ready")
-        setShowAttendance(false)
-        setScanProgress(0)
-        setMinutiaePoints([])
-        setMinutiaeLines([])
-        setScanResult(null)
-        setPreparingNextScan(false)
-        setPanelFlash(null)
-        setShowOverlayMessage(false)
-        setShowInstructionMessage(true)
+        // Solo ocultar el mensaje de overlay, no resetear todo si aún hay empleado
+        setShowOverlayMessage(false);
+        setShowInstructionMessage(true);
         
-        // Limpiar mensajes personalizados y códigos de estado
-        setCustomMessage("")
-        setStatusCode(undefined)
-        setStatusData(undefined)
-      }, 9000) // Mostrar asistencia durante 9 segundos antes de resetear
+        // Si no hay empleado activo, sí podemos resetear más cosas
+        if (!currentEmployee) {
+          setScanState("ready")
+          setShowAttendance(false)
+          setScanProgress(0)
+          setMinutiaePoints([])
+          setMinutiaeLines([])
+          setScanResult(null)
+          setPreparingNextScan(false)
+          setPanelFlash(null)
+          setCustomMessage("")
+          setStatusCode(undefined)
+          setStatusData(undefined)
+        } else {
+          // Si hay empleado, solo preparamos para el siguiente escaneo
+          setScanState("ready");
+          setPanelFlash(null); // Quitar flash
+        }
+      }, 9000) // Mostrar asistencia/estado durante 9 segundos antes de resetear
     }
     return () => {
       if (resetTimeout.current) clearTimeout(resetTimeout.current)
     }
-  }, [showAttendance])
+  }, [showAttendance, currentEmployee])
 
   // Este efecto ahora es solo un placeholder para posible implementación futura de visualización
   // de puntos de minucia reales que vengan del backend
@@ -1267,7 +1273,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   // Función para obtener la próxima jornada y sus horarios
   const getNextScheduledTime = (): { entryTime: string, exitTime: string, detalleHorarioId: number | null } => {
     // Si no hay jornadas o no hay empleado actual, retornar valores por defecto
-    if (jornadasDelDia.length === 0 || !currentEmployee.id) {
+    if (jornadasDelDia.length === 0 || !currentEmployee?.id) {
       return { entryTime: "—", exitTime: "—", detalleHorarioId: null };
     }
 
@@ -1790,9 +1796,9 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-white">
-                      {showAttendance ? currentEmployee.name : "Usuario"}
+                      {showAttendance && currentEmployee ? currentEmployee.name : "Usuario"}
                     </h2>
-                    <p className="text-lg text-zinc-400">{showAttendance ? currentEmployee.id : "ID-0000-0000"}</p>
+                    <p className="text-lg text-zinc-400">{showAttendance && currentEmployee ? currentEmployee.id : "ID-0000-0000"}</p>
                   </div>
                 </div>
 
