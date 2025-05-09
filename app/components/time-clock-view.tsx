@@ -24,267 +24,18 @@ import { es } from "date-fns/locale"
 import axios from 'axios'
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
+import { formatTime, getUserFriendlyMessage, getStyleClassesForCode } from "../lib/timeClockUtils"
 
-// Actualizar los tipos para soportar múltiples sesiones y patrones de asistencia
-
-// Añadir nuevos tipos para el estado de la sesión y patrones de asistencia
-type SessionStatus =
-  | "entrada-ok"
-  | "salida-ok"
-  | "entrada-tarde"
-  | "salida-incidente"
-  | "salida-pendiente"
-  | "ausente"
-  | "pendiente"
-
-// Definir un tipo para la sesión de trabajo
-type WorkSession = {
-  id: number
-  entryTime: string | null
-  exitTime: string | null
-  scheduledEntry: string
-  scheduledExit: string
-  entryStatus: SessionStatus
-  exitStatus: SessionStatus
-  isCurrent: boolean
-  employeeId: string
-}
-
-// Definición del DTO que esperamos del nuevo endpoint
-type JornadaEstadoDto = {
-  detalleHorarioId: number;
-  horarioAsignadoId: number;
-  horarioNombre: string;
-  turno: number;
-  horaEntradaProgramada: string; // Formato "HH:mm:ss"
-  horaSalidaProgramada: string; // Formato "HH:mm:ss"
-  horaEntradaReal: string | null; // Formato "yyyy-MM-dd HH:mm:ss"
-  horaSalidaReal: string | null; // Formato "yyyy-MM-dd HH:mm:ss"
-  estatusJornada: string; // "PENDIENTE", "EN_CURSO", "COMPLETADA", "RETARDO", "AUSENTE_ENTRADA", etc.
-  minutosRetardoPreliminar: number | null;
-};
-
-// Corregir los tipos de DTOs para que coincidan con el backend
-type EmpleadoDto = {
-  id: number
-  rfc: string
-  curp: string
-  primerNombre: string
-  segundoNombre: string | null
-  primerApellido: string
-  segundoApellido: string | null
-  departamentoAcademicoId: number | null
-  departamentoAdministrativoId: number | null
-  tipoNombramientoPrincipal: string | null
-  tipoNombramientoSecundario: string | null
-  estatusId: number | null
-  nombreCompleto: string
-  // Campos adicionales calculados para UI
-  totalHoras?: string
-  horasSemana?: string
-}
-
-type HorarioDto = {
-  id: number
-  nombre: string
-  descripcion: string | null
-  activo: boolean
-  detalles: DetalleHorarioDto[]
-}
-
-type DetalleHorarioDto = {
-  id: number
-  diaSemana: number
-  horaEntrada: string
-  horaSalida: string
-  toleranciaEntrada: number
-  toleranciaSalida: number
-}
-
-type HorarioAsignadoDto = {
-  id: number
-  empleadoId: number
-  empleadoNombre: string | null
-  horarioId: number
-  horarioNombre: string
-  tipoHorarioId: number | null
-  tipoHorarioNombre: string | null
-  fechaInicio: string
-  fechaFin: string | null
-  // Campos adicionales para la UI
-  entryTime?: string | null
-  exitTime?: string | null
-  horaEntrada?: string
-  horaSalida?: string
-  estadoEntrada?: SessionStatus
-  estadoSalida?: SessionStatus
-  actual?: boolean
-}
-
-// Definir tipo para eventos del checador recibidos por WebSocket según el backend
-type BackendChecadorEvent = {
-  readerName: string
-  identificado: boolean
-  empleadoId?: number
-  nombreCompleto?: string
-  rfc?: string
-  errorMessage?: string
-  accion?: 'entrada' | 'salida'
-  statusCode?: string  // Nuevo: código de estado del backend
-  statusType?: string  // Nuevo: tipo de estado (OK, INFO, ERROR)
-  data?: Record<string, any>  // Nuevo: datos adicionales del evento
-}
-
-// Actualizar el tipo ScanHistoryItem para incluir información de la sesión
-type ScanHistoryItem = {
-  name: string
-  time: Date
-  success: boolean
-  action: "entrada" | "salida"
-  sessionId?: number
-  employeeId: string
-}
-
-// Definir todos los posibles estados de escaneo
-type ScanState =
-  | "idle"
-  | "scanning"
-  | "analyzing"
-  | "success"
-  | "failed"
-  | "ready"
-  | "background-scanning"
-  | "background-analyzing"
-  | "background-success"
-  | "background-failed"
-
-// Mapeo de códigos de estado a mensajes amigables para el usuario
-const getUserFriendlyMessage = (code: string | undefined, data: Record<string, any> | undefined, nombreEmpleado?: string) => {
-  if (!code) return "Estado desconocido";
-  
-  switch (code) {
-    // Códigos de éxito (2xx)
-    case "200":
-      return "¡Entrada registrada!";
-    case "201":
-      return "¡Salida registrada!";
-    case "202":
-      return "Entrada registrada con retardo";
-    
-    // Códigos de información (3xx)
-    case "300": {
-      const minWait = data?.minWaitMinutes || 10;
-      return `Espera ${minWait} minutos para registrar`;
-    }
-    case "301":
-      return "Ya registraste tu entrada hoy";
-    case "302":
-      return "Ya registraste tu salida hoy";
-    
-    // Códigos de error de reglas de negocio (4xx)
-    case "400":
-      return "Huella no reconocida";
-    case "401":
-      return "Fuera de horario permitido";
-    case "402":
-      return "Sin horario asignado hoy";
-    case "403":
-      return "Recurso no encontrado";
-    
-    // Códigos de error técnicos (5xx)
-    case "500":
-      return "Problema con el lector";
-    case "501":
-      return "Error del sistema";
-    
-    default:
-      return "Estado desconocido";
-  }
-};
-
-// Función para mapear códigos de estado a estilos visuales
-const getStyleClassesForCode = (code: string | undefined): {
-  panel: string;
-  icon: string;
-  timeBox: string;
-  text: string;
-  bgColor: string;
-} => {
-  if (!code) {
-    // Estado por defecto cuando no hay código
-    return {
-      panel: "bg-zinc-900 border-zinc-800",
-      icon: "text-zinc-500",
-      timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700",
-      text: "text-zinc-300",
-      bgColor: "bg-zinc-700/20"
-    };
-  }
-  
-  // Códigos de éxito (2xx)
-  if (code.startsWith("2")) {
-    // Caso especial para retardo (202)
-    if (code === "202") {
-      return {
-        panel: "bg-yellow-900/50 border-yellow-500",
-        icon: "text-yellow-500",
-        timeBox: "bg-yellow-500/30 text-yellow-300 border-yellow-500",
-        text: "text-yellow-400",
-        bgColor: "bg-yellow-500/20"
-      };
-    }
-    // Otros éxitos (200, 201)
-    return {
-      panel: "bg-green-900/50 border-green-500",
-      icon: "text-green-500",
-      timeBox: "bg-green-500/30 text-green-300 border-green-500",
-      text: "text-green-400",
-      bgColor: "bg-green-500/20"
-    };
-  }
-  
-  // Códigos de información (3xx)
-  if (code.startsWith("3")) {
-    return {
-      panel: "bg-blue-900/50 border-blue-500",
-      icon: "text-blue-500",
-      timeBox: "bg-blue-500/30 text-blue-300 border-blue-500",
-      text: "text-blue-400",
-      bgColor: "bg-blue-500/20"
-    };
-  }
-  
-  // Códigos de error de reglas de negocio (4xx)
-  if (code.startsWith("4")) {
-    return {
-      panel: "bg-red-900/50 border-red-500",
-      icon: "text-red-500",
-      timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700", // Neutral en errores
-      text: "text-red-400",
-      bgColor: "bg-red-500/20"
-    };
-  }
-  
-  // Códigos de error técnicos (5xx)
-  if (code.startsWith("5")) {
-    return {
-      panel: "bg-red-900/50 border-red-500",
-      icon: "text-red-500",
-      timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700", // Neutral en errores técnicos
-      text: "text-red-400",
-      bgColor: "bg-red-500/20"
-    };
-  }
-  
-  // Para cualquier otro código o formato inesperado, usar estilo neutral
-  return {
-    panel: "bg-zinc-900 border-zinc-800",
-    icon: "text-zinc-500",
-    timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700",
-    text: "text-zinc-300",
-    bgColor: "bg-zinc-700/20"
-  };
-};
+// Importar los tipos desde timeClockTypes.ts
+import {
+  SessionStatus,
+  WorkSession,
+  JornadaEstadoDto,
+  EmpleadoDto,
+  BackendChecadorEvent,
+  ScanHistoryItem,
+  ScanState
+} from "../lib/types/timeClockTypes";
 
 // Actualizar el componente para incluir las nuevas variables de estado y funciones
 export default function TimeClock({ selectedReader, sessionId }: { selectedReader: string, sessionId: string }) {
@@ -325,7 +76,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   const [readerName, setReaderName] = useState(selectedReader)
   const [browserSessionId, setBrowserSessionId] = useState(sessionId)
   const [currentEmployeeData, setCurrentEmployeeData] = useState<EmpleadoDto | null>(null)
-  const [currentWorkSessions, setCurrentWorkSessions] = useState<HorarioAsignadoDto[]>([])
+  const [currentWorkSessions, setCurrentWorkSessions] = useState<WorkSession[]>([])
   const [workSessions, setWorkSessions] = useState<WorkSession[]>([])
   const [jornadasDelDia, setJornadasDelDia] = useState<JornadaEstadoDto[]>([])
   const [currentEmployee, setCurrentEmployee] = useState<{id: string, name: string, totalHours?: string, weeklyHours?: string} | null>(null)
@@ -1227,48 +978,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     return () => clearInterval(interval)
   }, [scanState])
 
-  // Obtener color basado en el estado de escaneo
-  const getScanColor = (state: ScanState) => {
-    // Si hay un código de estado, usar el mapeo de estilos basado en código
-    if (statusCode) {
-      const styles = getStyleClassesForCode(statusCode);
-      
-      // Extraer el color base sin el prefijo "text-" y el sufijo "-500"
-      const colorMatch = styles.icon.match(/text-(\w+)-\d+/);
-      if (colorMatch && colorMatch[1]) {
-        return colorMatch[1]; // Devuelve "green", "red", "blue", etc.
-      }
-    }
-    
-    if (state === "success" || state === "background-success") return "green"
-    if (state === "failed" || state === "background-failed") return "red"
-    return "blue" // Color neutro
-  }
-
-  // Verificar si el estado es un estado de fondo
-  const isBackgroundState = (state: ScanState) => {
-    return state.startsWith("background-")
-  }
-
-  // Obtener estado base sin prefijo de fondo
-  const getBaseState = (state: ScanState) => {
-    return state.replace("background-", "") as ScanState
-  }
-
-  // Función auxiliar para formatear hora HH:mm:ss a HH:mm
-  const formatTime = (timeString: string | null): string => {
-    if (!timeString) return "—";
-    try {
-      // Si es formato "yyyy-MM-dd HH:mm:ss", extraer la parte de hora
-      if (timeString.includes(' ')) {
-        return timeString.split(' ')[1].substring(0, 5); // "HH:mm"
-      }
-      // Si ya es formato "HH:mm:ss", solo tomar "HH:mm"
-      return timeString.substring(0, 5); // "HH:mm"
-    } catch (e) {
-      return "—";
-    }
-  };
 
   // Función para obtener la próxima jornada y sus horarios
   const getNextScheduledTime = (): { entryTime: string, exitTime: string, detalleHorarioId: number | null } => {
