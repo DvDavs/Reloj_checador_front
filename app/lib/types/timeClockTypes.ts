@@ -72,6 +72,7 @@ export type ScanHistoryItem = {
   action: "entrada" | "salida";
   sessionId?: number;
   employeeId: string;
+  statusCode?: string;
 };
 
 export type ScanState =

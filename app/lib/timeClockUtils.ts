@@ -1,4 +1,4 @@
-import type { ScanState } from "../components/time-clock";
+import type { ScanState } from "./types/timeClockTypes";
 
 export const getUserFriendlyMessage = (code: string | undefined, data: Record<string, any> | undefined, nombreEmpleado?: string) => {
   if (!code) return "Estado desconocido";
