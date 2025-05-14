@@ -2,12 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from 'axios';
-import { BackendChecadorEvent } from '../lib/types/timeClockTypes';
+import { BackendChecadorEvent, FullAttendanceStateEvent, StompEventMessage } from '../lib/types/timeClockTypes';
 
 interface UseStompTimeClockProps {
   initialReaderName: string;
   initialSessionId: string;
-  onChecadorEvent: (event: BackendChecadorEvent) => void;
+  onChecadorEvent: (event: BackendChecadorEvent | FullAttendanceStateEvent) => void;
   onConnectionError: (error: string | null) => void;
   onReadyStateChange: (isReady: boolean) => void;
   apiBaseUrl?: string;
@@ -148,9 +148,38 @@ const useStompTimeClock = ({
         console.log(`STOMP Hook: Suscribiéndose a: ${topic}`);
         client.subscribe(topic, (message) => {
           try {
-            onChecadorEventRef.current(JSON.parse(message.body));
+            const data = JSON.parse(message.body);
+            
+            // Función para verificar si el mensaje es un FullAttendanceStateEvent
+            const isFullAttendanceEvent = (event: any): event is FullAttendanceStateEvent => 
+              'type' in event && event.type === 'FULL_ATTENDANCE_STATE_UPDATE';
+            
+            if (isFullAttendanceEvent(data)) {
+              // Es un FullAttendanceStateEvent
+              console.log("STOMP Hook: Recibido evento FULL_ATTENDANCE_STATE_UPDATE:", {
+                employeeId: data.employeeData?.id,
+                name: data.employeeData?.nombreCompleto,
+                nextAction: data.nextRecommendedActionBackend,
+                activeSession: data.activeSessionIdBackend,
+                sessionsCount: data.dailyWorkSessions?.length || 0
+              });
+            } else {
+              // Es un BackendChecadorEvent
+              const checadorEvent = data as BackendChecadorEvent;
+              console.log("STOMP Hook: Recibido evento checador:", {
+                empleadoId: checadorEvent.empleadoId,
+                identificado: checadorEvent.identificado,
+                accion: checadorEvent.accion,
+                statusCode: checadorEvent.statusCode,
+                statusType: checadorEvent.statusType
+              });
+            }
+            
+            // Pasar el evento a la función de manejo
+            onChecadorEventRef.current(data);
           } catch (error) {
             console.error("STOMP Hook: Error al parsear mensaje JSON:", error);
+            console.error("STOMP Hook: Mensaje original:", message.body);
             onConnectionErrorRef.current("Error al procesar mensaje del servidor.");
           }
         });

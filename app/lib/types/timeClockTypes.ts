@@ -1,4 +1,11 @@
-// Añadir las definiciones de tipos y exportarlas
+// Tipos y definiciones para el componente TimeClock y servicios relacionados
+
+/**
+ * Estados posibles para una sesión de trabajo.
+ * 
+ * NOTA: Este tipo podría ser reemplazado por los valores estatusJornada de JornadaEstadoDto,
+ * si se decide eliminar el tipo WorkSession y usar directamente JornadaEstadoDto.
+ */
 export type SessionStatus =
   | "entrada-ok"
   | "salida-ok"
@@ -8,6 +15,13 @@ export type SessionStatus =
   | "ausente"
   | "pendiente";
 
+/**
+ * Representación simplificada de una jornada de trabajo.
+ * 
+ * NOTA: Este tipo podría ser eliminado y reemplazar su uso directamente con 
+ * JornadaEstadoDto si se refactoriza el código para usar los DTOs del backend 
+ * directamente. Actualmente se mantiene para compatibilidad.
+ */
 export type WorkSession = {
   id: number;
   entryTime: string | null;
@@ -20,6 +34,10 @@ export type WorkSession = {
   employeeId: string;
 };
 
+/**
+ * Datos del estado de una jornada de trabajo recibido desde el backend.
+ * Es la representación principal del estado de una jornada.
+ */
 export type JornadaEstadoDto = {
   detalleHorarioId: number;
   horarioAsignadoId: number;
@@ -33,6 +51,9 @@ export type JornadaEstadoDto = {
   minutosRetardoPreliminar: number | null;
 };
 
+/**
+ * Datos básicos de un empleado recibidos desde el backend.
+ */
 export type EmpleadoDto = {
   id: number;
   rfc: string;
@@ -52,6 +73,10 @@ export type EmpleadoDto = {
   horasSemana?: string;
 };
 
+/**
+ * Evento de respuesta inmediata del checador.
+ * Proporciona feedback rápido sobre el resultado de un escaneo sin datos completos.
+ */
 export type BackendChecadorEvent = {
   readerName: string;
   identificado: boolean;
@@ -60,11 +85,36 @@ export type BackendChecadorEvent = {
   rfc?: string;
   errorMessage?: string;
   accion?: 'entrada' | 'salida';
-  statusCode?: string;  // Nuevo: código de estado del backend
-  statusType?: string;  // Nuevo: tipo de estado (OK, INFO, ERROR)
-  data?: Record<string, any>;  // Nuevo: datos adicionales del evento
+  statusCode?: string;  // Código de estado del backend
+  statusType?: string;  // Tipo de estado (OK, INFO, ERROR)
+  data?: Record<string, any>;  // Datos adicionales del evento
 };
 
+/**
+ * Evento enviado por el backend que contiene la información completa del estado
+ * de asistencia de un empleado. Corresponde a FullAttendanceStateEvent.java.
+ * 
+ * Este evento es la fuente autoritativa de datos sobre el estado actual de
+ * asistencia, incluyendo qué acción se recomienda a continuación.
+ */
+export type FullAttendanceStateEvent = {
+  type: "FULL_ATTENDANCE_STATE_UPDATE"; // Literal type
+  readerName: string;
+  employeeData: EmpleadoDto;
+  dailyWorkSessions: JornadaEstadoDto[];
+  nextRecommendedActionBackend: "entrada" | "salida" | "ALL_COMPLETE" | "NO_ACTION";
+  activeSessionIdBackend: number | null;
+};
+
+/**
+ * Tipo unión para los mensajes STOMP recibidos del backend.
+ * Pueden ser eventos de checador (respuestas inmediatas) o eventos de estado completo.
+ */
+export type StompEventMessage = BackendChecadorEvent | FullAttendanceStateEvent;
+
+/**
+ * Ítem en el historial de escaneos mostrado en la UI.
+ */
 export type ScanHistoryItem = {
   name: string;
   time: Date;
@@ -75,6 +125,9 @@ export type ScanHistoryItem = {
   statusCode?: string;
 };
 
+/**
+ * Estados posibles del escáner de huellas dactilares.
+ */
 export type ScanState =
   | "idle"
   | "scanning"

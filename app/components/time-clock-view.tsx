@@ -45,7 +45,9 @@ import {
   EmpleadoDto,
   BackendChecadorEvent,
   ScanHistoryItem,
-  ScanState
+  ScanState,
+  FullAttendanceStateEvent,
+  StompEventMessage
 } from "../lib/types/timeClockTypes";
 
 // Actualizar el componente para incluir las nuevas variables de estado y funciones
@@ -90,11 +92,11 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     currentEmployee,
     currentEmployeeData,
     jornadasDelDia,
-    workSessions,
     activeSessionId,
     nextRecommendedAction,
     isLoading,
-    errorLoadingData
+    errorLoadingData,
+    updateFromFullAttendanceEvent
   } = useEmployeeAttendanceData({
     employeeIdToFetch: employeeIdForHook,
     apiBaseUrl: API_BASE_URL
@@ -120,50 +122,87 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   // ==== HELPER FUNCTIONS WRAPPED IN useCallback FOR STABILITY ====
 
   // ==== STOMP HOOK INTEGRATION ====
-  const handleChecadorEventCallback = useCallback((event: BackendChecadorEvent) => {
+  const handleChecadorEventCallback = useCallback((event: BackendChecadorEvent | FullAttendanceStateEvent): void => {
     try {
-      console.log("Evento de checador recibido:", event);
+      // Función para verificar si el mensaje es un FullAttendanceStateEvent
+      const isFullAttendanceEvent = (evt: any): evt is FullAttendanceStateEvent => 
+        'type' in evt && evt.type === 'FULL_ATTENDANCE_STATE_UPDATE';
       
-      const statusCode = event.statusCode;
-      const statusType = event.statusType || (event.identificado ? "OK" : "ERROR");
-      const statusData = event.data;
+      if (isFullAttendanceEvent(event)) {
+        // MANEJO DEL ESTADO COMPLETO
+        console.log("Evento FullAttendanceStateEvent recibido:", {
+          employeeId: event.employeeData?.id,
+          name: event.employeeData?.nombreCompleto,
+          nextAction: event.nextRecommendedActionBackend,
+          sessionsCount: event.dailyWorkSessions?.length || 0
+        });
+        
+        // Actualizar los datos del empleado y jornadas usando el hook
+        // Los valores activeSessionId y nextRecommendedAction se establecerán dentro del hook
+        updateFromFullAttendanceEvent(event);
+        
+        // Si tenemos datos de empleado, mostrar el panel de asistencia
+        if (event.employeeData) {
+          setEmployeeIdForHook(event.employeeData.id);
+          setShowAttendance(true);
+        }
+        
+        // No modificamos scanState ni scanResult para este tipo de evento,
+        // ya que solo actualiza datos, no indica un resultado de escaneo
+        return;
+      } 
       
-      setStatusCode(statusCode);
-      setStatusData(statusData);
+      // MANEJO DEL FEEDBACK INMEDIATO - Evento BackendChecadorEvent
+      const checadorEvent = event as BackendChecadorEvent; // Aseguramos el tipo correcto
       
-      if (statusCode) {
-        const message = getUserFriendlyMessage(statusCode, statusData, event.nombreCompleto);
+      console.log("Evento BackendChecadorEvent recibido:", {
+        identificado: checadorEvent.identificado,
+        empleadoId: checadorEvent.empleadoId,
+        accion: checadorEvent.accion,
+        statusCode: checadorEvent.statusCode,
+        statusType: checadorEvent.statusType
+      });
+      
+      const eventStatusCode = checadorEvent.statusCode;
+      const statusType = checadorEvent.statusType || (checadorEvent.identificado ? "OK" : "ERROR");
+      const eventStatusData = checadorEvent.data;
+      
+      setStatusCode(eventStatusCode);
+      setStatusData(eventStatusData);
+      
+      if (eventStatusCode) {
+        const message = getUserFriendlyMessage(eventStatusCode, eventStatusData, checadorEvent.nombreCompleto);
         setCustomMessage(message);
       }
       
-      if (event.empleadoId !== undefined && event.nombreCompleto) {
-        setEmployeeIdForHook(event.empleadoId);
+      if (checadorEvent.empleadoId !== undefined && checadorEvent.nombreCompleto) {
+        setEmployeeIdForHook(checadorEvent.empleadoId);
         setShowAttendance(true);
       }
       
-      if (event.identificado || (statusType === "OK" || statusType === "INFO")) {
+      if (checadorEvent.identificado || (statusType === "OK" || statusType === "INFO")) {
         setScanState("success");
         setScanResult("success");
         setPanelFlash("success");
         setShowOverlayMessage(true);
         setShowInstructionMessage(false);
         
-        if (event.empleadoId !== undefined && event.nombreCompleto) {
-          // Use the ref value instead of the state directly
-          const action = event.accion || nextRecommendedActionRef.current;
+        if (checadorEvent.empleadoId !== undefined && checadorEvent.nombreCompleto) {
+          // Usar valor del evento si está disponible, sino del hook via nextRecommendedActionRef
+          const action = checadorEvent.accion || nextRecommendedActionRef.current;
           setLastAction(action);
           
-          // Only add to scan history if status code starts with 2 (success)
-          if (statusCode?.startsWith("2")) {
+          // Solo añadir al historial si es un código de éxito real
+          if (eventStatusCode?.startsWith("2")) {
             const newScan: ScanHistoryItem = {
-              name: event.nombreCompleto,
+              name: checadorEvent.nombreCompleto,
               time: new Date(),
               success: true,
               action: action,
-              employeeId: event.empleadoId.toString(),
-              statusCode: statusCode // Store the status code for coloring
+              employeeId: checadorEvent.empleadoId.toString(),
+              statusCode: eventStatusCode
             };
-            setScanHistory(prev => [newScan, ...prev.slice(0, 5)]); // Keep 6 items max
+            setScanHistory(prev => [newScan, ...prev.slice(0, 5)]); // Mantener máximo 6 registros
           }
           
           setPreparingNextScan(true);
@@ -179,8 +218,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
         setShowOverlayMessage(true);
         setShowInstructionMessage(false);
         
-        // Don't add failed scans to history anymore
-        
         setTimeout(() => {
           setScanState("ready");
         }, 3500);
@@ -189,30 +226,135 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
       console.error("Error al procesar evento de checador:", error);
     }
   }, [
-    // Only include state setters which have stable references
+    updateFromFullAttendanceEvent,
     setStatusCode,
     setStatusData,
     setCustomMessage,
+    setEmployeeIdForHook,
+    setShowAttendance,
     setScanState,
-    setScanResult,
+    setScanResult, 
     setPanelFlash,
     setShowOverlayMessage,
     setShowInstructionMessage,
     setLastAction,
     setScanHistory,
-    setPreparingNextScan,
-    setShowAttendance,
-    setEmployeeIdForHook
-    // nextRecommendedActionRef is accessed via .current, so it's not a dependency
+    setPreparingNextScan
   ]);
 
+  // Initialize STOMP hook
   const { isConnected } = useStompTimeClock({
     initialReaderName: selectedReader,
     initialSessionId: sessionId,
-    onChecadorEvent: handleChecadorEventCallback,
-    onConnectionError: setStompApiError,
-    onReadyStateChange: setIsReaderReady,
-    apiBaseUrl: API_BASE_URL,
+    onChecadorEvent: (event: BackendChecadorEvent | FullAttendanceStateEvent) => {
+      try {
+        // Verificar si es un evento FullAttendanceStateEvent
+        if ('type' in event && event.type === 'FULL_ATTENDANCE_STATE_UPDATE') {
+          // Procesar FullAttendanceStateEvent
+          const fullEvent = event as FullAttendanceStateEvent;
+          console.log("Evento FullAttendanceStateEvent recibido:", {
+            employeeId: fullEvent.employeeData?.id,
+            name: fullEvent.employeeData?.nombreCompleto,
+            nextAction: fullEvent.nextRecommendedActionBackend,
+            sessionsCount: fullEvent.dailyWorkSessions?.length || 0
+          });
+          
+          // Actualizar los datos del empleado y jornadas
+          updateFromFullAttendanceEvent(fullEvent);
+          
+          // Si tenemos datos de empleado, mostrar el panel de asistencia
+          if (fullEvent.employeeData) {
+            setShowAttendance(true);
+            setEmployeeIdForHook(fullEvent.employeeData.id);
+          }
+        } else {
+          // Procesar BackendChecadorEvent
+          const checadorEvent = event as BackendChecadorEvent;
+          console.log("Evento BackendChecadorEvent recibido:", {
+            identificado: checadorEvent.identificado,
+            empleadoId: checadorEvent.empleadoId,
+            accion: checadorEvent.accion,
+            statusCode: checadorEvent.statusCode,
+            statusType: checadorEvent.statusType
+          });
+          
+          const statusCode = checadorEvent.statusCode;
+          const statusType = checadorEvent.statusType || (checadorEvent.identificado ? "OK" : "ERROR");
+          const statusData = checadorEvent.data;
+          
+          setStatusCode(statusCode);
+          setStatusData(statusData);
+          
+          if (statusCode) {
+            const message = getUserFriendlyMessage(statusCode, statusData, checadorEvent.nombreCompleto);
+            setCustomMessage(message);
+          }
+          
+          if (checadorEvent.empleadoId !== undefined && checadorEvent.nombreCompleto) {
+            setEmployeeIdForHook(checadorEvent.empleadoId);
+            setShowAttendance(true);
+          }
+          
+          if (checadorEvent.identificado || (statusType === "OK" || statusType === "INFO")) {
+            setScanState("success");
+            setScanResult("success");
+            setPanelFlash("success");
+            setShowOverlayMessage(true);
+            setShowInstructionMessage(false);
+            
+            if (checadorEvent.empleadoId !== undefined && checadorEvent.nombreCompleto) {
+              // Use the ref value instead of the state directly
+              const action = checadorEvent.accion || nextRecommendedActionRef.current;
+              setLastAction(action);
+              
+              // Only add to scan history if status code starts with 2 (success)
+              if (statusCode?.startsWith("2")) {
+                const newScan: ScanHistoryItem = {
+                  name: checadorEvent.nombreCompleto,
+                  time: new Date(),
+                  success: true,
+                  action: action,
+                  employeeId: checadorEvent.empleadoId.toString(),
+                  statusCode: statusCode // Store the status code for coloring
+                };
+                setScanHistory(prev => [newScan, ...prev.slice(0, 5)]); // Keep 6 items max
+              }
+              
+              setPreparingNextScan(true);
+              setTimeout(() => {
+                setScanState("ready");
+                setPreparingNextScan(false);
+              }, 3000);
+            }
+          } else {
+            setScanState("failed");
+            setScanResult("failed");
+            setPanelFlash("failed");
+            setShowOverlayMessage(true);
+            setShowInstructionMessage(false);
+            
+            // Don't add failed scans to history anymore
+            
+            setTimeout(() => {
+              setScanState("ready");
+            }, 3500);
+          }
+        }
+      } catch (error) {
+        console.error("Error al procesar evento de checador:", error);
+      }
+    },
+    onConnectionError: (error) => {
+      setStompApiError(error);
+      if (error) {
+        console.error("Error de conexión STOMP:", error);
+      }
+    },
+    onReadyStateChange: (isReady) => {
+      setIsReaderReady(isReady);
+      console.log("Estado de lector actualizado:", isReady ? "Listo" : "No listo");
+    },
+    apiBaseUrl: API_BASE_URL
   });
 
   // Actualizar el estado general del scanState basado en isReaderReady y isConnected
@@ -712,51 +854,43 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     return "bg-zinc-900 border-zinc-800";
   }
 
-  // Filtrar sesiones de trabajo para el empleado actual
-  const filteredWorkSessions = workSessions
-    .filter((session) => session.employeeId === currentEmployee?.id)
-    .sort((a, b) => {
-      if (a.isCurrent && !b.isCurrent) return -1
-      if (!a.isCurrent && b.isCurrent) return 1
-      return a.scheduledEntry.localeCompare(b.scheduledEntry)
-    })
-    .slice(0, getMaxSessionsToShow())
-
-  // Determinar si mostrar las sesiones de trabajo
-  const shouldShowWorkSessions = true // Siempre mostrar el panel
-
   // Auto-reset después de mostrar asistencia si no hay nuevo escaneo
   useEffect(() => {
     if (showAttendance) {
       resetTimeout.current = setTimeout(() => {
-        // Solo ocultar el mensaje de overlay, no resetear todo si aún hay empleado
+        // Limpiar elementos temporales
         setShowOverlayMessage(false);
         setShowInstructionMessage(true);
+        setPanelFlash(null);
         
-        // Si no hay empleado activo, sí podemos resetear más cosas
-        if (!currentEmployee) {
-          setScanState("ready")
-          setShowAttendance(false)
-          setScanProgress(0)
-          setMinutiaePoints([])
-          setMinutiaeLines([])
-          setScanResult(null)
-          setPreparingNextScan(false)
-          setPanelFlash(null)
-          setCustomMessage("")
-          setStatusCode(undefined)
-          setStatusData(undefined)
-        } else {
-          // Si hay empleado, solo preparamos para el siguiente escaneo
+        // Si hay empleado activo, solo preparar para siguiente escaneo
+        if (currentEmployeeData) {
           setScanState("ready");
-          setPanelFlash(null); // Quitar flash
+          // NO limpiar el customMessage si está relacionado con un estado global como ALL_COMPLETE
+          if (!statusCode || !statusCode.startsWith("3")) { // Los códigos 3xx pueden ser estados persistentes
+            setCustomMessage("");
+          }
+        } else {
+          // Si no hay empleado activo, resetear completamente
+          setScanState("ready");
+          setShowAttendance(false);
+          setScanProgress(0);
+          setMinutiaePoints([]);
+          setMinutiaeLines([]);
+          setScanResult(null);
+          setPreparingNextScan(false);
+          setPanelFlash(null);
+          setCustomMessage("");
+          setStatusCode(undefined);
+          setStatusData(undefined);
+          setEmployeeIdForHook(null);
         }
-      }, 9000) // Mostrar asistencia/estado durante 9 segundos antes de resetear
+      }, 9000); // Mostrar asistencia/estado durante 9 segundos
     }
     return () => {
-      if (resetTimeout.current) clearTimeout(resetTimeout.current)
-    }
-  }, [showAttendance, currentEmployee])
+      if (resetTimeout.current) clearTimeout(resetTimeout.current);
+    };
+  }, [showAttendance, currentEmployeeData, statusCode]); // Añadir statusCode como dependencia
 
   // Este efecto ahora es solo un placeholder para posible implementación futura de visualización
   // de puntos de minucia reales que vengan del backend
@@ -821,9 +955,26 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
 
   // Función para obtener la próxima jornada y sus horarios
   const getNextScheduledTime = (): { entryTime: string, exitTime: string, detalleHorarioId: number | null } => {
-    // Si no hay jornadas o no hay empleado actual, retornar valores por defecto
+    // Si no hay jornadas o no hay empleado, retornar valores por defecto
     if (jornadasDelDia.length === 0 || !currentEmployee?.id) {
       return { entryTime: "—", exitTime: "—", detalleHorarioId: null };
+    }
+
+    // Si hay un ID de sesión activa (del backend vía hook), mostrar esa jornada
+    if (activeSessionId !== null) {
+      const jornadaActiva = jornadasDelDia.find(
+        jornada => jornada.detalleHorarioId === activeSessionId
+      );
+      
+      if (jornadaActiva) {
+        return {
+          entryTime: jornadaActiva.horaEntradaReal 
+            ? formatTime(jornadaActiva.horaEntradaReal) 
+            : formatTime(jornadaActiva.horaEntradaProgramada),
+          exitTime: formatTime(jornadaActiva.horaSalidaProgramada),
+          detalleHorarioId: jornadaActiva.detalleHorarioId
+        };
+      }
     }
 
     // Si lastAction es salida, buscar la próxima jornada pendiente
@@ -855,23 +1006,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
         exitTime: formatTime(jornadaEnCurso.horaSalidaProgramada),
         detalleHorarioId: jornadaEnCurso.detalleHorarioId
       };
-    }
-
-    // Si hay una jornada activa por activeSessionId, mostrar sus horarios
-    if (activeSessionId !== null) {
-      const jornadaActiva = jornadasDelDia.find(
-        jornada => jornada.detalleHorarioId === activeSessionId
-      );
-      
-      if (jornadaActiva) {
-        return {
-          entryTime: jornadaActiva.horaEntradaReal 
-            ? formatTime(jornadaActiva.horaEntradaReal) 
-            : formatTime(jornadaActiva.horaEntradaProgramada),
-          exitTime: formatTime(jornadaActiva.horaSalidaProgramada),
-          detalleHorarioId: jornadaActiva.detalleHorarioId
-        };
-      }
     }
 
     // Si no hay condiciones específicas, mostrar la primera jornada
