@@ -39,13 +39,10 @@ import useEmployeeAttendanceData from "../hooks/useEmployeeAttendanceData";
 
 // Importar los tipos desde timeClockTypes.ts
 import {
-  JornadaEstadoDto,
-  EmpleadoDto,
   BackendChecadorEvent,
   ScanHistoryItem,
   ScanState,
   FullAttendanceStateEvent,
-  StompEventMessage
 } from "../lib/types/timeClockTypes";
 
 // Actualizar el componente para incluir las nuevas variables de estado y funciones
@@ -53,7 +50,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   // ==== HOOKS / STATE ====
   // Estado relacionado con estado y resultado de escaneo
   const [scanState, setScanState] = useState<ScanState>("idle")
-  const [scanProgress, setScanProgress] = useState<number>(0)
   const [scanResult, setScanResult] = useState<"success" | "failed" | null>(null)
   const [lastAction, setLastAction] = useState<"entrada" | "salida">("entrada")
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -65,8 +61,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   
   // Estado relacionado con UI y visualización
   const [showAttendance, setShowAttendance] = useState(false)
-  const [minutiaePoints, setMinutiaePoints] = useState<{ x: number; y: number }[]>([])
-  const [minutiaeLines, setMinutiaeLines] = useState<{ start: number; end: number }[]>([])
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [scanHistory, setScanHistory] = useState<(ScanHistoryItem & { statusCode?: string })[]>([])
   const [preparingNextScan, setPreparingNextScan] = useState(false)
@@ -108,9 +102,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     nextRecommendedActionRef.current = nextRecommendedAction;
   }, [nextRecommendedAction]);
 
-  const scanTimeout = useRef<NodeJS.Timeout | null>(null)
   const resetTimeout = useRef<NodeJS.Timeout | null>(null)
-  const inactiveTimeout = useRef<NodeJS.Timeout | null>(null)
   const audioSuccess = useRef<HTMLAudioElement | null>(null)
   const audioError = useRef<HTMLAudioElement | null>(null)
   const audioScan = useRef<HTMLAudioElement | null>(null)
@@ -380,9 +372,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     setShowAttendance(false);
     setScanState("idle");
     setScanResult(null);
-    setScanProgress(0);
-    setMinutiaePoints([]);
-    setMinutiaeLines([]);
     setPreparingNextScan(false);
     setPanelFlash(null);
     setCustomMessage("");
@@ -531,76 +520,9 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   // Limpiar timeouts al desmontar
   useEffect(() => {
     return () => {
-      if (scanTimeout.current) clearTimeout(scanTimeout.current)
       if (resetTimeout.current) clearTimeout(resetTimeout.current)
-      if (inactiveTimeout.current) clearTimeout(inactiveTimeout.current)
     }
   }, [])
-
-  // Iniciar el proceso de checador: reservar lector e iniciar escaneo
-  const initiateChecadorProcess = async () => {
-    try {
-      setComponentApiError(null); 
-      setScanState("idle");
-      
-      // 1. Reservar el lector
-      await axios.post(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/reserve/${encodeURIComponent(selectedReader)}`, 
-        null, 
-        { params: { sessionId: sessionId } }
-      );
-      
-      console.log(`Lector ${selectedReader} reservado correctamente`);
-      
-      // 2. Iniciar el proceso de checador - CORREGIR URL
-      await axios.post(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/checador/start/${encodeURIComponent(selectedReader)}`,
-        null,
-        { params: { sessionId: sessionId } }
-      );
-      
-      console.log("Proceso de checador iniciado");
-      setScanState("ready");
-    } catch (error: any) {
-      console.error("Error al iniciar proceso de checador:", error);
-      setComponentApiError(`Error: ${error.response?.data?.mensaje || error.message}`); // Use component specific error state
-      setScanState("failed");
-    }
-  };
-
-  // Detener checador y liberar lector
-  const stopChecadorAndReleaseReader = async () => {
-    try {
-      if (selectedReader && sessionId) {
-        // 1. Intentar detener el checador - CORREGIR URL
-        try {
-          await axios.post(
-            `${API_BASE_URL}/api/v1/multi-fingerprint/checador/stop/${encodeURIComponent(selectedReader)}`,
-            null,
-            { params: { sessionId: sessionId } }
-          );
-          console.log("Proceso checador detenido correctamente");
-        } catch (error) {
-          console.error("Error al detener el checador:", error);
-          // Continuar para intentar liberar el lector de todos modos
-        }
-        
-        // 2. Liberar el lector
-        await axios.post(
-          `${API_BASE_URL}/api/v1/multi-fingerprint/release/${encodeURIComponent(selectedReader)}`,
-          null,
-          { params: { sessionId: sessionId } }
-        );
-        console.log("Lector liberado correctamente");
-      }
-      
-      // WebSocket disconnection is now handled by the hook's cleanup
-      // disconnectWebSocket(); // REMOVED
-    } catch (error) {
-      console.error("Error en el proceso de limpieza:", error);
-      // Set componentApiError if needed for cleanup errors
-    }
-  };
 
   // Función auxiliar para obtener icono y color de estado
   const getStatusIndicator = (status: string) => {
@@ -732,10 +654,10 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     }
     
     // Si no hay mensaje personalizado, usar los mensajes genéricos
-    if (scanState === "success" || scanState === "background-success") {
+    if (scanState === "success") {
       return lastAction === "entrada" ? "Entrada Registrada" : "Salida Registrada"
     }
-    if (scanState === "failed" || scanState === "background-failed") {
+    if (scanState === "failed") {
       return "Huella No Identificada"
     }
     return ""
@@ -749,10 +671,10 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     }
     
     // Si no hay código de estado, usar los colores basados en el estado del escaneo
-    if (scanState === "success" || scanState === "background-success") {
+    if (scanState === "success") {
       return "text-green-400";
     }
-    if (scanState === "failed" || scanState === "background-failed") {
+    if (scanState === "failed") {
       return "text-red-400";
     }
     return "text-transparent";
@@ -795,9 +717,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
           // Si no hay empleado activo, resetear completamente
           setScanState("ready");
           setShowAttendance(false);
-          setScanProgress(0);
-          setMinutiaePoints([]);
-          setMinutiaeLines([]);
           setScanResult(null);
           setPreparingNextScan(false);
           setPanelFlash(null);
@@ -813,22 +732,14 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     };
   }, [showAttendance, currentEmployeeData, statusCode]); // Añadir statusCode como dependencia
 
-  // Este efecto ahora es solo un placeholder para posible implementación futura de visualización
-  // de puntos de minucia reales que vengan del backend
-  useEffect(() => {
-    // Este efecto ya no utiliza generación aleatoria
-    // El backend maneja la captura y análisis de huellas
-    // Este código es solo para visualización con la API real si se implementara
-  }, [scanState])
-
   // Reproducir sonidos basados en el estado de escaneo
   useEffect(() => {
     // Solo reproducir sonidos si están habilitados
-    if (scanState === "scanning" || scanState === "background-scanning") {
+    if (scanState === "scanning") {
       if (soundEnabled) audioScan.current?.play()
-    } else if (scanState === "success" || scanState === "background-success") {
+    } else if (scanState === "success") {
       if (soundEnabled) audioSuccess.current?.play()
-    } else if (scanState === "failed" || scanState === "background-failed") {
+    } else if (scanState === "failed") {
       if (soundEnabled) audioError.current?.play()
     }
   }, [scanState, soundEnabled])
@@ -836,7 +747,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   // Añadir un nuevo useEffect para manejar las animaciones visuales independientemente del sonido
   useEffect(() => {
     // Manejar animaciones visuales (siempre activas independientemente del sonido)
-    if (scanState === "success" || scanState === "background-success") {
+    if (scanState === "success") {
       setPanelFlash("success")
       setShowOverlayMessage(true)
       setShowInstructionMessage(false)
@@ -845,7 +756,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
       setTimeout(() => {
         setPanelFlash(null)
       }, 2800)
-    } else if (scanState === "failed" || scanState === "background-failed") {
+    } else if (scanState === "failed") {
       setPanelFlash("failed")
       setShowOverlayMessage(true)
       setShowInstructionMessage(false)
@@ -1135,9 +1046,9 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
               <div
                 className={`text-5xl font-bold transition-opacity duration-300 ${getResultMessageColor()} ${
-                  scanState === "success" || scanState === "background-success"
+                  scanState === "success"
                     ? "drop-shadow-[0_0_20px_rgba(74,222,128,0.8)]"
-                    : scanState === "failed" || scanState === "background-failed"
+                    : scanState === "failed"
                       ? "drop-shadow-[0_0_20px_rgba(248,113,113,0.8)]"
                       : ""
                 }`}
@@ -1157,9 +1068,9 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                     <g
                       className="fingerprint-base"
                       stroke={
-                        scanState === "success" || scanState === "background-success"
+                        scanState === "success"
                           ? "rgba(34, 197, 94, 0.3)"
-                          : scanState === "failed" || scanState === "background-failed"
+                          : scanState === "failed"
                             ? "rgba(239, 68, 68, 0.3)"
                             : "rgba(59, 130, 246, 0.3)"
                       }
@@ -1229,53 +1140,18 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                     </>
                   )}
 
-                  {(scanState === "scanning" || scanState === "background-scanning") && (
+                  {scanState === "scanning" && (
                     <>
                       {/* Crestas de huella siendo llenadas */}
                       <svg className="absolute h-56 w-56" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                         <g className="fingerprint-scan" stroke="rgba(59, 130, 246, 0.8)" fill="none" strokeWidth="2.5">
-                          <motion.path
-                            d="M50,15 C25,15 15,30 15,50 C15,70 25,85 50,85 C75,85 85,70 85,50 C85,30 75,15 50,15 Z"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: scanProgress >= 15 ? 1 : scanProgress / 15 }}
-                            transition={{ duration: 0.2 }}
-                          />
-                          <motion.path
-                            d="M50,20 C30,20 20,35 20,50 C20,65 30,80 50,80 C70,80 80,65 80,50 C80,35 70,20 50,20 Z"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: scanProgress >= 30 ? 1 : (scanProgress - 15) / 15 }}
-                            transition={{ duration: 0.2 }}
-                          />
-                          <motion.path
-                            d="M50,25 C35,25 25,35 25,50 C25,65 35,75 50,75 C65,75 75,65 75,50 C75,35 65,25 50,25 Z"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: scanProgress >= 45 ? 1 : (scanProgress - 30) / 15 }}
-                            transition={{ duration: 0.2 }}
-                          />
-                          <motion.path
-                            d="M50,30 C37,30 30,40 30,50 C30,60 37,70 50,70 C63,70 70,60 70,50 C70,40 63,30 50,30 Z"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: scanProgress >= 60 ? 1 : (scanProgress - 45) / 15 }}
-                            transition={{ duration: 0.2 }}
-                          />
-                          <motion.path
-                            d="M50,35 C40,35 35,42 35,50 C35,58 40,65 50,65 C60,65 65,58 65,50 C65,42 60,35 50,35 Z"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: scanProgress >= 75 ? 1 : (scanProgress - 60) / 15 }}
-                            transition={{ duration: 0.2 }}
-                          />
-                          <motion.path
-                            d="M50,40 C42,40 40,45 40,50 C40,55 42,60 50,60 C58,60 60,55 60,50 C60,45 58,40 50,40 Z"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: scanProgress >= 90 ? 1 : (scanProgress - 75) / 15 }}
-                            transition={{ duration: 0.2 }}
-                          />
-                          <motion.path
-                            d="M50,45 C45,45 45,47 45,50 C45,53 45,55 50,55 C55,55 55,53 55,50 C55,47 55,45 50,45 Z"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: scanProgress >= 100 ? 1 : (scanProgress - 90) / 10 }}
-                            transition={{ duration: 0.2 }}
-                          />
+                          <path d="M50,15 C25,15 15,30 15,50 C15,70 25,85 50,85 C75,85 85,70 85,50 C85,30 75,15 50,15 Z" />
+                          <path d="M50,20 C30,20 20,35 20,50 C20,65 30,80 50,80 C70,80 80,65 80,50 C80,35 70,20 50,20 Z" />
+                          <path d="M50,25 C35,25 25,35 25,50 C25,65 35,75 50,75 C65,75 75,65 75,50 C75,35 65,25 50,25 Z" />
+                          <path d="M50,30 C37,30 30,40 30,50 C30,60 37,70 50,70 C63,70 70,60 70,50 C70,40 63,30 50,30 Z" />
+                          <path d="M50,35 C40,35 35,42 35,50 C35,58 40,65 50,65 C60,65 65,58 65,50 C65,42 60,35 50,35 Z" />
+                          <path d="M50,40 C42,40 40,45 40,50 C40,55 42,60 50,60 C58,60 60,55 60,50 C60,45 58,40 50,40 Z" />
+                          <path d="M50,45 C45,45 45,47 45,50 C45,53 45,55 50,55 C55,55 55,53 55,50 C55,47 55,45 50,45 Z" />
                         </g>
                       </svg>
 
@@ -1309,14 +1185,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                         }}
                       />
 
-                      {/* Indicador de progreso */}
-                      <div className="absolute -bottom-6 h-2 w-48 overflow-hidden rounded-full bg-zinc-800">
-                        <motion.div
-                          className="h-full bg-blue-500"
-                          initial={{ width: "0%" }}
-                          animate={{ width: `${scanProgress}%` }}
-                        />
-                      </div>
                       <div className="absolute -bottom-12 text-center">
                         <p className="text-blue-400 text-sm">Escaneando huella digital...</p>
                       </div>
@@ -1324,83 +1192,9 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                   )}
 
           {
-            (scanState === "analyzing" || scanState === "background-analyzing") && (
-              <>
-                <svg className="absolute h-56 w-56" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                  <g className="fingerprint-scan" stroke="rgba(59, 130, 246, 0.8)" fill="none" strokeWidth="2.5">
-                    <path d="M50,15 C25,15 15,30 15,50 C15,70 25,85 50,85 C75,85 85,70 85,50 C85,30 75,15 50,15 Z" />
-                    <path d="M50,20 C30,20 20,35 20,50 C20,65 30,80 50,80 C70,80 80,65 80,50 C80,35 70,20 50,20 Z" />
-                    <path d="M50,25 C35,25 25,35 25,50 C25,65 35,75 50,75 C65,75 75,65 75,50 C75,35 65,25 50,25 Z" />
-                    <path d="M50,30 C37,30 30,40 30,50 C30,60 37,70 50,70 C63,70 70,60 70,50 C70,40 63,30 50,30 Z" />
-                    <path d="M50,35 C40,35 35,42 35,50 C35,58 40,65 50,65 C60,65 65,58 65,50 C65,42 60,35 50,35 Z" />
-                    <path d="M50,40 C42,40 40,45 40,50 C40,55 42,60 50,60 C58,60 60,55 60,50 C60,45 58,40 50,40 Z" />
-                    <path d="M50,45 C45,45 45,47 45,50 C45,53 45,55 50,55 C55,55 55,53 55,50 C55,47 55,45 50,45 Z" />
-                  </g>
-                </svg>
-
-                {/* Líneas de conexión entre puntos de minucia */}
-                <svg className="absolute h-56 w-56" viewBox="-50 -50 100 100" xmlns="http://www.w3.org/2000/svg">
-                  <g stroke="rgba(59, 130, 246, 0.7)" strokeWidth="1.5">
-                    {minutiaeLines.map((line, index) => {
-                      if (minutiaePoints[line.start] && minutiaePoints[line.end]) {
-                        return (
-                          <motion.line
-                            key={index}
-                            x1={minutiaePoints[line.start].x}
-                            y1={minutiaePoints[line.start].y}
-                            x2={minutiaePoints[line.end].x}
-                            y2={minutiaePoints[line.end].y}
-                            initial={{ pathLength: 0, opacity: 0 }}
-                            animate={{ pathLength: 1, opacity: 0.8 }}
-                            transition={{ duration: 0.3, delay: index * 0.03 }}
-                          />
-                        )
-                      }
-                      return null
-                    })}
-                  </g>
-                </svg>
-
-                {/* Puntos de minucia */}
-                <div className="absolute h-56 w-56">
-                  {minutiaePoints.map((point, index) => (
-                    <motion.div
-                      key={index}
-                      className="absolute h-3 w-3 rounded-full bg-blue-500"
-                      style={{
-                        left: `calc(50% + ${point.x}px)`,
-                        top: `calc(50% + ${point.y}px)`,
-                      }}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{
-                        scale: [0, 1.5, 1],
-                        opacity: [0, 1, 0.8],
-                      }}
-                      transition={{
-                        delay: index * 0.03,
-                        duration: 0.3,
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <motion.div
-                  className="absolute h-68 w-68 rounded-full border border-blue-500/50"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                />
-                <div className="absolute -bottom-12 text-center">
-                  <p className="text-blue-400 text-sm">Analizando puntos de minucia...</p>
-                </div>
-              </>
-            )
-          }
-
-          {
             /* Estado de éxito - animación de marca de verificación verde */
           }
-          {
-            (scanState === "success" || scanState === "background-success") && (
+          {(scanState === "success") && (
               <>
                 <motion.div
                   initial={{ scale: 0 }}
@@ -1438,8 +1232,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
           {
             /* Estado de fallo - animación de X roja */
           }
-          {
-            (scanState === "failed" || scanState === "background-failed") && (
+          {(scanState === "failed") && (
               <>
                 <motion.div
                   initial={{ scale: 0 }}
@@ -1485,25 +1278,19 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                     Coloque su dedo en el escáner
                   </>
                 )}
-                {(scanState === "scanning" || scanState === "background-scanning") && (
+                {(scanState === "scanning") && (
                   <>
                     <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
                     Escaneando huella...
                   </>
                 )}
-                {(scanState === "analyzing" || scanState === "background-analyzing") && (
-                  <>
-                    <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
-                    Identificando puntos de minucia...
-                  </>
-                )}
-                {(scanState === "success" || scanState === "background-success") && (
+                {(scanState === "success") && (
                   <>
                     <CheckCircle className="h-5 w-5 text-green-400" />
                     Verificación exitosa
                   </>
                 )}
-                {(scanState === "failed" || scanState === "background-failed") && (
+                {(scanState === "failed") && (
                   <>
                     <XCircle className="h-5 w-5 text-red-400" />
                     Huella no reconocida
@@ -1598,11 +1385,48 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                       : "text-zinc-600"
                   }`}
                 >
-                  {showAttendance && lastAction === "salida" && activeSessionId !== null
-                    ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)?.horaSalidaReal
-                      ? formatTime(jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)?.horaSalidaReal || null)
-                      : getNextScheduledTime().exitTime
-                    : "00:00"}
+                  {(() => {
+                    if (showAttendance) {
+                      // ALL_COMPLETE: Show the latest actual exit time from completed jornadas
+                      if (statusCode === "399") {
+                        const completedJornadasConSalidaReal = jornadasDelDia
+                          .filter(j => j.estatusJornada === "COMPLETADA" && j.horaSalidaReal)
+                          .sort((a, b) => (b.horaSalidaProgramada || "").localeCompare(a.horaSalidaProgramada || "")); // Sort to find the "last" one
+
+                        if (completedJornadasConSalidaReal.length > 0 && completedJornadasConSalidaReal[0].horaSalidaReal) {
+                          return formatTime(completedJornadasConSalidaReal[0].horaSalidaReal);
+                        }
+                        return "--:--"; // Fallback if no real exit time found
+                      } 
+                      // Regular "salida" action with an active session
+                      else if (lastAction === "salida" && activeSessionId !== null) {
+                        const activeJornada = jornadasDelDia.find(j => j.detalleHorarioId === activeSessionId);
+                        if (activeJornada?.horaSalidaReal) {
+                          return formatTime(activeJornada.horaSalidaReal);
+                        }
+                        // If active session but no real exit time yet (e.g., showing programmed exit for current shift)
+                        if (activeJornada) {
+                            return formatTime(activeJornada.horaSalidaProgramada);
+                        }
+                        // Fallback if activeJornada somehow not found
+                        return getNextScheduledTime().exitTime; 
+                      }
+                      // Fallback display for "salida" if other specific conditions aren't met
+                      // This ensures that if lastAction is "salida", we try to show something meaningful.
+                      else if (lastAction === "salida") { 
+                        // Attempt to find the most recently completed session's exit time as a general fallback for "salida"
+                        const anyCompletedWithExit = jornadasDelDia
+                            .filter(j => j.estatusJornada === "COMPLETADA" && j.horaSalidaReal)
+                            .sort((a, b) => (b.horaSalidaProgramada || "").localeCompare(a.horaSalidaProgramada || ""));
+                        if (anyCompletedWithExit.length > 0 && anyCompletedWithExit[0].horaSalidaReal) {
+                            return formatTime(anyCompletedWithExit[0].horaSalidaReal);
+                        }
+                        // Otherwise, show next scheduled exit time from the helper
+                        return getNextScheduledTime().exitTime;
+                      }
+                    }
+                    return "00:00"; // Default placeholder
+                  })()}
                 </p>
                 {showAttendance && lastAction === "salida" && statusCode !== undefined && statusCode.startsWith("3") && (
                   <div className="mt-2 text-xs text-blue-400 flex items-center gap-1">

@@ -154,15 +154,7 @@ export const getScanColor = (state: ScanState, statusCode?: string) => {
     }
   }
   
-  if (state === "success" || state === "background-success") return "green"
-  if (state === "failed" || state === "background-failed") return "red"
+  if (state === "success") return "green"
+  if (state === "failed") return "red"
   return "blue" // Color neutro
-}
-
-export const isBackgroundState = (state: ScanState) => {
-  return state.startsWith("background-")
-}
-
-export const getBaseState = (state: ScanState) => {
-  return state.replace("background-", "") as ScanState
 }

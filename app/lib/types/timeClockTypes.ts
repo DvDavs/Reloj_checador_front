@@ -97,11 +97,6 @@ export type ScanHistoryItem = {
 export type ScanState =
   | "idle"
   | "scanning"
-  | "analyzing"
   | "success"
   | "failed"
-  | "ready"
-  | "background-scanning"
-  | "background-analyzing"
-  | "background-success"
-  | "background-failed";
+  | "ready";
