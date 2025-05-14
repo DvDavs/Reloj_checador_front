@@ -39,8 +39,6 @@ import useEmployeeAttendanceData from "../hooks/useEmployeeAttendanceData";
 
 // Importar los tipos desde timeClockTypes.ts
 import {
-  SessionStatus,
-  WorkSession,
   JornadaEstadoDto,
   EmpleadoDto,
   BackendChecadorEvent,
@@ -145,6 +143,13 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
         if (event.employeeData) {
           setEmployeeIdForHook(event.employeeData.id);
           setShowAttendance(true);
+          
+          // Manejar caso específico donde todas las jornadas están completas
+          if (event.nextRecommendedActionBackend === "ALL_COMPLETE") {
+            setCustomMessage("Todas las jornadas del día completadas");
+            // Asignar un código de tipo "información" para que el estilo sea adecuado
+            setStatusCode("399"); // Código personalizado para estado "ALL_COMPLETE"
+          }
         }
         
         // No modificamos scanState ni scanResult para este tipo de evento,
@@ -598,9 +603,9 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   };
 
   // Función auxiliar para obtener icono y color de estado
-  const getStatusIndicator = (status: SessionStatus | string) => {
+  const getStatusIndicator = (status: string) => {
     // Si hay un código de estado, usar el mapeo de estilos basado en código
-    if (statusCode) {
+    if (statusCode !== undefined) {
       const styles = getStyleClassesForCode(statusCode)
   
       return {
@@ -616,128 +621,66 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
         bgColor: styles.bgColor,
       }
     }
-  
-    if (typeof status === "string") {
-      // Nuevos estados del backend con iconos mejorados
-      switch (status) {
-        case "COMPLETADA":
-          return {
-            icon: <CalendarCheck className="h-5 w-5 text-green-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-green-500/20",
-          }
-        case "EN_CURSO":
-          return {
-            icon: <Zap className="h-5 w-5 text-blue-500 animate-pulse" />,
-            color: "border-blue-500",
-            textColor: "text-white",
-            bgColor: "bg-blue-500/20",
-          }
-        case "RETARDO":
-          return {
-            icon: <Timer className="h-5 w-5 text-yellow-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-yellow-500/20",
-          }
-        case "AUSENTE_ENTRADA":
-          return {
-            icon: <UserX className="h-5 w-5 text-red-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-red-500/20",
-          }
-        case "AUSENTE_SALIDA":
-          return {
-            icon: <CalendarX className="h-5 w-5 text-red-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-red-500/20",
-          }
-        case "AUSENTE":
-          return {
-            icon: <Ban className="h-5 w-5 text-red-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-red-500/20",
-          }
-        case "PENDIENTE":
-        default:
-          return {
-            icon: <Clock className="h-5 w-5 text-zinc-500" />,
-            color: "border-zinc-700",
-            textColor: "text-zinc-500",
-            bgColor: "bg-zinc-700/20",
-          }
-      }
-    } else {
-      // Estados antiguos para compatibilidad con iconos mejorados
-      switch (status) {
-        case "entrada-ok":
-          return {
-            icon: <ShieldCheck className="h-5 w-5 text-green-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-green-500/20",
-          }
-        case "salida-ok":
-          return {
-            icon: <CheckCircle className="h-5 w-5 text-green-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-green-500/20",
-          }
-        case "entrada-tarde":
-          return {
-            icon: <AlertTriangle className="h-5 w-5 text-yellow-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-yellow-500/20",
-          }
-        case "salida-incidente":
-          return {
-            icon: <ShieldAlert className="h-5 w-5 text-yellow-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-yellow-500/20",
-          }
-        case "salida-pendiente":
-          return {
-            icon: <AlertCircle className="h-5 w-5 text-red-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-red-500/20",
-          }
-        case "ausente":
-          return {
-            icon: <Ban className="h-5 w-5 text-red-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-red-500/20",
-          }
-        case "pendiente":
-          return {
-            icon: <ClockIcon className="h-5 w-5 text-zinc-500" />,
-            color: "border-zinc-700",
-            textColor: "text-zinc-500",
-            bgColor: "bg-zinc-700/20",
-          }
-        default:
-          return {
-            icon: <Clock className="h-5 w-5 text-blue-500" />,
-            color: "border-zinc-700",
-            textColor: "text-white",
-            bgColor: "bg-blue-500/20",
-          }
-      }
+    
+    // Nuevos estados del backend con iconos mejorados
+    switch (status) {
+      case "COMPLETADA":
+        return {
+          icon: <CalendarCheck className="h-5 w-5 text-green-500" />,
+          color: "border-zinc-700",
+          textColor: "text-white",
+          bgColor: "bg-green-500/20",
+        }
+      case "EN_CURSO":
+        return {
+          icon: <Zap className="h-5 w-5 text-blue-500 animate-pulse" />,
+          color: "border-blue-500",
+          textColor: "text-white",
+          bgColor: "bg-blue-500/20",
+        }
+      case "RETARDO":
+        return {
+          icon: <Timer className="h-5 w-5 text-yellow-500" />,
+          color: "border-zinc-700",
+          textColor: "text-white",
+          bgColor: "bg-yellow-500/20",
+        }
+      case "AUSENTE_ENTRADA":
+        return {
+          icon: <UserX className="h-5 w-5 text-red-500" />,
+          color: "border-zinc-700",
+          textColor: "text-white",
+          bgColor: "bg-red-500/20",
+        }
+      case "AUSENTE_SALIDA":
+        return {
+          icon: <CalendarX className="h-5 w-5 text-red-500" />,
+          color: "border-zinc-700",
+          textColor: "text-white",
+          bgColor: "bg-red-500/20",
+        }
+      case "AUSENTE":
+        return {
+          icon: <Ban className="h-5 w-5 text-red-500" />,
+          color: "border-zinc-700",
+          textColor: "text-white",
+          bgColor: "bg-red-500/20",
+        }
+      case "PENDIENTE":
+      default:
+        return {
+          icon: <Clock className="h-5 w-5 text-zinc-500" />,
+          color: "border-zinc-700",
+          textColor: "text-zinc-500",
+          bgColor: "bg-zinc-700/20",
+        }
     }
   }
 
   // Obtener color de caja de hora de entrada/salida
-  const getTimeBoxColor = (status: SessionStatus | string, action: "entrada" | "salida" | null = null) => {
+  const getTimeBoxColor = (status: string, action: "entrada" | "salida" | null = null) => {
     // Si hay un código de estado específico, usar el mapeo de estilos basado en código
-    if (statusCode) {
+    if (statusCode !== undefined) {
       const styles = getStyleClassesForCode(statusCode)
   
       // Si se registró una entrada o salida específica, usar color específico
@@ -757,49 +700,27 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
       return "bg-blue-500/30 text-blue-300 border-blue-500"
     }
   
-    if (typeof status === "string") {
-      // Nuevos estados del backend con colores mejorados
-      switch (status) {
-        case "COMPLETADA":
-          return action === "entrada"
-            ? "bg-green-500/30 text-green-300 border-green-500"
-            : "bg-blue-500/30 text-blue-300 border-blue-500"
-        case "EN_CURSO":
-          return action === "entrada"
-            ? "bg-green-500/30 text-green-300 border-green-500 animate-pulse"
-            : "bg-zinc-800 text-zinc-400 border-zinc-700"
-        case "RETARDO":
-          return action === "entrada"
-            ? "bg-yellow-500/30 text-yellow-300 border-yellow-500"
-            : "bg-zinc-800 text-zinc-400 border-zinc-700"
-        case "PENDIENTE":
-          return "bg-zinc-800 text-zinc-400 border-zinc-700"
-        case "AUSENTE_ENTRADA":
-        case "AUSENTE_SALIDA":
-        case "AUSENTE":
-        default:
-          return "bg-zinc-700 text-zinc-400 border-zinc-600" // Más gris para errores
-      }
-    } else {
-      // Estados antiguos para compatibilidad con colores mejorados
-      switch (status) {
-        case "entrada-tarde":
-          return "bg-yellow-500/30 text-yellow-300 border-yellow-500"
-        case "entrada-ok":
-          return "bg-green-500/30 text-green-300 border-green-500"
-        case "salida-incidente":
-          return "bg-yellow-500/30 text-yellow-300 border-yellow-500"
-        case "salida-ok":
-          return "bg-blue-500/30 text-blue-300 border-blue-500"
-        case "pendiente":
-          return "bg-zinc-800 text-zinc-400 border-zinc-700"
-        case "salida-pendiente":
-          return "bg-zinc-800 text-zinc-400 border-zinc-700"
-        case "ausente":
-          return "bg-zinc-700 text-zinc-400 border-zinc-600" // Más gris para errores
-        default:
-          return "bg-zinc-800 text-zinc-400 border-zinc-700"
-      }
+    // Nuevos estados del backend con colores mejorados
+    switch (status) {
+      case "COMPLETADA":
+        return action === "entrada"
+          ? "bg-green-500/30 text-green-300 border-green-500"
+          : "bg-blue-500/30 text-blue-300 border-blue-500"
+      case "EN_CURSO":
+        return action === "entrada"
+          ? "bg-green-500/30 text-green-300 border-green-500 animate-pulse"
+          : "bg-zinc-800 text-zinc-400 border-zinc-700"
+      case "RETARDO":
+        return action === "entrada"
+          ? "bg-yellow-500/30 text-yellow-300 border-yellow-500"
+          : "bg-zinc-800 text-zinc-400 border-zinc-700"
+      case "PENDIENTE":
+        return "bg-zinc-800 text-zinc-400 border-zinc-700"
+      case "AUSENTE_ENTRADA":
+      case "AUSENTE_SALIDA":
+      case "AUSENTE":
+      default:
+        return "bg-zinc-700 text-zinc-400 border-zinc-600" // Más gris para errores
     }
   }
 
@@ -1305,9 +1226,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                           ease: "easeInOut",
                         }}
                       />
-                      <div className="absolute -bottom-10 text-center">
-                        <p className="text-blue-400 text-sm">Preparando siguiente escaneo...</p>
-                      </div>
                     </>
                   )}
 
@@ -1609,9 +1527,9 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-white">
-                  {showAttendance && currentEmployee ? currentEmployee.name : "Usuario"}
+                  {showAttendance && currentEmployee?.name ? currentEmployee.name : "Usuario"}
                 </h2>
-                <p className="text-lg text-zinc-400">{showAttendance && currentEmployee ? currentEmployee.id : "ID-0000-0000"}</p>
+                <p className="text-lg text-zinc-400">{showAttendance && currentEmployee?.id ? currentEmployee.id : "ID-0000-0000"}</p>
               </div>
             </div>
 
@@ -1686,7 +1604,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                       : getNextScheduledTime().exitTime
                     : "00:00"}
                 </p>
-                {showAttendance && lastAction === "salida" && statusCode && statusCode.startsWith("3") && (
+                {showAttendance && lastAction === "salida" && statusCode !== undefined && statusCode.startsWith("3") && (
                   <div className="mt-2 text-xs text-blue-400 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" /> {getUserFriendlyMessage(statusCode, statusData)}
                   </div>

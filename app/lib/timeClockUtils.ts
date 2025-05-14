@@ -21,6 +21,8 @@ export const getUserFriendlyMessage = (code: string | undefined, data: Record<st
       return "Ya registraste tu entrada hoy";
     case "302":
       return "Ya registraste tu salida hoy";
+    case "399":
+      return "Todas las jornadas del día completadas";
     
     // Códigos de error de reglas de negocio (4xx)
     case "400":

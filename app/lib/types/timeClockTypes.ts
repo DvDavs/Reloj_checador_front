@@ -1,40 +1,6 @@
 // Tipos y definiciones para el componente TimeClock y servicios relacionados
 
 /**
- * Estados posibles para una sesión de trabajo.
- * 
- * NOTA: Este tipo podría ser reemplazado por los valores estatusJornada de JornadaEstadoDto,
- * si se decide eliminar el tipo WorkSession y usar directamente JornadaEstadoDto.
- */
-export type SessionStatus =
-  | "entrada-ok"
-  | "salida-ok"
-  | "entrada-tarde"
-  | "salida-incidente"
-  | "salida-pendiente"
-  | "ausente"
-  | "pendiente";
-
-/**
- * Representación simplificada de una jornada de trabajo.
- * 
- * NOTA: Este tipo podría ser eliminado y reemplazar su uso directamente con 
- * JornadaEstadoDto si se refactoriza el código para usar los DTOs del backend 
- * directamente. Actualmente se mantiene para compatibilidad.
- */
-export type WorkSession = {
-  id: number;
-  entryTime: string | null;
-  exitTime: string | null;
-  scheduledEntry: string;
-  scheduledExit: string;
-  entryStatus: SessionStatus;
-  exitStatus: SessionStatus;
-  isCurrent: boolean;
-  employeeId: string;
-};
-
-/**
  * Datos del estado de una jornada de trabajo recibido desde el backend.
  * Es la representación principal del estado de una jornada.
  */

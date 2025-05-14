@@ -3,8 +3,6 @@ import axios from 'axios';
 import {
   EmpleadoDto,
   JornadaEstadoDto,
-  WorkSession,
-  SessionStatus,
   FullAttendanceStateEvent
 } from '../lib/types/timeClockTypes';
 
@@ -17,7 +15,6 @@ interface UseEmployeeAttendanceDataReturn {
   currentEmployee: { id: string; name: string; totalHours?: string; weeklyHours?: string } | null;
   currentEmployeeData: EmpleadoDto | null;
   jornadasDelDia: JornadaEstadoDto[];
-  workSessions: WorkSession[];
   activeSessionId: number | null;
   nextRecommendedAction: "entrada" | "salida";
   isLoading: boolean;
@@ -32,55 +29,12 @@ const useEmployeeAttendanceData = ({
   const [currentEmployee, setCurrentEmployee] = useState<{ id: string; name: string; totalHours?: string; weeklyHours?: string } | null>(null);
   const [currentEmployeeData, setCurrentEmployeeData] = useState<EmpleadoDto | null>(null);
   const [jornadasDelDia, setJornadasDelDia] = useState<JornadaEstadoDto[]>([]);
-  const [workSessions, setWorkSessions] = useState<WorkSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
   const [nextRecommendedAction, setNextRecommendedAction] = useState<"entrada" | "salida">("entrada");
   const [isLoading, setIsLoading] = useState(false);
   const [errorLoadingData, setErrorLoadingData] = useState<string | null>(null);
   // Flag para rastrear si los datos vienen de un evento FullAttendanceStateEvent
   const [updatedFromStompEvent, setUpdatedFromStompEvent] = useState(false);
-
-  const mapJornadasToWorkSessions = useCallback((jornadas: JornadaEstadoDto[], employeeId: number): WorkSession[] => {
-    console.log(`useEAData: Mapeando ${jornadas.length} jornadas a WorkSessions`);
-    
-    // NOTA: Esta función de mapeo podría eliminarse en una refactorización futura.
-    // Si los componentes de UI se actualizan para usar directamente JornadaEstadoDto
-    // en lugar de WorkSession, esta capa de transformación sería innecesaria.
-    return jornadas.map((jornada: JornadaEstadoDto) => {
-      const entryTime = jornada.horaEntradaReal ? 
-        jornada.horaEntradaReal.split(' ')[1].substring(0, 5) : null;
-      const exitTime = jornada.horaSalidaReal ? 
-        jornada.horaSalidaReal.split(' ')[1].substring(0, 5) : null;
-      const scheduledEntry = jornada.horaEntradaProgramada.substring(0, 5);
-      const scheduledExit = jornada.horaSalidaProgramada.substring(0, 5);
-      let entryStatus: SessionStatus = "pendiente";
-      let exitStatus: SessionStatus = "pendiente";
-      
-      switch (jornada.estatusJornada) {
-        case "PENDIENTE": entryStatus = "pendiente"; exitStatus = "pendiente"; break;
-        case "EN_CURSO": entryStatus = "entrada-ok"; exitStatus = "pendiente"; break;
-        case "COMPLETADA": entryStatus = "entrada-ok"; exitStatus = "salida-ok"; break;
-        case "RETARDO": entryStatus = "entrada-tarde"; exitStatus = "pendiente"; break;
-        case "AUSENTE_ENTRADA": entryStatus = "ausente"; exitStatus = "ausente"; break;
-        case "AUSENTE_SALIDA": entryStatus = "entrada-ok"; exitStatus = "ausente"; break;
-        case "AUSENTE": entryStatus = "ausente"; exitStatus = "ausente"; break;
-        default: entryStatus = "pendiente"; exitStatus = "pendiente";
-      }
-      
-      const isCurrent = jornada.estatusJornada === "EN_CURSO" || jornada.estatusJornada === "RETARDO";
-      return {
-        id: jornada.detalleHorarioId,
-        entryTime,
-        exitTime,
-        scheduledEntry,
-        scheduledExit,
-        entryStatus,
-        exitStatus,
-        isCurrent,
-        employeeId: employeeId.toString()
-      };
-    });
-  }, []);
 
   const fetchEstadoJornadas = useCallback(async (employeeId: number) => {
     console.log(`useEAData: fetchEstadoJornadas para employeeId: ${employeeId}`);
@@ -89,52 +43,102 @@ const useEmployeeAttendanceData = ({
       const today = new Date().toISOString().split('T')[0];
       const response = await axios.get<JornadaEstadoDto[]>(
         `${apiBaseUrl}/api/asistencias/estado-diario/${employeeId}/${today}`
-        
       );
-      console.log(`useEAData: Respuesta de estado-diario:`, response.data);
+      console.log(`useEAData: Respuesta de estado-diario:`, {
+        count: response.data.length,
+        primera: response.data.length > 0 ? {
+          turno: response.data[0].turno,
+          estatus: response.data[0].estatusJornada,
+          entrada: response.data[0].horaEntradaProgramada
+        } : 'N/A'
+      });
 
+      // Actualizar el estado con las jornadas recibidas
       setJornadasDelDia(response.data);
       
-      const mappedSessions = mapJornadasToWorkSessions(response.data, employeeId);
-      setWorkSessions(mappedSessions);
+      // Nota: El cálculo de activeSessionId y nextRecommendedAction ahora lo hace el useEffect,
+      // para mantener una sola fuente de verdad para esta lógica.
+      
       setErrorLoadingData(null);
     } catch (error: any) {
       console.error("useEAData: Error al cargar estado de jornadas:", error);
-      setErrorLoadingData(`Error cargando jornadas: ${error.message || "Error desconocido"}`);
+      
+      // Mejorar el mensaje de error con detalles específicos
+      let errorMessage = "Error cargando jornadas: ";
+      if (error.response) {
+        // Error de respuesta del servidor
+        errorMessage += `Error ${error.response.status}: ${error.response.data?.mensaje || error.message}`;
+      } else if (error.request) {
+        // Error de red (no se recibió respuesta)
+        errorMessage += "No se pudo conectar con el servidor";
+      } else {
+        // Error en la configuración de la petición
+        errorMessage += error.message || "Error desconocido";
+      }
+      
+      setErrorLoadingData(errorMessage);
       setJornadasDelDia([]);
-      setWorkSessions([]);
     }
-  }, [apiBaseUrl, mapJornadasToWorkSessions]);
+  }, [apiBaseUrl]);
 
   const fetchEmployeeDetails = useCallback(async (employeeId: number) => {
+    console.log(`useEAData: Iniciando carga de detalles para empleado ID: ${employeeId}`);
     try {
       setIsLoading(true);
       setErrorLoadingData(null); // Limpiar errores previos
+      
+      // PASO 1: Cargar datos del empleado
       const response = await axios.get<EmpleadoDto>(`${apiBaseUrl}/api/empleados/${employeeId}`);
       const employeeData = response.data;
+      
+      if (!employeeData || !employeeData.id) {
+        throw new Error("El servidor no devolvió datos válidos del empleado");
+      }
+      
       setCurrentEmployeeData(employeeData);
+      console.log(`useEAData: Datos del empleado obtenidos correctamente`, {
+        id: employeeData.id,
+        nombre: employeeData.nombreCompleto,
+        rfc: employeeData.rfc
+      });
 
       // Actualizar currentEmployee con los datos básicos del empleado cargado
-      if (employeeData) {
-        setCurrentEmployee({
-          id: employeeData.id.toString(),
-          name: employeeData.nombreCompleto,
-          // Puedes calcular totalHours o weeklyHours aquí si lo necesitas
-        });
-        console.log(`useEmployeeAttendanceData: currentEmployee set to:`, { id: employeeData.id.toString(), name: employeeData.nombreCompleto });
-      } else {
-        setCurrentEmployee(null); // Si no hay datos, limpiar
-      }
-
+      setCurrentEmployee({
+        id: employeeData.id.toString(),
+        name: employeeData.nombreCompleto,
+        // weeklyHours y totalHours podrían calcularse si recibimos estos datos
+      });
+      
+      // PASO 2: Cargar jornadas del día para este empleado
       await fetchEstadoJornadas(employeeId);
+      console.log(`useEAData: Carga inicial completa para empleado ID: ${employeeId}`);
+      
+      // Limpiar errores si todo fue exitoso
       setErrorLoadingData(null);
     } catch (error: any) {
       console.error("Error al cargar detalles del empleado:", error);
-      setErrorLoadingData(`Error cargando empleado: ${error.message || "Error desconocido"}`);
-      setCurrentEmployeeData(null); // Limpiar en caso de error
-      setCurrentEmployee(null);   // Limpiar en caso de error
-      setJornadasDelDia([]);      // Limpiar jornadas en caso de error
-      setWorkSessions([]);
+      
+      // Mejorar el mensaje de error con detalles específicos
+      let errorMessage = "Error cargando empleado: ";
+      if (error.response) {
+        // Error de respuesta del servidor
+        errorMessage += `Error ${error.response.status}: ${error.response.data?.mensaje || error.message}`;
+      } else if (error.request) {
+        // Error de red (no se recibió respuesta)
+        errorMessage += "No se pudo conectar con el servidor";
+      } else {
+        // Error en la configuración de la petición
+        errorMessage += error.message || "Error desconocido";
+      }
+      
+      setErrorLoadingData(errorMessage);
+      
+      // Limpiar todos los estados relacionados con el empleado en caso de error
+      setCurrentEmployeeData(null);
+      setCurrentEmployee(null);
+      setJornadasDelDia([]);
+      setActiveSessionId(null);
+      setNextRecommendedAction("entrada");
     } finally {
       setIsLoading(false);
     }
@@ -145,27 +149,21 @@ const useEmployeeAttendanceData = ({
       employeeId: event.employeeData.id,
       name: event.employeeData.nombreCompleto,
       nextAction: event.nextRecommendedActionBackend,
-      activeSession: event.activeSessionIdBackend
+      activeSession: event.activeSessionIdBackend,
+      jornadas: event.dailyWorkSessions.length
     });
     
-    // Actualizar la información del empleado
+    // PASO 1: Actualizar la información del empleado
     setCurrentEmployeeData(event.employeeData);
     setCurrentEmployee({
       id: event.employeeData.id.toString(),
       name: event.employeeData.nombreCompleto
     });
     
-    // Actualizar las jornadas del día
+    // PASO 2: Actualizar las jornadas del día
     setJornadasDelDia(event.dailyWorkSessions);
     
-    // Convertir jornadas a formato WorkSession
-    const mappedSessions = mapJornadasToWorkSessions(
-      event.dailyWorkSessions, 
-      event.employeeData.id
-    );
-    setWorkSessions(mappedSessions);
-    
-    // IMPORTANTE: Los valores del backend tienen MÁXIMA PRECEDENCIA
+    // PASO 3: VALORES AUTORITATIVOS DEL BACKEND - MÁXIMA PRIORIDAD
     
     // Actualizar la acción recomendada desde el backend
     if (event.nextRecommendedActionBackend) {
@@ -184,38 +182,47 @@ const useEmployeeAttendanceData = ({
     setActiveSessionId(event.activeSessionIdBackend);
     console.log(`useEAData: activeSessionId establecido explícitamente desde el backend a: ${event.activeSessionIdBackend}`);
     
+    // PASO 4: Limpiar errores y marcar actualización desde STOMP
     setErrorLoadingData(null);
-    // Marcar que los datos se actualizaron desde un evento STOMP
+    
+    // Esta bandera evita que el useEffect local recalcule estos valores,
+    // ya que fueron explícitamente proporcionados por el backend (fuente autoritativa)
     setUpdatedFromStompEvent(true);
     
-    console.log("useEAData: Actualización desde evento completada");
-  }, [mapJornadasToWorkSessions]);
+    console.log("useEAData: Actualización desde evento completada con éxito");
+  }, []);
 
   // SIMPLIFICADO: Este useEffect ahora solo calcula valores iniciales cuando no hay datos de backend
   useEffect(() => {
-    // No calcular nada si:
-    // 1. No hay jornadas o no hay empleado (nada que calcular)
-    // 2. Los datos ya fueron actualizados por un evento STOMP (el backend ya proporcionó los valores)
-    if (jornadasDelDia.length === 0 || !currentEmployee?.id || updatedFromStompEvent) {
-      // Si no hay jornadas o empleado, asegurar valores por defecto
-      if (jornadasDelDia.length === 0 || !currentEmployee?.id) {
-        if (activeSessionId !== null) {
-          console.log(`useEAData: Sesión activa reseteada a null (no hay jornadas o empleado)`);
-          setActiveSessionId(null);
-        }
-        if (nextRecommendedAction !== "entrada") {
-          console.log(`useEAData: Acción recomendada reseteada a entrada (no hay jornadas o empleado)`);
-          setNextRecommendedAction("entrada");
-        }
+    // Si los datos acaban de ser actualizados por un evento STOMP,
+    // los valores de activeSessionId y nextRecommendedAction del backend ya fueron establecidos.
+    // No necesitamos recalcularlos localmente.
+    // Reseteamos el flag para la próxima vez que cambien las jornadas por otra razón (ej. API REST inicial).
+    if (updatedFromStompEvent) {
+      setUpdatedFromStompEvent(false); // Resetear el flag después de procesar el evento STOMP
+      return; 
+    }
+
+    // Si no hay jornadas o no hay empleado, establecer valores por defecto y salir.
+    if (jornadasDelDia.length === 0 || !currentEmployee?.id) {
+      if (activeSessionId !== null) {
+        console.log(`useEAData: Sesión activa reseteada a null (no hay jornadas o empleado)`);
+        setActiveSessionId(null);
+      }
+      if (nextRecommendedAction !== "entrada") {
+        console.log(`useEAData: Acción recomendada reseteada a entrada (no hay jornadas o empleado)`);
+        setNextRecommendedAction("entrada");
       }
       return;
     }
     
-    // Cálculo local solo para inicialización cuando no hay datos del backend
-    console.log(`useEAData: Calculando valores iniciales localmente (sin datos de backend)`);
-    
-    let newAction: "entrada" | "salida" = "entrada";
-    let newActiveSessionId: number | null = null;
+    // En este punto, no venimos de un evento STOMP y hay jornadas/empleado.
+    // Esta lógica es para la carga inicial vía API REST o si el STOMP no proveyera estos datos.
+    // (Pero el plan es que FullAttendanceStateEvent sí los provea)
+    console.log("useEAData: Calculando activeSession/nextAction localmente (no STOMP o carga inicial)");
+
+    let newAction: "entrada" | "salida" = "entrada"; // Default
+    let newActiveSessionId: number | null = null;   // Default
     
     const jornadaEnCurso = jornadasDelDia.find(
       (jornada) => jornada.estatusJornada === "EN_CURSO" || jornada.estatusJornada === "RETARDO"
@@ -226,32 +233,30 @@ const useEmployeeAttendanceData = ({
       newAction = "salida";
     } else {
       const jornadasPendientes = jornadasDelDia
-        .filter(jornada => jornada.estatusJornada === "PENDIENTE")
+        .filter(jornada => jornada.estatusJornada === "PENDIENTE" && jornada.horaEntradaReal === null) // Más explícito
         .sort((a, b) => a.horaEntradaProgramada.localeCompare(b.horaEntradaProgramada));
 
       if (jornadasPendientes.length > 0) {
         newActiveSessionId = jornadasPendientes[0].detalleHorarioId;
         newAction = "entrada";
       } else {
-        const jornadaAusente = jornadasDelDia.find(
-          (jornada) => jornada.estatusJornada === "AUSENTE_ENTRADA" || jornada.estatusJornada === "AUSENTE"
-        );
-
-        if (jornadaAusente) {
-          newActiveSessionId = jornadaAusente.detalleHorarioId;
-          newAction = "entrada";
+        // Si no hay pendientes ni en curso, verificar si todas están completas
+        const todasCompletas = jornadasDelDia.every(j => j.estatusJornada === "COMPLETADA");
+        if (todasCompletas) {
+          newActiveSessionId = null; // No hay sesión activa
+          // Podrías tener un tipo "ALL_COMPLETE" para nextRecommendedAction
+          // newAction = "ALL_COMPLETE"; // Si tuvieras este tipo
+          newAction = "entrada"; // O un default
         } else {
-          // Verificar si todas están completadas
-          const todasCompletas = jornadasDelDia.every(j => j.estatusJornada === "COMPLETADA");
-          if (todasCompletas) {
-            // Si todas las jornadas están completadas, no hay sesión activa
-            newActiveSessionId = null;
-            // Mantener entrada como fallback, aunque ALL_COMPLETE sería lo ideal
-            newAction = "entrada";
+          // Podría haber jornadas AUSENTE_ENTRADA aquí, el backend decidirá mejor.
+          // Como fallback, intentamos la primera jornada que no esté COMPLETA.
+          const primeraNoCompletada = jornadasDelDia.find(j => j.estatusJornada !== "COMPLETADA");
+          if (primeraNoCompletada) {
+            newActiveSessionId = primeraNoCompletada.detalleHorarioId;
+            newAction = primeraNoCompletada.horaEntradaReal === null ? "entrada" : "salida";
           } else {
-            // Caso por defecto
             newActiveSessionId = null;
-            newAction = "entrada";
+            newAction = "entrada"; // Fallback final
           }
         }
       }
@@ -267,7 +272,7 @@ const useEmployeeAttendanceData = ({
       console.log(`useEAData: Acción recomendada inicializada localmente a: ${newAction}`);
       setNextRecommendedAction(newAction);
     }
-  }, [jornadasDelDia, currentEmployee, updatedFromStompEvent]); // Añadimos updatedFromStompEvent como dependencia
+  }, [jornadasDelDia, currentEmployee, updatedFromStompEvent, activeSessionId, nextRecommendedAction]);
 
   useEffect(() => {
     // Solo cargar datos si hay un ID y no se han actualizado ya desde un evento STOMP
@@ -275,26 +280,38 @@ const useEmployeeAttendanceData = ({
     if (employeeIdToFetch && 
         ((!currentEmployeeData || currentEmployeeData.id !== employeeIdToFetch) && 
          !updatedFromStompEvent)) {
+      
       console.log(`useEAData: Cargando datos iniciales para empleado ${employeeIdToFetch}`);
-      fetchEmployeeDetails(employeeIdToFetch);
+      
+      // Usar un timeout como forma simple de debounce para evitar múltiples llamadas API
+      const debounceTimer = setTimeout(() => {
+        // Verificar nuevamente las condiciones en caso de que hayan cambiado durante el debounce
+        if (employeeIdToFetch && !updatedFromStompEvent) {
+          fetchEmployeeDetails(employeeIdToFetch);
+        }
+      }, 300);
+      
+      return () => {
+        clearTimeout(debounceTimer);
+      };
     } else if (!employeeIdToFetch) {
       // Reset states when no employee is selected
       setCurrentEmployee(null);
       setCurrentEmployeeData(null);
       setJornadasDelDia([]);
-      setWorkSessions([]);
       setActiveSessionId(null);
       setNextRecommendedAction("entrada");
       setErrorLoadingData(null);
       setUpdatedFromStompEvent(false);
     }
+    
   }, [employeeIdToFetch, fetchEmployeeDetails, currentEmployeeData, updatedFromStompEvent]);
 
+  // Exportamos todos los datos y funciones necesarias
   return {
     currentEmployee,
     currentEmployeeData,
     jornadasDelDia,
-    workSessions,
     activeSessionId,
     nextRecommendedAction,
     isLoading,
