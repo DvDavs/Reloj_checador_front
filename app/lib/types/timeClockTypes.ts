@@ -1,6 +1,18 @@
 // Tipos y definiciones para el componente TimeClock y servicios relacionados
 
 /**
+ * Posibles estados de una jornada de trabajo.
+ */
+export type EstatusJornada = 
+  | "PENDIENTE"
+  | "EN_CURSO"
+  | "COMPLETADA"
+  | "RETARDO"
+  | "AUSENTE_ENTRADA"
+  | "AUSENTE_SALIDA" 
+  | "AUSENTE";
+
+/**
  * Datos del estado de una jornada de trabajo recibido desde el backend.
  * Es la representación principal del estado de una jornada.
  */
@@ -13,7 +25,7 @@ export type JornadaEstadoDto = {
   horaSalidaProgramada: string; // Formato "HH:mm:ss"
   horaEntradaReal: string | null; // Formato "yyyy-MM-dd HH:mm:ss"
   horaSalidaReal: string | null; // Formato "yyyy-MM-dd HH:mm:ss"
-  estatusJornada: string; // "PENDIENTE", "EN_CURSO", "COMPLETADA", "RETARDO", "AUSENTE_ENTRADA", etc.
+  estatusJornada: EstatusJornada; // Usando la union type definida arriba
   minutosRetardoPreliminar: number | null;
 };
 
@@ -70,6 +82,7 @@ export type FullAttendanceStateEvent = {
   dailyWorkSessions: JornadaEstadoDto[];
   nextRecommendedActionBackend: "entrada" | "salida" | "ALL_COMPLETE" | "NO_ACTION";
   activeSessionIdBackend: number | null;
+  justCompletedSessionIdBackend?: number | null;
 };
 
 /**
