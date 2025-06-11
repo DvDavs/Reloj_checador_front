@@ -8,6 +8,7 @@ export type EstatusJornada =
   | "EN_CURSO"
   | "COMPLETADA"
   | "RETARDO"
+  | "RETARDO_SIN_SALIDA"
   | "AUSENTE_ENTRADA"
   | "AUSENTE_SALIDA" 
   | "AUSENTE";

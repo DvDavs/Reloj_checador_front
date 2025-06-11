@@ -41,128 +41,223 @@ import type {
   EstatusJornada,
 } from "../lib/types/timeClockTypes"
 
-// Componente para mostrar un turno individual
-const TurnoItem = ({ jornada, isActive = false, isExpanded = false, onClick = () => {} }: { 
+/**
+ * TurnoItem Component
+ * 
+ * Componente para mostrar un turno individual con estados visuales mejorados.
+ * 
+ * Características:
+ * - Visualización de estados de jornada (completada, en curso, retardo, ausente, pendiente)
+ * - Dos modos de visualización: expandido y compacto
+ * - Animaciones para transiciones de estado y feedback de usuario
+ * - Indicadores visuales para retardos y ausencias
+ * - Visualización detallada de horarios de entrada y salida
+ * 
+ * @param jornada - Datos de la jornada a mostrar
+ * @param isActive - Indica si el turno está activo (seleccionado o recién completado)
+ * @param isExpanded - Indica si se debe mostrar la vista expandida o compacta
+ * @param onClick - Función a ejecutar al hacer clic en el turno
+ */
+const TurnoItem = ({ jornada, isActive = false, isExpanded = false, size = 'medium', onClick = () => {} }: { 
   jornada: JornadaEstadoDto;
   isActive?: boolean;
   isExpanded?: boolean;
+  size?: 'large' | 'medium' | 'small' | 'xsmall';
   onClick?: () => void;
 }) => {
-  const { icon, textColor, bgColor } = getStatusIndicator(jornada.estatusJornada)
   const isCompleted = jornada.estatusJornada === "COMPLETADA"
   const isPending = jornada.estatusJornada === "PENDIENTE"
   const isAbsent = jornada.estatusJornada.includes("AUSENTE")
+  const isInProgress = jornada.estatusJornada === "EN_CURSO"
+  const isRetardo = jornada.estatusJornada === "RETARDO" || jornada.estatusJornada === "RETARDO_SIN_SALIDA"
   const hasDelay = jornada.minutosRetardoPreliminar !== null && jornada.minutosRetardoPreliminar > 0
+
+  // Verificar si el turno realmente debe mostrar ausencia (solo si ya pasó la hora)
+  const currentTime = new Date()
+  const currentTimeStr = format(currentTime, "HH:mm:ss")
+  const shouldShowAsAbsent = isAbsent && currentTimeStr > jornada.horaSalidaProgramada
+
+  const { icon, textColor, bgColor, borderColor, gradientBg, statusBgColor, statusTextColor } = getStatusIndicator(jornada.estatusJornada, shouldShowAsAbsent)
+  
+  // Determinar clases CSS basadas en el tamaño
+  const getSizeClasses = () => {
+    switch (size) {
+      case 'large':
+        return {
+          container: 'p-4 mb-3',
+          text: 'text-lg',
+          subText: 'text-sm',
+          icon: 'w-8 h-8',
+          iconInner: 'h-5 w-5',
+          timeText: 'text-2xl',
+          badge: 'px-3 py-1 text-sm'
+        }
+      case 'medium':
+        return {
+          container: 'p-3 mb-2',
+          text: 'text-base',
+          subText: 'text-sm',
+          icon: 'w-6 h-6',
+          iconInner: 'h-4 w-4',
+          timeText: 'text-xl',
+          badge: 'px-2 py-0.5 text-xs'
+        }
+      case 'small':
+        return {
+          container: 'p-2 mb-2',
+          text: 'text-sm',
+          subText: 'text-xs',
+          icon: 'w-5 h-5',
+          iconInner: 'h-3 w-3',
+          timeText: 'text-lg',
+          badge: 'px-2 py-0.5 text-xs'
+        }
+      case 'xsmall':
+        return {
+          container: 'p-2 mb-1',
+          text: 'text-xs',
+          subText: 'text-xs',
+          icon: 'w-4 h-4',
+          iconInner: 'h-3 w-3',
+          timeText: 'text-sm',
+          badge: 'px-1 py-0.5 text-xs'
+        }
+    }
+  }
+  
+  const sizeClasses = getSizeClasses()
 
   // Función para obtener el estado del turno en texto legible
   const getEstadoTexto = (estado: EstatusJornada): string => {
+    // Si es ausente pero aún no ha pasado la hora, mostrar como pendiente
+    if (isAbsent && !shouldShowAsAbsent) {
+      return "Próximo"
+    }
+    
     switch (estado) {
       case "COMPLETADA":
         return "Completado"
       case "EN_CURSO":
         return "En curso"
       case "RETARDO":
-        return "Retardo"
+        return "En curso"
+      case "RETARDO_SIN_SALIDA":
+        return shouldShowAsAbsent ? "Sin salida" : "En curso"
       case "PENDIENTE":
-        return "Pendiente"
+        return "Próximo"
       case "AUSENTE_ENTRADA":
-        return "Ausente"
+        return shouldShowAsAbsent ? "Sin entrada" : "Próximo"
       case "AUSENTE_SALIDA":
-        return "Ausente"
+        return shouldShowAsAbsent ? "Sin salida" : "Próximo"
       case "AUSENTE":
-        return "Ausente"
+        return shouldShowAsAbsent ? "Ausente" : "Próximo"
       default:
-        return estado
+        return "Próximo"
     }
   }
 
   return (
-    <div
-      className={`p-3 mb-2 rounded-md border transition-all duration-300 cursor-pointer
+    <motion.div
+      className={`${sizeClasses.container} rounded-md border transition-all duration-300 cursor-pointer
         ${isExpanded ? "scale-100" : "scale-98 hover:scale-100"}
-        ${
-          isActive
-            ? "border-blue-600 shadow-blue-500/40 shadow-lg"
-            : isCompleted
-              ? "border-green-600/50 bg-green-900/20"
-              : isPending
-                ? "border-gray-600 bg-gray-700/80" // Mejorado para mayor claridad
-                : isAbsent
-                  ? "border-red-600/50 bg-red-900/20"
-                  : "border-zinc-700 bg-zinc-800/50" // Default para otros estados no activos
-        }`}
+        ${isActive ? "border-blue-600 shadow-blue-500/40 shadow-lg" : borderColor}`}
       style={{
-        opacity: isCompleted ? 0.9 : isPending ? 0.95 : 1, // Menos desvanecido para mejor visibilidad
+        opacity: isCompleted ? 0.9 : isPending ? 0.95 : 1,
         background: isActive
           ? "linear-gradient(to right, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.05))"
-          : jornada.estatusJornada === "RETARDO"
-            ? "linear-gradient(to right, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.05))"
-            : isAbsent
-              ? "linear-gradient(to right, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05))"
-              : isPending 
-                ? "linear-gradient(to right, rgba(75, 85, 99, 0.2), rgba(75, 85, 99, 0.1))" // Gradiente gris mejorado
-                : "",
+          : gradientBg || "",
       }}
       onClick={onClick}
+      initial={{ opacity: 0.6, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ scale: isExpanded ? 1 : 1.02 }}
     >
       {isExpanded ? (
-        // Vista expandida del turno
         <>
-          {/* Horario programado en la parte superior estilo Google Calendar */}
           <div className="flex justify-between items-center mb-3 bg-zinc-800/70 -mx-3 -mt-3 px-3 py-2 rounded-t-md">
             <div className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${bgColor}`}>{icon}</div>
-              <p className={`text-base font-medium ${isActive ? "text-white" : textColor}`}>
+              <motion.div 
+                className={`${sizeClasses.icon} rounded-full flex items-center justify-center ${bgColor}`}
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                {icon}
+              </motion.div>
+              <p className={`${sizeClasses.text} font-medium ${isActive ? "text-white" : textColor}`}>
                 {formatTime(jornada.horaEntradaProgramada)} - {formatTime(jornada.horaSalidaProgramada)}
               </p>
             </div>
-            <div
-              className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                isCompleted
-                  ? isActive 
-                    ? "bg-green-600/40 text-green-300 animate-pulse" // Resaltar sesiones completadas activas
-                    : "bg-green-600/40 text-green-300"
-                  : isPending
-                    ? "bg-gray-700/80 text-gray-300"
-                    : isAbsent
-                      ? "bg-red-600/40 text-red-300"
-                      : jornada.estatusJornada === "RETARDO"
-                        ? "bg-yellow-600/40 text-yellow-300"
-                        : "bg-blue-600/40 text-blue-300"
+            <motion.div
+              className={`${sizeClasses.badge} font-medium rounded-full ${
+                isActive && isCompleted ? `${statusBgColor} ${statusTextColor} animate-pulse` : `${statusBgColor} ${statusTextColor}`
               }`}
+              initial={{ opacity: 0.7 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
             >
               {getEstadoTexto(jornada.estatusJornada)}
               {isActive && isCompleted && " ✓"}
-            </div>
+            </motion.div>
           </div>
 
-          {/* Indicador de turno recién completado */}
           {isActive && isCompleted && (
-            <div className="mb-3 px-2 py-1 text-xs bg-green-600/40 text-green-300 border border-green-600/50 rounded-md flex items-center gap-1 animate-pulse">
+            <motion.div 
+              className="mb-3 px-2 py-1 text-xs bg-green-600/40 text-green-300 border border-green-600/50 rounded-md flex items-center gap-1"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <CheckCircle className="h-3 w-3" />
               <span>Turno recién completado</span>
-            </div>
+            </motion.div>
           )}
 
-          {hasDelay && (
-            <div className="mb-2 px-2 py-1 text-xs font-medium bg-yellow-600/40 text-yellow-300 rounded-md inline-flex items-center">
+          {/* Solo mostrar retardo si es AR (Autorizados con Retardo) */}
+          {hasDelay && jornada.estatusJornada === "RETARDO" && (
+            <motion.div 
+              className="mb-2 px-2 py-1 text-xs font-medium bg-yellow-600/30 text-yellow-300 rounded-md inline-flex items-center"
+              initial={{ opacity: 0, x: -5 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
               <AlertTriangle className="h-3 w-3 mr-1" />
               Retardo: {jornada.minutosRetardoPreliminar} min
-            </div>
+            </motion.div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          {isInProgress && jornada.estatusJornada !== "RETARDO" && (
+            <motion.div 
+              className="mb-2 px-2 py-1 text-xs font-medium bg-blue-600/30 text-blue-300 rounded-md inline-flex items-center"
+              initial={{ opacity: 0, x: -5 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <Timer className="h-3 w-3 mr-1" />
+              <span>Turno en curso</span>
+            </motion.div>
+          )}
+
+          <motion.div 
+            className="grid grid-cols-2 gap-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
             <div className={`rounded-lg p-3 border ${getTimeBoxColor(jornada.estatusJornada, "entrada")}`}>
               <div className="flex items-center gap-2 mb-1">
                 <LogIn className="h-4 w-4 text-zinc-400" />
                 <p className="text-base font-medium">Entrada</p>
               </div>
               {jornada.horaEntradaReal ? (
-                <p className="text-2xl font-bold">{formatTime(jornada.horaEntradaReal)}</p>
-              ) : isAbsent ? (
+                <p className={`text-2xl font-bold ${hasDelay ? "text-yellow-400" : ""}`}>
+                  {formatTime(jornada.horaEntradaReal)}
+                </p>
+              ) : (jornada.estatusJornada === "AUSENTE_ENTRADA" || jornada.estatusJornada === "AUSENTE") && shouldShowAsAbsent ? (
                 <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold text-red-400">Ausente</p>
-                  <Ban className="h-5 w-5 text-red-400" />
+                  <p className="text-2xl font-bold text-orange-400">Sin entrada</p>
+                  <Ban className="h-5 w-5 text-orange-400" />
                 </div>
               ) : (
                 <p className="text-2xl font-bold text-zinc-500">{formatTime(jornada.horaEntradaProgramada)}</p>
@@ -175,203 +270,219 @@ const TurnoItem = ({ jornada, isActive = false, isExpanded = false, onClick = ()
               </div>
               {jornada.horaSalidaReal ? (
                 <p className="text-2xl font-bold">{formatTime(jornada.horaSalidaReal)}</p>
-              ) : jornada.estatusJornada === "AUSENTE_SALIDA" ? (
+              ) : jornada.estatusJornada === "AUSENTE_SALIDA" && shouldShowAsAbsent ? (
                 <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold text-red-400">Ausente</p>
-                  <Ban className="h-5 w-5 text-red-400" />
+                  <p className="text-2xl font-bold text-orange-400">Sin salida</p>
+                  <Ban className="h-5 w-5 text-orange-400" />
                 </div>
               ) : (
                 <p className="text-2xl font-bold text-zinc-500">{formatTime(jornada.horaSalidaProgramada)}</p>
               )}
             </div>
-          </div>
+          </motion.div>
         </>
       ) : (
         // Vista compacta del turno
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center ${isActive && isCompleted ? "bg-green-500/30" : bgColor}`}>{icon}</div>
-            <div>
-              <p className={`text-sm font-bold ${textColor}`}>
+            <motion.div 
+              className={`${sizeClasses.icon} rounded-full flex items-center justify-center ${bgColor}`}
+              whileHover={{ scale: 1.1 }}
+              transition={{ duration: 0.2 }}
+            >
+              {icon}
+            </motion.div>
+            <div className="flex-1">
+              <p className={`${sizeClasses.text} font-bold ${textColor}`}>
                 {formatTime(jornada.horaEntradaProgramada)} - {formatTime(jornada.horaSalidaProgramada)}
               </p>
-
-              <div className="flex items-center gap-2 text-xs mt-0.5">
-                {jornada.horaEntradaReal ? (
-                  <span className="flex items-center gap-1 text-green-300 bg-green-600/40 px-1.5 py-0.5 rounded">
-                    <LogIn className="h-3 w-3" />
-                    {formatTime(jornada.horaEntradaReal)}
+              
+              {/* Información más compacta y solo lo esencial */}
+              <div className={`flex items-center gap-1 ${sizeClasses.subText} mt-1`}>
+                {/* Solo mostrar tiempos reales si existen */}
+                {jornada.horaEntradaReal && (
+                  <span className="text-green-300">
+                    E: {formatTime(jornada.horaEntradaReal)}
                   </span>
-                ) : isAbsent ? (
-                  <span className="flex items-center gap-1 text-red-300 bg-red-600/40 px-1.5 py-0.5 rounded">
-                    <Ban className="h-3 w-3" />
-                    Ausente
+                )}
+                
+                {jornada.horaSalidaReal && (
+                  <span className="text-blue-300">
+                    {jornada.horaEntradaReal && " • "}S: {formatTime(jornada.horaSalidaReal)}
                   </span>
-                ) : null}
-
-                {jornada.horaSalidaReal ? (
-                  <span className={`flex items-center gap-1 ${isActive && isCompleted ? "text-green-300 bg-green-600/40" : "text-blue-300 bg-blue-600/40"} px-1.5 py-0.5 rounded`}>
-                    <LogOut className="h-3 w-3" />
-                    {formatTime(jornada.horaSalidaReal)}
+                )}
+                
+                {/* Solo mostrar retardo si es status RETARDO y tiene minutos */}
+                {jornada.estatusJornada === "RETARDO" && jornada.minutosRetardoPreliminar && (
+                  <span className="text-yellow-300">
+                    {(jornada.horaEntradaReal || jornada.horaSalidaReal) && " • "}+{jornada.minutosRetardoPreliminar}min
                   </span>
-                ) : jornada.estatusJornada === "AUSENTE_SALIDA" ? (
-                  <span className="flex items-center gap-1 text-red-300 bg-red-600/40 px-1.5 py-0.5 rounded">
-                    <Ban className="h-3 w-3" />
-                    Ausente
-                  </span>
-                ) : null}
-
-                {jornada.minutosRetardoPreliminar ? (
-                  <span className="flex items-center gap-1 text-yellow-300 bg-yellow-600/40 px-1.5 py-0.5 rounded">
-                    <AlertTriangle className="h-3 w-3" />
-                    {jornada.minutosRetardoPreliminar} min
-                  </span>
-                ) : null}
+                )}
               </div>
             </div>
           </div>
 
-          {/* Indicador de estado compacto */}
-          <div
-            className={`text-xs px-2 py-0.5 rounded-full ${
-              isCompleted
-                ? "bg-green-900/30 text-green-400"
-                : isPending
-                  ? "bg-gray-600/60 text-gray-200" // Adjusted for clearer "pending" look
-                  : isAbsent
-                    ? "bg-red-900/30 text-red-400"
-                    : jornada.estatusJornada === "RETARDO"
-                      ? "bg-yellow-900/30 text-yellow-400"
-                      : "bg-blue-900/30 text-blue-400"
-            }`}
+          {/* Indicador de estado compacto - más pequeño */}
+          <motion.div
+            className={`${sizeClasses.badge} rounded-full ${statusBgColor} ${statusTextColor} font-medium`}
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
           >
             {getEstadoTexto(jornada.estatusJornada)}
-          </div>
+          </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 
-// Función auxiliar para obtener icono y color de estado
-const getStatusIndicator = (status: string) => {
-  // Nuevos estados del backend con iconos mejorados y colores más intuitivos
+/**
+ * Función auxiliar para obtener icono y color de estado
+ * 
+ * Esta función devuelve un objeto con los elementos visuales necesarios para representar
+ * el estado de una jornada (icono, colores, estilos).
+ * 
+ * @param status - Estado de la jornada (COMPLETADA, EN_CURSO, RETARDO, etc.)
+ * @returns Objeto con propiedades visuales (icon, textColor, bgColor, etc.)
+ */
+const getStatusIndicator = (status: string, shouldShowAsAbsent: boolean = true) => {
+  // Si es ausente pero aún no debe mostrarse como tal, usar estilo de pendiente
+  if (status.includes("AUSENTE") && !shouldShowAsAbsent) {
+    return {
+      icon: <Clock className="h-4 w-4 text-blue-400" />,
+      textColor: "text-blue-400",
+      bgColor: "bg-blue-900/20",
+      borderColor: "border-blue-600/30",
+      gradientBg: "linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05))",
+      statusBgColor: "bg-blue-600/30",
+      statusTextColor: "text-blue-300",
+    }
+  }
+
   switch (status) {
     case "COMPLETADA":
       return {
-        icon: <CheckCircle className="h-5 w-5 text-green-400" />,
-        color: "border-green-600",
-        textColor: "text-green-300",
-        bgColor: "bg-green-600/30",
+        icon: <CheckCircle className="h-4 w-4 text-green-400" />,
+        textColor: "text-green-400",
+        bgColor: "bg-green-900/30",
+        borderColor: "border-green-600/50",
+        gradientBg: "linear-gradient(to right, rgba(22, 163, 74, 0.2), rgba(22, 163, 74, 0.05))",
+        statusBgColor: "bg-green-600/40",
+        statusTextColor: "text-green-300",
       }
     case "EN_CURSO":
       return {
-        icon: <Clock className="h-5 w-5 text-blue-400 animate-pulse" />,
-        color: "border-blue-600",
-        textColor: "text-blue-300",
-        bgColor: "bg-blue-600/30",
+        icon: <Timer className="h-4 w-4 text-yellow-400" />,
+        textColor: "text-yellow-400",
+        bgColor: "bg-yellow-900/30",
+        borderColor: "border-yellow-600/50",
+        gradientBg: "linear-gradient(to right, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.05))",
+        statusBgColor: "bg-yellow-600/40",
+        statusTextColor: "text-yellow-300",
       }
     case "RETARDO":
+    case "RETARDO_SIN_SALIDA":
       return {
-        icon: <Timer className="h-5 w-5 text-yellow-400" />,
-        color: "border-yellow-600",
-        textColor: "text-yellow-300",
-        bgColor: "bg-yellow-600/30",
+        icon: <Timer className="h-4 w-4 text-yellow-400" />,
+        textColor: "text-yellow-400",
+        bgColor: "bg-yellow-900/30",
+        borderColor: "border-yellow-600/50",
+        gradientBg: "linear-gradient(to right, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.05))",
+        statusBgColor: "bg-yellow-600/40",
+        statusTextColor: "text-yellow-300",
+      }
+    case "PENDIENTE":
+      return {
+        icon: <Clock className="h-4 w-4 text-blue-400" />,
+        textColor: "text-blue-400",
+        bgColor: "bg-blue-900/20",
+        borderColor: "border-blue-600/30",
+        gradientBg: "linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05))",
+        statusBgColor: "bg-blue-600/30",
+        statusTextColor: "text-blue-300",
       }
     case "AUSENTE_ENTRADA":
       return {
-        icon: <UserX className="h-5 w-5 text-red-400" />,
-        color: "border-red-600",
-        textColor: "text-red-300",
-        bgColor: "bg-red-600/30",
+        icon: <UserX className="h-4 w-4 text-orange-400" />,
+        textColor: "text-orange-400",
+        bgColor: "bg-orange-900/20",
+        borderColor: "border-orange-600/40",
+        gradientBg: "linear-gradient(to right, rgba(234, 88, 12, 0.15), rgba(234, 88, 12, 0.05))",
+        statusBgColor: "bg-orange-600/30",
+        statusTextColor: "text-orange-300",
       }
     case "AUSENTE_SALIDA":
       return {
-        icon: <CalendarX className="h-5 w-5 text-red-400" />,
-        color: "border-red-600",
-        textColor: "text-red-300",
-        bgColor: "bg-red-600/30",
+        icon: <CalendarX className="h-4 w-4 text-orange-400" />,
+        textColor: "text-orange-400",
+        bgColor: "bg-orange-900/20",
+        borderColor: "border-orange-600/40",
+        gradientBg: "linear-gradient(to right, rgba(234, 88, 12, 0.15), rgba(234, 88, 12, 0.05))",
+        statusBgColor: "bg-orange-600/30",
+        statusTextColor: "text-orange-300",
       }
     case "AUSENTE":
       return {
-        icon: <Ban className="h-5 w-5 text-red-400" />,
-        color: "border-red-600",
-        textColor: "text-red-300",
-        bgColor: "bg-red-600/30",
+        icon: <Ban className="h-4 w-4 text-orange-400" />,
+        textColor: "text-orange-400",
+        bgColor: "bg-orange-900/20",
+        borderColor: "border-orange-600/40",
+        gradientBg: "linear-gradient(to right, rgba(234, 88, 12, 0.15), rgba(234, 88, 12, 0.05))",
+        statusBgColor: "bg-orange-600/30",
+        statusTextColor: "text-orange-300",
       }
-    case "PENDIENTE":
     default:
       return {
-        icon: <Clock className="h-5 w-5 text-gray-300" />, // Brighter icon for pending
-        color: "border-gray-600", // Lighter border
-        textColor: "text-gray-200", // Brighter text for pending
-        bgColor: "bg-gray-700/50", // Lighter icon background for pending
+        icon: <Clock className="h-4 w-4 text-blue-400" />,
+        textColor: "text-blue-400",
+        bgColor: "bg-blue-900/20",
+        borderColor: "border-blue-600/30",
+        gradientBg: "linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05))",
+        statusBgColor: "bg-blue-600/30",
+        statusTextColor: "text-blue-300",
       }
   }
 }
 
-// Obtener color de caja de hora de entrada/salida
+/**
+ * Función para obtener el color de la caja de hora de entrada/salida
+ * 
+ * Esta función determina los estilos visuales para las cajas que muestran
+ * los horarios de entrada y salida, basándose en el estado de la jornada.
+ * 
+ * @param status - Estado de la jornada (COMPLETADA, EN_CURSO, RETARDO, etc.)
+ * @param action - Tipo de acción ("entrada" o "salida")
+ * @returns Clases CSS para aplicar a la caja de tiempo
+ */
 const getTimeBoxColor = (status: EstatusJornada, action: "entrada" | "salida" | null = null): string => {
-  // 1. Handle PENDING status first: Its boxes should always be gray.
-  if (status === "PENDIENTE") {
-    return "bg-gray-700/70 text-gray-200 border-gray-600"; // Mejorado para mayor claridad
-  }
-
-  // 2. Handle AUSENTE statuses for the relevant box
-  if (status === "AUSENTE_ENTRADA" && action === "entrada") {
-    return "bg-red-600/40 text-red-300 border-red-600"; // Mayor contraste
-  }
-  // If general AUSENTE or specifically AUSENTE_SALIDA, and it's the salida action, salida box is red
-  if ((status === "AUSENTE_SALIDA" || status === "AUSENTE") && action === "salida") {
-    return "bg-red-600/40 text-red-300 border-red-600"; // Mayor contraste
-  }
-  // If status is AUSENTE or AUSENTE_ENTRADA and action is 'salida', the salida box is like pending (gray)
-  // because entry was missed, so exit is not active.
-  if ((status === "AUSENTE" || status === "AUSENTE_ENTRADA") && action === "salida") {
-      return "bg-gray-700/80 text-gray-300 border-gray-600"; // Más visible
-  }
-  // If status is AUSENTE_SALIDA and action is 'entrada', the entrada box was presumably completed.
-  if (status === "AUSENTE_SALIDA" && action === "entrada") {
-    return "bg-green-600/40 text-green-300 border-green-600"; // Consistente con otros verdes
-  }
-
-
-  // 3. Handle specific actions for other statuses (COMPLETADA, EN_CURSO, RETARDO)
-  if (action === "entrada") {
-    if (status === "RETARDO") {
-      return "bg-yellow-600/40 text-yellow-300 border-yellow-600"; // Consistente con amarillos
-    }
-    // For COMPLETADA, EN_CURSO, the entrada box is green
-    if (status === "COMPLETADA" || status === "EN_CURSO") {
-      return "bg-green-600/40 text-green-300 border-green-600"; // Consistente con otros verdes
-    }
-  }
-
-  if (action === "salida") {
-    if (status === "COMPLETADA") {
-      return "bg-blue-600/40 text-blue-300 border-blue-600"; // Consistente con azules
-    }
-    // For EN_CURSO or RETARDO, the 'salida' box is effectively pending (gray)
-    if (status === "EN_CURSO" || status === "RETARDO") {
-      return "bg-gray-700/80 text-gray-300 border-gray-600"; // Más visible
-    }
-  }
-
-  // Fallback: This part primarily covers if action is null, or a combination not yet specified.
   switch (status) {
     case "COMPLETADA":
-      return "bg-blue-600/40 text-blue-300 border-blue-600"; // Consistente con azules
-    case "EN_CURSO": // Salida is pending
-    case "RETARDO":  // Salida is pending
-      return "bg-gray-700/80 text-gray-300 border-gray-600"; // Más visible
-    case "AUSENTE_ENTRADA": // If no specific action, implies the whole item is affected
+      return "border-green-600/50 bg-green-900/20 shadow-inner shadow-green-900/10"
+    case "EN_CURSO":
+      return action === "entrada"
+        ? "border-green-600/50 bg-green-900/20 shadow-inner shadow-green-900/10" // Entrada registrada
+        : "border-yellow-600/50 bg-yellow-900/20 shadow-inner shadow-yellow-900/10" // Salida pendiente
+    case "RETARDO":
+    case "RETARDO_SIN_SALIDA":
+      return action === "entrada"
+        ? "border-yellow-600/50 bg-yellow-900/20 shadow-inner shadow-yellow-900/10"
+        : "border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10"
+    case "PENDIENTE":
+      return "border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10"
+    case "AUSENTE_ENTRADA":
+      return action === "entrada"
+        ? "border-orange-600/40 bg-orange-900/15 shadow-inner shadow-orange-900/10"
+        : "border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10"
     case "AUSENTE_SALIDA":
+      return action === "salida"
+        ? "border-orange-600/40 bg-orange-900/15 shadow-inner shadow-orange-900/10"
+        : "border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10"
     case "AUSENTE":
-      return "bg-red-600/40 text-red-300 border-red-600"; // Estilo consistente para ausencias
-    default: // Includes PENDIENTE if it somehow slipped through, but shouldn't.
-      return "bg-gray-700/70 text-gray-200 border-gray-600"; // Estilo neutral consistente
+      return "border-orange-600/40 bg-orange-900/15 shadow-inner shadow-orange-900/10"
+    default:
+      return "border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10"
   }
-};
+}
 
 // Componente principal
 export default function TimeClock({ selectedReader, sessionId }: { selectedReader: string; sessionId: string }) {
@@ -508,6 +619,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
           accion: checadorEvent.accion,
           statusCode: checadorEvent.statusCode,
           statusType: checadorEvent.statusType,
+          errorMessage: checadorEvent.errorMessage,
         })
 
         const eventStatusCode = checadorEvent.statusCode
@@ -517,10 +629,12 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
         setStatusCode(eventStatusCode)
         setStatusData(eventStatusData)
 
+        // Calcular el mensaje personalizado primero
+        let messageToDisplay = "";
         if (eventStatusCode) {
           // Prioritize the direct message from the backend event if available, 
           // especially for specific info codes where the backend provides more context.
-          let messageToDisplay = checadorEvent.errorMessage;
+          messageToDisplay = checadorEvent.errorMessage || "";
 
           if (!messageToDisplay || (eventStatusCode !== "301" && eventStatusCode !== "302")) {
             // Fallback to generic friendly message if no specific error message from backend 
@@ -535,7 +649,50 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
           setShowAttendance(true)
         }
 
-        if (checadorEvent.identificado || statusType === "OK" || statusType === "INFO") {
+        // *** MEJORADA LÓGICA FR: Detectar registros fuera de rango ***
+        const esFueraDeRango = eventStatusCode === "FR" || 
+                              eventStatusCode === "401" || 
+                              (checadorEvent.errorMessage && checadorEvent.errorMessage.toLowerCase().includes("fuera")) ||
+                              (messageToDisplay && messageToDisplay.toLowerCase().includes("fuera"));
+
+        console.log("Verificación FR:", {
+          eventStatusCode,
+          esFueraDeRango,
+          errorMessage: checadorEvent.errorMessage,
+          messageToDisplay
+        });
+
+        if (esFueraDeRango) {
+          console.log("🔴 DETECTADO REGISTRO FR - Mostrando como error");
+          setScanState("failed")
+          setScanResult("failed")
+          setPanelFlash("failed")
+          setShowOverlayMessage(true)
+          setShowInstructionMessage(false)
+
+          // Forzar mensaje de error para FR
+          setCustomMessage("Registro fuera del horario permitido")
+
+          // Agregar FR al historial como registro fallido si tenemos datos del empleado
+          if (checadorEvent.empleadoId !== undefined && checadorEvent.nombreCompleto) {
+            const action = checadorEvent.accion || nextRecommendedActionRef.current
+            const newScan: ScanHistoryItem = {
+              name: checadorEvent.nombreCompleto,
+              time: new Date(),
+              success: false, // Marcado como fallido
+              action: action,
+              employeeId: checadorEvent.empleadoId.toString(),
+              statusCode: "FR", // Forzar FR para estilo consistente
+            }
+            setScanHistory((prev) => [newScan, ...prev.slice(0, 5)]) // Mantener máximo 6 registros
+          }
+
+          setTimeout(() => {
+            setScanState("ready")
+          }, 3500)
+        }
+        // Registros exitosos normales (no FR)
+        else if (checadorEvent.identificado || statusType === "OK" || statusType === "INFO") {
           setScanState("success")
           setScanResult("success")
           setPanelFlash("success")
@@ -564,7 +721,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
               setRetainSessionTimeout(timeout)
             }
 
-            // Solo añadir al historial si es un código de éxito real
+            // Solo añadir al historial si es un código de éxito real (no FR)
             if (eventStatusCode?.startsWith("2")) {
               const newScan: ScanHistoryItem = {
                 name: checadorEvent.nombreCompleto,
@@ -661,6 +818,40 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
       }
     }
   }, [])
+
+  // Función para calcular cuántos registros mostrar según la altura de pantalla
+  const getMaxHistoryItems = () => {
+    if (windowHeight === 0) return 4 // Default fallback
+    
+    // Calcular espacio disponible
+    // Altura base del header + margen + título del panel ≈ 200px
+    // Cada item de historial ≈ 80px (incluyendo padding y margen)
+    const availableHeight = windowHeight - 200
+    const itemHeight = 80
+    const maxItems = Math.floor(availableHeight / itemHeight)
+    
+    // Limitar entre 3 y 6 items
+    return Math.max(3, Math.min(6, maxItems))
+  }
+
+  // Función para calcular el máximo de caracteres según el ancho disponible
+  const getMaxNameLength = () => {
+    if (windowHeight === 0) return 16 // Default fallback
+    
+    // Calcular basado en altura de pantalla como proxy del tamaño general
+    // Pantallas más grandes pueden mostrar más caracteres
+    if (windowHeight >= 1080) return 20
+    if (windowHeight >= 900) return 18
+    if (windowHeight >= 768) return 16
+    return 14
+  }
+
+  // Función para truncar nombres largos de forma adaptable
+  const truncateName = (name: string) => {
+    const maxLength = getMaxNameLength()
+    if (name.length <= maxLength) return name
+    return name.substring(0, maxLength - 3) + "..."
+  }
 
   // Inicializar elementos de audio
   useEffect(() => {
@@ -926,32 +1117,104 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     return () => clearInterval(interval)
   }, [scanState])
 
+  // Función para obtener todos los turnos con tamaños adaptativos
+  const getVisibleTurnos = () => {
+    if (jornadasDelDia.length === 0) return { visibleTurnos: [], hasHidden: false }
+    
+    // Ordenar jornadas por hora de entrada programada
+    const sortedJornadas = [...jornadasDelDia].sort((a, b) => 
+      a.horaEntradaProgramada.localeCompare(b.horaEntradaProgramada)
+    )
+    
+    // Mostrar todos los turnos, pero adaptar el tamaño según la cantidad
+    return { visibleTurnos: sortedJornadas, hasHidden: false }
+  }
+
+  // Función para determinar el tamaño de cada turno según la cantidad total
+  const getTurnoSize = (turnoId: number) => {
+    const totalTurnos = jornadasDelDia.length
+    const isCurrent = turnoId === getMostRelevantTurnoId()
+    
+    // Si es el turno actual, siempre más grande
+    if (isCurrent) {
+      return totalTurnos <= 3 ? 'large' : totalTurnos <= 6 ? 'medium' : 'small'
+    }
+    
+    // Para turnos no actuales, tamaño basado en cantidad total
+    if (totalTurnos <= 3) return 'medium'
+    if (totalTurnos <= 6) return 'small' 
+    return 'xsmall'
+  }
+
+  // Función para determinar el turno más relevante para expandir
+  const getMostRelevantTurnoId = () => {
+    // Si hay un ID de sesión retenido (recién completado), ese tiene prioridad temporal
+    if (retainedSessionId !== null) {
+      return retainedSessionId
+    }
+    
+    // Si hay un ID de sesión activa desde el backend, ese tiene prioridad
+    if (activeSessionId !== null) {
+      return activeSessionId
+    }
+    
+    // Si no hay sesión activa del backend, determinar basándose en hora actual y estados
+    if (jornadasDelDia.length === 0) return null
+    
+    const currentTime = new Date()
+    const currentTimeStr = format(currentTime, "HH:mm:ss")
+    
+            // 1. Buscar turno realmente en curso (tiene entrada pero no salida)
+        const turnosConEntrada = jornadasDelDia.filter(j => 
+          j.horaEntradaReal && !j.horaSalidaReal && 
+          (j.estatusJornada === "EN_CURSO" || j.estatusJornada === "RETARDO" || j.estatusJornada === "RETARDO_SIN_SALIDA")
+        )
+    
+    if (turnosConEntrada.length > 0) {
+      // Si hay múltiples, tomar el más reciente por hora de entrada real
+      const masReciente = turnosConEntrada.reduce((prev, curr) => 
+        curr.horaEntradaReal! > prev.horaEntradaReal! ? curr : prev
+      )
+      return masReciente.detalleHorarioId
+    }
+    
+    // 2. Buscar turno más cercano a la hora actual (pendientes)
+    const turnosPendientes = jornadasDelDia.filter(j => j.estatusJornada === "PENDIENTE")
+    
+    if (turnosPendientes.length > 0) {
+      const turnoMasCercano = turnosPendientes.reduce((prev, curr) => {
+        const prevDiff = Math.abs(
+          new Date(`1970-01-01T${currentTimeStr}`).getTime() - 
+          new Date(`1970-01-01T${prev.horaEntradaProgramada}`).getTime()
+        )
+        const currDiff = Math.abs(
+          new Date(`1970-01-01T${currentTimeStr}`).getTime() - 
+          new Date(`1970-01-01T${curr.horaEntradaProgramada}`).getTime()
+        )
+        return currDiff < prevDiff ? curr : prev
+      })
+      return turnoMasCercano.detalleHorarioId
+    }
+    
+            // 3. Como último recurso, buscar cualquier turno en curso por status
+        const cualquierEnCurso = jornadasDelDia.find(j => 
+          j.estatusJornada === "EN_CURSO" || j.estatusJornada === "RETARDO" || j.estatusJornada === "RETARDO_SIN_SALIDA"
+        )
+    if (cualquierEnCurso) {
+      return cualquierEnCurso.detalleHorarioId
+    }
+    
+    // 4. Si todo falla, mostrar el primer turno ordenado por hora
+    const ordenados = [...jornadasDelDia].sort((a, b) => 
+      a.horaEntradaProgramada.localeCompare(b.horaEntradaProgramada)
+    )
+    return ordenados[0]?.detalleHorarioId || null
+  }
+
   // Efecto para establecer el turno expandido cuando cambia activeSessionId o retainedSessionId
   useEffect(() => {
-    // Si hay un ID de sesión retenido (después de registrar salida), mostrar ese turno expandido
-    if (retainedSessionId !== null) {
-      setExpandedTurnoId(retainedSessionId)
-    }
-    // Si hay un ID de sesión activa, mostrar ese turno expandido
-    else if (activeSessionId !== null) {
-      setExpandedTurnoId(activeSessionId)
-    }
-    // Si no hay sesión activa ni retenida, pero hay jornadas, mostrar la primera pendiente
-    else if (jornadasDelDia.length > 0) {
-      const jornadasPendientes = jornadasDelDia
-        .filter((jornada) => jornada.estatusJornada === "PENDIENTE")
-        .sort((a, b) => a.horaEntradaProgramada.localeCompare(b.horaEntradaProgramada))
-
-      if (jornadasPendientes.length > 0) {
-        setExpandedTurnoId(jornadasPendientes[0].detalleHorarioId)
-      } else {
-        // Si no hay pendientes, mostrar la primera jornada
-        setExpandedTurnoId(jornadasDelDia[0].detalleHorarioId)
-      }
-    } else {
-      // Si no hay jornadas, no expandir ningún turno
-      setExpandedTurnoId(null)
-    }
+    const relevantTurnoId = getMostRelevantTurnoId()
+    setExpandedTurnoId(relevantTurnoId)
   }, [activeSessionId, retainedSessionId, jornadasDelDia])
 
   // Función para obtener la próxima jornada y sus horarios
@@ -1111,7 +1374,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                     <Clock className="h-3 w-3 animate-pulse" />
                     <span>
                       {
-                        jornadasDelDia.filter((j) => j.estatusJornada === "EN_CURSO" || j.estatusJornada === "RETARDO")
+                        jornadasDelDia.filter((j) => j.estatusJornada === "EN_CURSO" || j.estatusJornada === "RETARDO" || j.estatusJornada === "RETARDO_SIN_SALIDA")
                           .length
                       }
                     </span>
@@ -1127,35 +1390,41 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
             <div className="space-y-3">
               {jornadasDelDia.length > 0 && showAttendance ? (
                 <div className="space-y-3">
-                  {/* Lista de todos los turnos, ordenados por hora */}
-                  {jornadasDelDia
-                    .sort((a, b) => {
-                      // Ordenar primero por hora de entrada programada
-                      return a.horaEntradaProgramada.localeCompare(b.horaEntradaProgramada)
-                    })
-                    .map((jornada) => {
-                      // Determinar si este turno está activo
-                      const isActive =
-                        (activeSessionId !== null && jornada.detalleHorarioId === activeSessionId) ||
-                        (retainedSessionId !== null && jornada.detalleHorarioId === retainedSessionId)
+                  {(() => {
+                    const { visibleTurnos } = getVisibleTurnos()
+                    return (
+                      <>                        
+                        {/* Lista de todos los turnos con tamaños adaptativos */}
+                        {visibleTurnos.map((jornada) => {
+                          // Determinar si este turno está activo
+                          const isActive =
+                            (activeSessionId !== null && jornada.detalleHorarioId === activeSessionId) ||
+                            (retainedSessionId !== null && jornada.detalleHorarioId === retainedSessionId)
 
-                      // Determinar si este turno está expandido - ahora el turno activo siempre se expande
-                      const isExpanded = isActive || jornada.detalleHorarioId === expandedTurnoId
+                          // Determinar si este turno está expandido
+                          const isExpanded = jornada.detalleHorarioId === expandedTurnoId
 
-                      return (
-                        <TurnoItem
-                          key={jornada.detalleHorarioId}
-                          jornada={jornada}
-                          isActive={isActive}
-                          isExpanded={isExpanded}
-                          onClick={() =>
-                            setExpandedTurnoId(
-                              expandedTurnoId === jornada.detalleHorarioId ? null : jornada.detalleHorarioId,
-                            )
-                          }
-                        />
-                      )
-                    })}
+                          // Determinar el tamaño según la lógica
+                          const turnoSize = getTurnoSize(jornada.detalleHorarioId)
+
+                          return (
+                            <TurnoItem
+                              key={jornada.detalleHorarioId}
+                              jornada={jornada}
+                              isActive={isActive}
+                              isExpanded={isExpanded}
+                              size={turnoSize}
+                              onClick={() =>
+                                setExpandedTurnoId(
+                                  expandedTurnoId === jornada.detalleHorarioId ? null : jornada.detalleHorarioId,
+                                )
+                              }
+                            />
+                          )
+                        })}
+                      </>
+                    )
+                  })()}
 
                   {/* Si no hay jornadas */}
                   {jornadasDelDia.length === 0 && (
@@ -1192,17 +1461,20 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
             className={`relative flex-1 overflow-hidden p-4 text-white shadow-lg border-2 transition-colors duration-300 ${getPanelColor()}`}
             ref={containerRef}
           >
-            {/* Mensaje de resultado como overlay - posición fija */}
+            {/* Mensaje de resultado como overlay - posición fija y centrado */}
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
               <div
-                className={`text-5xl font-bold transition-opacity duration-300 ${getResultMessageColor()} ${
+                className={`text-5xl md:text-6xl font-bold transition-opacity duration-300 text-center px-4 max-w-4xl ${getResultMessageColor()} ${
                   scanState === "success"
-                    ? "drop-shadow-[0_0_20px_rgba(74,222,128,0.8)]"
+                    ? "drop-shadow-[0_0_30px_rgba(74,222,128,0.9)]"
                     : scanState === "failed"
-                      ? "drop-shadow-[0_0_20px_rgba(248,113,113,0.8)]"
+                      ? "drop-shadow-[0_0_30px_rgba(248,113,113,0.9)]"
                       : ""
                 }`}
-                style={{ opacity: showOverlayMessage ? 0.95 : 0 }}
+                style={{ 
+                  opacity: showOverlayMessage ? 0.98 : 0,
+                  lineHeight: '1.1'
+                }}
               >
                 {getResultMessage()}
               </div>
@@ -1466,56 +1738,80 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                 {/* Recuadros de Entrada/Salida - siempre visibles */}
                 <div className="mb-6 grid grid-cols-2 gap-4">
                   <div
-                    className={`rounded-lg p-4 border-2 ${
-                      showAttendance && lastAction === "entrada"
-                        ? getTimeBoxColor(
-                            jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)?.estatusJornada ||
-                              "PENDIENTE",
-                            "entrada",
-                          )
-                        : showAttendance && lastAction === "salida" && retainedSessionId
-                        ? getTimeBoxColor(
-                            jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)?.estatusJornada ||
-                              "COMPLETADA",
-                            "entrada",
-                          )
+                    className={`rounded-lg p-4 border-2 transition-all duration-300 ${
+                      showAttendance && (lastAction === "entrada" || (lastAction === "salida" && retainedSessionId))
+                        ? (() => {
+                            // Determinar la jornada relevante
+                            const relevantSession = lastAction === "entrada" && activeSessionId
+                              ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)
+                              : lastAction === "salida" && retainedSessionId
+                              ? jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)
+                              : null
+                            
+                            if (relevantSession?.horaEntradaReal) {
+                              // Si hay entrada registrada, mostrar en verde
+                              return "border-green-600/50 bg-green-900/20 shadow-inner shadow-green-900/10"
+                            } else {
+                              // Si no hay entrada, mostrar neutral
+                              return "border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10"
+                            }
+                          })()
                         : "bg-zinc-800 border-zinc-700"
                     }`}
                   >
                     <div className="flex items-center gap-3 mb-2">
                       <LogIn
-                        className={`h-6 w-6 ${showAttendance && lastAction === "entrada" && statusCode ? getStyleClassesForCode(statusCode).icon : "text-zinc-400"}`}
+                        className={`h-6 w-6 ${
+                          showAttendance && (lastAction === "entrada" || (lastAction === "salida" && retainedSessionId))
+                            ? (() => {
+                                const relevantSession = lastAction === "entrada" && activeSessionId
+                                  ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)
+                                  : lastAction === "salida" && retainedSessionId
+                                  ? jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)
+                                  : null
+                                
+                                return relevantSession?.horaEntradaReal ? "text-green-400" : "text-blue-400"
+                              })()
+                            : "text-zinc-400"
+                        }`}
                       />
                       <p className="text-lg font-medium">Entrada</p>
                     </div>
                     <p
-                      className={`text-2xl font-bold ${
-                        showAttendance && lastAction === "entrada"
-                          ? statusCode
-                            ? getStyleClassesForCode(statusCode).text
-                            : "text-white"
-                          : showAttendance && lastAction === "salida" && retainedSessionId
-                          ? "text-green-300"
+                      className={`text-3xl font-bold ${
+                        showAttendance && (lastAction === "entrada" || (lastAction === "salida" && retainedSessionId))
+                          ? (() => {
+                              const relevantSession = lastAction === "entrada" && activeSessionId
+                                ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)
+                                : lastAction === "salida" && retainedSessionId
+                                ? jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)
+                                : null
+                              
+                              return relevantSession?.horaEntradaReal ? "text-green-300" : "text-blue-300"
+                            })()
                           : "text-zinc-600"
                       }`}
                     >
-                      {showAttendance && lastAction === "entrada" && activeSessionId !== null
-                        ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)?.horaEntradaReal
-                          ? formatTime(
-                              jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)?.horaEntradaReal ||
-                                null,
-                            )
-                          : getNextScheduledTime().entryTime
-                        : showAttendance && lastAction === "salida" && retainedSessionId !== null
-                        ? jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)?.horaEntradaReal
-                          ? formatTime(
-                              jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)?.horaEntradaReal ||
-                                null,
-                            )
-                          : getNextScheduledTime().entryTime
-                        : "00:00"}
+                      {(() => {
+                        if (showAttendance) {
+                          const relevantSession = lastAction === "entrada" && activeSessionId
+                            ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)
+                            : lastAction === "salida" && retainedSessionId
+                            ? jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)
+                            : null
+                          
+                          if (relevantSession?.horaEntradaReal) {
+                            return formatTime(relevantSession.horaEntradaReal)
+                          } else if (relevantSession?.horaEntradaProgramada) {
+                            return formatTime(relevantSession.horaEntradaProgramada)
+                          } else {
+                            return getNextScheduledTime().entryTime
+                          }
+                        }
+                        return "00:00"
+                      })()}
                     </p>
-                    {showAttendance && lastAction === "entrada" && statusCode && statusCode === "202" && (
+                    {showAttendance && lastAction === "entrada" && statusCode === "202" && (
                       <div className="mt-2 text-xs text-yellow-400 flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" /> Entrada con retardo
                       </div>
@@ -1523,95 +1819,83 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                   </div>
 
                   <div
-                    className={`rounded-lg p-4 border-2 ${
+                    className={`rounded-lg p-4 border-2 transition-all duration-300 ${
                       showAttendance && lastAction === "salida"
-                        ? getTimeBoxColor(
-                            jornadasDelDia.find((j) => j.detalleHorarioId === (retainedSessionId || activeSessionId))?.estatusJornada ||
-                              "PENDIENTE",
-                            "salida",
-                          )
+                        ? (() => {
+                            const relevantSession = retainedSessionId
+                              ? jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)
+                              : activeSessionId
+                              ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)
+                              : null
+                            
+                            if (relevantSession?.horaSalidaReal) {
+                              // Si hay salida registrada, mostrar en verde
+                              return "border-green-600/50 bg-green-900/20 shadow-inner shadow-green-900/10"
+                            } else {
+                              // Si no hay salida, mostrar neutral
+                              return "border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10"
+                            }
+                          })()
                         : "bg-zinc-800 border-zinc-700"
                     }`}
                   >
                     <div className="flex items-center gap-3 mb-2">
                       <LogOut
-                        className={`h-6 w-6 ${showAttendance && lastAction === "salida" && statusCode ? getStyleClassesForCode(statusCode).icon : "text-zinc-400"}`}
+                        className={`h-6 w-6 ${
+                          showAttendance && lastAction === "salida"
+                            ? (() => {
+                                const relevantSession = retainedSessionId
+                                  ? jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)
+                                  : activeSessionId
+                                  ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)
+                                  : null
+                                
+                                return relevantSession?.horaSalidaReal ? "text-green-400" : "text-blue-400"
+                              })()
+                            : "text-zinc-400"
+                        }`}
                       />
                       <p className="text-lg font-medium">Salida</p>
 
                       {/* Indicador visual de sesión completada recientemente */}
-                      {statusCode && !statusCode.startsWith('4') && lastAction === "salida" && (
-                        <span className="ml-auto text-xs bg-green-600/40 text-green-300 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" /> Turno Completado
+                      {statusCode && !statusCode.startsWith('4') && lastAction === "salida" && retainedSessionId && (
+                        <span className="ml-auto text-xs bg-green-600/30 text-green-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" /> Completado
                         </span>
                       )}
                     </div>
                     <p
-                      className={`text-2xl font-bold ${
+                      className={`text-3xl font-bold ${
                         showAttendance && lastAction === "salida"
-                          ? statusCode
-                            ? getStyleClassesForCode(statusCode).text
-                            : "text-white"
+                          ? (() => {
+                              const relevantSession = retainedSessionId
+                                ? jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)
+                                : activeSessionId
+                                ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)
+                                : null
+                              
+                              return relevantSession?.horaSalidaReal ? "text-green-300" : "text-blue-300"
+                            })()
                           : "text-zinc-600"
                       }`}
                     >
                       {(() => {
-                        if (showAttendance) {
-                          // Si tenemos una sesión retenida (recién completada), mostrar su hora de salida real
-                          if (lastAction === "salida" && retainedSessionId !== null) {
-                            const jornadaRetenida = jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)
-                            if (jornadaRetenida?.horaSalidaReal) {
-                              return formatTime(jornadaRetenida.horaSalidaReal)
-                            }
-                          }
-
-                          // ALL_COMPLETE: Show the latest actual exit time from completed jornadas
-                          else if (statusCode === "299") {
-                            const completedJornadasConSalidaReal = jornadasDelDia
-                              .filter((j) => j.estatusJornada === "COMPLETADA" && j.horaSalidaReal)
-                              .sort((a, b) =>
-                                (b.horaSalidaProgramada || "").localeCompare(a.horaSalidaProgramada || ""),
-                              ) // Sort to find the "last" one
-
-                            if (
-                              completedJornadasConSalidaReal.length > 0 &&
-                              completedJornadasConSalidaReal[0].horaSalidaReal
-                            ) {
-                              return formatTime(completedJornadasConSalidaReal[0].horaSalidaReal)
-                            }
-                            return "--:--" // Fallback if no real exit time found
-                          }
-
-                          // Regular "salida" action with an active session
-                          else if (lastAction === "salida" && activeSessionId !== null) {
-                            const activeJornada = jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)
-                            if (activeJornada?.horaSalidaReal) {
-                              return formatTime(activeJornada.horaSalidaReal)
-                            }
-                            // If active session but no real exit time yet (e.g., showing programmed exit for current shift)
-                            if (activeJornada) {
-                              return formatTime(activeJornada.horaSalidaProgramada)
-                            }
-                            // Fallback if activeJornada somehow not found
-                            return getNextScheduledTime().exitTime
-                          }
-                          // Fallback display for "salida" if other specific conditions aren't met
-                          // This ensures that if lastAction is "salida", we try to show something meaningful.
-                          else if (lastAction === "salida") {
-                            // Attempt to find the most recently completed session's exit time as a general fallback for "salida"
-                            const anyCompletedWithExit = jornadasDelDia
-                              .filter((j) => j.estatusJornada === "COMPLETADA" && j.horaSalidaReal)
-                              .sort((a, b) =>
-                                (b.horaSalidaProgramada || "").localeCompare(a.horaSalidaProgramada || ""),
-                              )
-                            if (anyCompletedWithExit.length > 0 && anyCompletedWithExit[0].horaSalidaReal) {
-                              return formatTime(anyCompletedWithExit[0].horaSalidaReal)
-                            }
-                            // Otherwise, show next scheduled exit time from the helper
+                        if (showAttendance && lastAction === "salida") {
+                          const relevantSession = retainedSessionId
+                            ? jornadasDelDia.find((j) => j.detalleHorarioId === retainedSessionId)
+                            : activeSessionId
+                            ? jornadasDelDia.find((j) => j.detalleHorarioId === activeSessionId)
+                            : null
+                          
+                          if (relevantSession?.horaSalidaReal) {
+                            return formatTime(relevantSession.horaSalidaReal)
+                          } else if (relevantSession?.horaSalidaProgramada) {
+                            return formatTime(relevantSession.horaSalidaProgramada)
+                          } else {
                             return getNextScheduledTime().exitTime
                           }
                         }
-                        return "00:00" // Default placeholder
+                        return "00:00"
                       })()}
                     </p>
                     {showAttendance &&
@@ -1638,7 +1922,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
             <div className="space-y-4">
               {scanHistory.length === 0
                 ? // Placeholders cuando no hay historial
-                  Array.from({ length: 6 }).map((_, index) => (
+                  Array.from({ length: getMaxHistoryItems() }).map((_, index) => (
                     <div
                       key={`history-placeholder-${index}`}
                       className="flex items-center gap-3 p-3 rounded-md bg-zinc-800/30"
@@ -1654,7 +1938,7 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                   ))
                 : // Historial real con opacidad basada en tiempo de inactividad
                   scanHistory
-                    .slice(0, 6)
+                    .slice(0, getMaxHistoryItems())
                     .map((scan, index) => {
                       // Get background color based on status code
                       const bgColorClass =
@@ -1664,14 +1948,20 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                             ? "bg-blue-500/30"
                             : scan.statusCode && scan.statusCode.startsWith("202")
                               ? "bg-yellow-500/30"
-                              : "bg-zinc-500/30"
+                              : scan.statusCode === "FR"
+                                ? "bg-red-500/30" // FR siempre rojo
+                                : "bg-zinc-500/30"
 
                       // Determinar el icono basado en el código de estado y la acción
                       let ActionIcon = scan.action === "entrada" ? LogIn : LogOut
                       let iconColorClass = "text-green-500" // Default color
 
                       if (scan.statusCode) {
-                        if (scan.statusCode.startsWith("2")) {
+                        if (scan.statusCode === "FR") {
+                          // FR siempre se muestra como error
+                          ActionIcon = XCircle
+                          iconColorClass = "text-red-500"
+                        } else if (scan.statusCode.startsWith("2")) {
                           // Siempre usar el icono correcto basado en la acción, no en el código de estado
                           ActionIcon = scan.action === "entrada" ? LogIn : LogOut
                           // Set color based on status code
@@ -1704,7 +1994,9 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                                 ? "bg-blue-900/20 border border-blue-800/30"
                                 : scan.statusCode && scan.statusCode.startsWith("4")
                                   ? "bg-red-900/20 border border-red-800/30"
-                                  : "bg-zinc-800/50"
+                                  : scan.statusCode === "FR"
+                                    ? "bg-red-900/20 border border-red-800/30" // FR como error
+                                    : "bg-zinc-800/50"
                           }`}
                           style={{
                             opacity: index === 0 ? 1 : Math.max(0.5, 1 - inactiveTime * 0.01 * index),
@@ -1715,18 +2007,29 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
                             <ActionIcon className={`h-6 w-6 ${iconColorClass}`} />
                           </div>
                           <div className="flex-1">
-                            <p className="text-lg font-bold text-white">{scan.name}</p>
+                            <p className="text-lg font-bold text-white" title={scan.name}>
+                              {truncateName(scan.name)}
+                            </p>
                             <div className="flex justify-between items-center">
                               <p className="text-base text-zinc-400">{format(scan.time, "HH:mm:ss")}</p>
-                              <span
-                                className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                                  scan.action === "entrada"
-                                    ? "bg-green-500/20 text-green-300"
-                                    : "bg-blue-500/20 text-blue-300"
-                                }`}
-                              >
-                                {scan.action === "entrada" ? "Entrada" : "Salida"}
-                              </span>
+                              {/* Solo mostrar badge de acción si fue exitoso */}
+                              {scan.success && (
+                                <span
+                                  className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                    scan.action === "entrada"
+                                      ? "bg-green-500/20 text-green-300"
+                                      : "bg-blue-500/20 text-blue-300"
+                                  }`}
+                                >
+                                  {scan.action === "entrada" ? "Entrada" : "Salida"}
+                                </span>
+                              )}
+                              {/* Para errores, mostrar un badge neutro */}
+                              {!scan.success && (
+                                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-zinc-700/50 text-zinc-400">
+                                  Intento
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>

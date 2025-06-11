@@ -34,6 +34,10 @@ export const getUserFriendlyMessage = (code: string | undefined, data: Record<st
     case "403":
       return "Recurso no encontrado";
     
+    // Código especial para FR - se guarda pero se muestra como error
+    case "FR":
+      return "Registro fuera de rango - Solo para auditoría";
+    
     // Códigos de error técnicos (5xx)
     case "500":
       return "Problema con el lector";
@@ -60,6 +64,17 @@ export const getStyleClassesForCode = (code: string | undefined): {
       timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700",
       text: "text-zinc-300",
       bgColor: "bg-zinc-700/20"
+    };
+  }
+  
+  // Código especial FR - se trata como error visualmente
+  if (code === "FR") {
+    return {
+      panel: "bg-red-900/50 border-red-500",
+      icon: "text-red-500",
+      timeBox: "bg-zinc-800 text-zinc-400 border-zinc-700", // Neutral en errores
+      text: "text-red-400",
+      bgColor: "bg-red-500/20"
     };
   }
   
@@ -145,6 +160,11 @@ export const formatTime = (timeString: string | null): string => {
 export const getScanColor = (state: ScanState, statusCode?: string) => {
   // Si hay un código de estado, usar el mapeo de estilos basado en código
   if (statusCode) {
+    // Caso especial para FR - se trata como failed
+    if (statusCode === "FR") {
+      return "red";
+    }
+    
     const styles = getStyleClassesForCode(statusCode);
     
     // Extraer el color base sin el prefijo "text-" y el sufijo "-500"

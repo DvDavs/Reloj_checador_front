@@ -28,3 +28,6 @@ next-env.d.ts
 
 # idea
 .idea
+
+# backend-resources
+backend-resources
