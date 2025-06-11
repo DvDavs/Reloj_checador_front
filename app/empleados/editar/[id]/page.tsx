@@ -312,6 +312,8 @@ export default function EditarEmpleadoPage() {
                                         <SelectItem value="BASE">Base</SelectItem>
                                         <SelectItem value="HONORARIOS">Honorarios</SelectItem>
                                         <SelectItem value="CONFIANZA">Confianza</SelectItem>
+                                        <SelectItem value="INTERINATO">Interinato</SelectItem>
+                                        <SelectItem value="JEFE">Interinato</SelectItem>
                                          {/* Añade más si aplica */}
                                      </SelectContent>
                                  </Select>

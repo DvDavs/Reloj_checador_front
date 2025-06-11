@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import TimeClock from '@/app/components/time-clock'; // Ajusta la ruta si es necesario
+import TimeClock from '@/app/components/time-clock-view'; // Ajusta la ruta si es necesario
 import { Loader2 } from 'lucide-react';
 
 // Componente interno que usa useSearchParams
