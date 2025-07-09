@@ -25,7 +25,7 @@ export function HorarioTablero({ bloques, onChange }: HorarioTableroProps) {
   const diasSemanaDisplay = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
   // Generar intervalos de 30 minutos para la cuadrícula (de 7:00 a 22:00)
-  const intervalos = []
+  const intervalos: string[] = []
   for (let hora = 7; hora <= 22; hora++) {
     for (let minuto = 0; minuto < 60; minuto += 30) {
       const horaStr = hora.toString().padStart(2, "0")

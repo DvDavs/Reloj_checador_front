@@ -224,12 +224,12 @@ export function HorariosTable({ searchTerm = "" }: HorariosTableProps) {
                                 <span>Editar horario</span>
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            {/*<DropdownMenuItem>
                               <Link href={`/horarios/${horario.id}/detalle`} className="flex items-center">
                                 <Clock className="mr-2 h-4 w-4" />
                                 <span>Editar detalle</span>
                               </Link>
-                            </DropdownMenuItem>
+                            </DropdownMenuItem>*/}
                             <DropdownMenuItem>
                               <Link href={`/horarios/${horario.id}/asignar`} className="flex items-center">
                                 <Calendar className="mr-2 h-4 w-4" />

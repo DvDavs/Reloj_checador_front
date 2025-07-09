@@ -249,7 +249,7 @@ export function AsignacionHorariosManager() {
 
         console.log("Desactivando horario actual:", updateDto)
 
-        await axios.delete(`${API_BASE_URL}/api/horarios-asignados/${horarioAsignado.id}`, updateDto)
+        await axios.delete(`${API_BASE_URL}/api/horarios-asignados/${horarioAsignado.id}`, { data: updateDto })
 
         console.log("Horario actual desactivado exitosamente")
 
