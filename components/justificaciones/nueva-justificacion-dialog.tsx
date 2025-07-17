@@ -130,7 +130,7 @@ export function NuevaJustificacionDialog({
       departamento_id: formData.es_masiva ? formData.departamento_id : undefined,
       deleted: 0,
       usuario: 1, // Usuario actual del sistema
-      uuid: `just-${Date.now()}`,
+      uuid: `just-${v4()}`,
       version: 1,
       empleado: empleadoSeleccionado,
       tipo_justificacion: tipoJustificacionSeleccionado,
