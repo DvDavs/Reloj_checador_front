@@ -281,19 +281,39 @@ export function FormularioHorario({ horarioId, onSave, onCancel }: FormularioHor
           const regex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/
 
           if (!regex.test(horaLimpia)) {
-            console.warn(`Formato de hora inválido: ${hora}`)
-            return ""
+            throw new Error(`Formato de hora inválido: ${hora}`)
           }
 
           return `${horaLimpia}:00`
         }
 
-        const horaEntrada = formatearHora(bloque.inicio)
-        const horaSalida = formatearHora(bloque.fin)
+        try {
+          const horaEntrada = formatearHora(bloque.inicio)
+          const horaSalida = formatearHora(bloque.fin)
 
-        // Validar que las horas sean válidas
-        if (!horaEntrada || !horaSalida) {
-          console.warn(`Horas inválidas para ${dia}: ${bloque.inicio} - ${bloque.fin}`)
+          // Validar que las horas sean válidas
+          if (!horaEntrada || !horaSalida) {
+            console.warn(`Horas inválidas para ${dia}: ${bloque.inicio} - ${bloque.fin}`)
+            return // Saltar este bloque
+          }
+
+          // Validar que la hora de salida sea posterior a la de entrada
+          if (horaEntrada >= horaSalida) {
+            console.warn(`Horario inválido para ${dia}: ${horaEntrada} - ${horaSalida}`)
+            return // Saltar este bloque
+          }
+
+          const nuevoDetalle: DetalleHorarioCreateDto = {
+            diaSemana,
+            turno: index + 1,
+            horaEntrada,
+            horaSalida,
+          }
+
+          console.log(`Agregando detalle: Día ${diaSemana} (${dia}), Turno ${index + 1}, ${horaEntrada} - ${horaSalida}`)
+          detalles.push(nuevoDetalle)
+        } catch (error) {
+          console.warn(`Error procesando bloque: ${error.message}`)
           return // Saltar este bloque
         }
 
