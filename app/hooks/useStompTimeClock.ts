@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+// app/hooks/useStompTimeClock.ts
+import { useState, useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import axios from 'axios';
-import { BackendChecadorEvent, FullAttendanceStateEvent, StompEventMessage } from '../lib/types/timeClockTypes';
+
+// Importar los tipos
+import type { BackendChecadorEvent, FullAttendanceStateEvent } from '../lib/types/timeClockTypes';
 
 interface UseStompTimeClockProps {
   initialReaderName: string;
@@ -10,11 +13,7 @@ interface UseStompTimeClockProps {
   onChecadorEvent: (event: BackendChecadorEvent | FullAttendanceStateEvent) => void;
   onConnectionError: (error: string | null) => void;
   onReadyStateChange: (isReady: boolean) => void;
-  apiBaseUrl?: string;
-}
-
-interface UseStompTimeClockReturn {
-  isConnected: boolean;
+  apiBaseUrl: string;
 }
 
 const useStompTimeClock = ({
@@ -23,209 +22,104 @@ const useStompTimeClock = ({
   onChecadorEvent,
   onConnectionError,
   onReadyStateChange,
-  apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080',
-}: UseStompTimeClockProps): UseStompTimeClockReturn => {
-  const [isConnected, setIsConnected] = useState<boolean>(false);
+  apiBaseUrl,
+}: UseStompTimeClockProps) => {
+  const [isConnected, setIsConnected] = useState(false);
   const stompClientRef = useRef<Client | null>(null);
-  const readerNameRef = useRef(initialReaderName);
-  const sessionIdRef = useRef(initialSessionId);
-  
-  // Store the callback functions in refs to avoid dependency changes
-  const onChecadorEventRef = useRef(onChecadorEvent);
-  const onConnectionErrorRef = useRef(onConnectionError);
-  const onReadyStateChangeRef = useRef(onReadyStateChange);
-  const apiBaseUrlRef = useRef(apiBaseUrl);
-
-  // Update refs when props change
-  useEffect(() => {
-    readerNameRef.current = initialReaderName;
-    sessionIdRef.current = initialSessionId;
-    onChecadorEventRef.current = onChecadorEvent;
-    onConnectionErrorRef.current = onConnectionError;
-    onReadyStateChangeRef.current = onReadyStateChange;
-    apiBaseUrlRef.current = apiBaseUrl;
-  }, [initialReaderName, initialSessionId, onChecadorEvent, onConnectionError, onReadyStateChange, apiBaseUrl]);
-
-  const initiateReaderAndChecador = useCallback(async () => {
-    if (!readerNameRef.current || !sessionIdRef.current) {
-      console.warn("STOMP Hook: Reader o Session ID no disponibles para iniciar.");
-      onConnectionErrorRef.current("Reader o Session ID no disponibles.");
-      onReadyStateChangeRef.current(false);
-      return;
-    }
-    console.log(`STOMP Hook: Iniciando proceso para lector ${readerNameRef.current} y sesión ${sessionIdRef.current}`);
-    onReadyStateChangeRef.current(false);
-    try {
-      onConnectionErrorRef.current(null);
-      await axios.post(
-        `${apiBaseUrlRef.current}/api/v1/multi-fingerprint/reserve/${encodeURIComponent(readerNameRef.current)}`,
-        null,
-        { params: { sessionId: sessionIdRef.current } }
-      );
-      console.log(`STOMP Hook: Lector ${readerNameRef.current} reservado.`);
-
-      await axios.post(
-        `${apiBaseUrlRef.current}/api/v1/multi-fingerprint/checador/start/${encodeURIComponent(readerNameRef.current)}`,
-        null,
-        { params: { sessionId: sessionIdRef.current } }
-      );
-      console.log(`STOMP Hook: Checador iniciado para ${readerNameRef.current}.`);
-      onReadyStateChangeRef.current(true);
-    } catch (error: any) {
-      console.error("STOMP Hook: Error al iniciar proceso de checador:", error);
-      const errMsg = error.response?.data?.mensaje || error.message || "Error desconocido al iniciar checador";
-      onConnectionErrorRef.current(`Error iniciando checador: ${errMsg}`);
-      onReadyStateChangeRef.current(false);
-      if (error.config.url.includes('/checador/start')) {
-        console.warn("STOMP Hook: Intentando liberar lector debido a fallo en inicio de checador...");
-        await stopAndReleaseReader();
-      }
-    }
-  }, []);
-
-  const stopAndReleaseReader = useCallback(async () => {
-    if (!readerNameRef.current || !sessionIdRef.current) {
-      console.warn("STOMP Hook: Reader o Session ID no disponibles para detener.");
-      return;
-    }
-    console.log(`STOMP Hook: Deteniendo y liberando lector ${readerNameRef.current}`);
-    onReadyStateChangeRef.current(false);
-    try {
-      await axios.post(
-        `${apiBaseUrlRef.current}/api/v1/multi-fingerprint/checador/stop/${encodeURIComponent(readerNameRef.current)}`,
-        null,
-        { params: { sessionId: sessionIdRef.current } }
-      );
-      console.log(`STOMP Hook: Checador detenido para ${readerNameRef.current}.`);
-    } catch (error) {
-      console.warn("STOMP Hook: Advertencia al detener checador:", error);
-    }
-    try {
-      await axios.post(
-        `${apiBaseUrlRef.current}/api/v1/multi-fingerprint/release/${encodeURIComponent(readerNameRef.current)}`,
-        null,
-        { params: { sessionId: sessionIdRef.current } }
-      );
-      console.log(`STOMP Hook: Lector ${readerNameRef.current} liberado.`);
-    } catch (error) {
-      console.warn("STOMP Hook: Advertencia al liberar lector:", error);
-    }
-  }, []);
 
   useEffect(() => {
-    console.log("STOMP Hook: useEffect EXECUTING. Deps changed or initial mount.", { 
-      initialReaderName, 
-      initialSessionId,
-      isConnected: stompClientRef.current?.active
-    });
-
-    const currentReader = readerNameRef.current;
-    const currentSession = sessionIdRef.current;
-
-    if (!currentReader || !currentSession) {
-      console.log("STOMP Hook: Reader o Session ID no disponibles, conexión WebSocket no iniciada.");
-      if (stompClientRef.current?.active) {
-        stompClientRef.current.deactivate();
-      }
-      setIsConnected(false);
-      onReadyStateChangeRef.current(false);
+    if (!initialReaderName || !initialSessionId) {
+      onConnectionError("Falta el nombre del lector o el ID de sesión.");
       return;
     }
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${apiBaseUrlRef.current}/ws-fingerprint`),
+      webSocketFactory: () => new SockJS(`${apiBaseUrl}/ws-fingerprint`),
+      connectHeaders: {
+        'X-Browser-Session-ID': initialSessionId,
+      },
       reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
       onConnect: async () => {
-        console.log(`STOMP Hook: Conectado a WebSocket para lector ${currentReader}`);
+        console.log("Conectado a WebSocket.");
         setIsConnected(true);
-        onConnectionErrorRef.current(null);
+        onConnectionError(null);
 
-        await initiateReaderAndChecador();
+        try {
+          // Reservar e iniciar el checador después de conectar
+          await axios.post(`${apiBaseUrl}/api/v1/multi-fingerprint/reserve/${encodeURIComponent(initialReaderName)}`, null, { params: { sessionId: initialSessionId } });
+          console.log(`Lector ${initialReaderName} reservado.`);
+          
+          await axios.post(`${apiBaseUrl}/api/v1/multi-fingerprint/checador/start/${encodeURIComponent(initialReaderName)}`, null, { params: { sessionId: initialSessionId } });
+          console.log(`Checador iniciado para ${initialReaderName}.`);
+          
+          onReadyStateChange(true);
 
-        const topic = `/topic/checador/${encodeURIComponent(currentReader)}`;
-        console.log(`STOMP Hook: Suscribiéndose a: ${topic}`);
-        client.subscribe(topic, (message) => {
-          try {
-            const data = JSON.parse(message.body);
-            
-            // Función para verificar si el mensaje es un FullAttendanceStateEvent
-            const isFullAttendanceEvent = (event: any): event is FullAttendanceStateEvent => 
-              'type' in event && event.type === 'FULL_ATTENDANCE_STATE_UPDATE';
-            
-            if (isFullAttendanceEvent(data)) {
-              // Es un FullAttendanceStateEvent
-              console.log("STOMP Hook: Recibido evento FULL_ATTENDANCE_STATE_UPDATE:", {
-                employeeId: data.employeeData?.id,
-                name: data.employeeData?.nombreCompleto,
-                nextAction: data.nextRecommendedActionBackend,
-                activeSession: data.activeSessionIdBackend,
-                sessionsCount: data.dailyWorkSessions?.length || 0
-              });
-            } else {
-              // Es un BackendChecadorEvent
-              const checadorEvent = data as BackendChecadorEvent;
-              console.log("STOMP Hook: Recibido evento checador:", {
-                empleadoId: checadorEvent.empleadoId,
-                identificado: checadorEvent.identificado,
-                accion: checadorEvent.accion,
-                statusCode: checadorEvent.statusCode,
-                statusType: checadorEvent.statusType
-              });
+          const topic = `/topic/checador/${encodeURIComponent(initialReaderName)}`;
+          client.subscribe(topic, (message) => {
+            try {
+              onChecadorEvent(JSON.parse(message.body));
+            } catch (e) {
+              console.error("Error al parsear mensaje de WebSocket", e);
             }
-            
-            // Pasar el evento a la función de manejo
-            onChecadorEventRef.current(data);
-          } catch (error) {
-            console.error("STOMP Hook: Error al parsear mensaje JSON:", error);
-            console.error("STOMP Hook: Mensaje original:", message.body);
-            onConnectionErrorRef.current("Error al procesar mensaje del servidor.");
-          }
-        });
+          });
+          console.log(`Suscrito a ${topic}`);
+
+        } catch (error: any) {
+          const errMsg = error.response?.data?.mensaje || error.message || "Error al iniciar checador";
+          onConnectionError(`Error en la inicialización: ${errMsg}`);
+          onReadyStateChange(false);
+        }
       },
       onDisconnect: () => {
-        console.log("STOMP Hook: Desconectado de WebSocket");
+        console.log("Desconectado de WebSocket.");
         setIsConnected(false);
-        onReadyStateChangeRef.current(false);
+        onReadyStateChange(false);
       },
       onStompError: (frame) => {
-        console.error("STOMP Hook: Error STOMP:", frame.headers?.message, frame);
-        onConnectionErrorRef.current(`Error STOMP: ${frame.headers?.message || 'Error desconocido'}`);
+        const errorMsg = `Error de conexión STOMP: ${frame.headers['message'] || 'Desconocido'}`;
+        console.error(errorMsg, frame);
+        onConnectionError(errorMsg);
         setIsConnected(false);
-        onReadyStateChangeRef.current(false);
+        onReadyStateChange(false);
       },
-      onWebSocketError: (errorEvent) => {
-        console.error("STOMP Hook: Error de WebSocket:", errorEvent);
-        const errorMsg = (errorEvent instanceof Event && errorEvent.type === 'error')
-          ? `No se pudo conectar a ${apiBaseUrlRef.current}/ws-fingerprint`
-          : (errorEvent as any).message || 'Error de conexión WebSocket';
-        onConnectionErrorRef.current(errorMsg);
-        setIsConnected(false);
-        onReadyStateChangeRef.current(false);
-      }
     });
 
-    console.log(`STOMP Hook: Activando cliente para ${currentReader}`);
     client.activate();
     stompClientRef.current = client;
 
+    // --- LÓGICA DE LIMPIEZA ---
+
+    const releaseOnUnload = () => {
+      const url = `${apiBaseUrl}/api/v1/multi-fingerprint/release/${encodeURIComponent(initialReaderName)}?sessionId=${initialSessionId}`;
+      navigator.sendBeacon(url);
+      console.log(`Beacon enviado para liberar lector: ${initialReaderName}`);
+    };
+
+    window.addEventListener("beforeunload", releaseOnUnload);
+
     return () => {
-      console.log(`STOMP Hook: useEffect CLEANUP. Deps changing or unmount.`, {
-        initialReaderName,
-        initialSessionId
-      });
-      
+      console.log("Limpiando hook useStompTimeClock...");
+      window.removeEventListener("beforeunload", releaseOnUnload);
+
+      const stopAndReleaseReader = async () => {
+        try {
+          // No es necesario detener el checador explícitamente si la liberación lo hace.
+          // La liberación por sesión ahora se encarga de detener el hilo de captura.
+          await axios.post(`${apiBaseUrl}/api/v1/multi-fingerprint/release/${encodeURIComponent(initialReaderName)}`, null, { params: { sessionId: initialSessionId } });
+          console.log(`Lector ${initialReaderName} liberado explícitamente.`);
+        } catch (error) {
+          console.warn("Advertencia al liberar el lector durante la limpieza:", error);
+        }
+      };
+
       stopAndReleaseReader().finally(() => {
         if (stompClientRef.current?.active) {
           stompClientRef.current.deactivate();
+          console.log("Cliente STOMP desactivado.");
         }
-        stompClientRef.current = null;
-        setIsConnected(false);
-        onReadyStateChangeRef.current(false);
       });
     };
-  }, [initialReaderName, initialSessionId]); // Only depend on these two props
+  }, [initialReaderName, initialSessionId, apiBaseUrl, onChecadorEvent, onConnectionError, onReadyStateChange]);
 
   return { isConnected };
 };

@@ -26,8 +26,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# idea
+# IDES
 .idea
+.kiro
 
 # backend-resources
 backend-resources
