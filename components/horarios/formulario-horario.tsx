@@ -571,7 +571,7 @@ export function FormularioHorario({ horarioId, onSave, onCancel }: FormularioHor
   }
 
   // Función para manejar la cancelación
-  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false),
 
   const handleCancel = () => {
     if (formModified) {
