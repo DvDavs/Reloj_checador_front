@@ -75,7 +75,12 @@ export function RegistroForm() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Observaciones</label>
-            <Input type="text" placeholder="Observaciones (opcional)" />
+            <Input
+              type="text"
+              placeholder="Observaciones (opcional)"
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+            />
           </div>
         </form>
       </CardContent>
