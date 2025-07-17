@@ -570,26 +570,48 @@ export function FormularioHorario({ horarioId, onSave, onCancel }: FormularioHor
   }
 
   // Función para manejar la cancelación
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
   const handleCancel = () => {
     if (formModified) {
-      if (window.confirm("¿Estás seguro de que deseas cancelar? Los cambios no guardados se perderán.")) {
-        if (onCancel) {
-          onCancel()
-        } else {
-          router.push("/horarios")
-        }
-      }
+      setShowCancelModal(true);
     } else {
       if (onCancel) {
-        onCancel()
+        onCancel();
       } else {
-        router.push("/horarios")
+        router.push("/horarios");
       }
     }
-  }
+  };
+
+  const confirmCancel = () => {
+    setShowCancelModal(false);
+    if (onCancel) {
+      onCancel();
+    } else {
+      router.push("/horarios");
+    }
+  };
+
+  const cancelModalClose = () => {
+    setShowCancelModal(false);
+  };
 
   return (
     <div className="space-y-6">
+      {/* Modal for cancel confirmation */}
+      {showCancelModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Confirmar cancelación</h2>
+            <p>¿Estás seguro de que deseas cancelar? Los cambios no guardados se perderán.</p>
+            <div className="modal-actions">
+              <Button onClick={confirmCancel} variant="destructive">Sí, cancelar</Button>
+              <Button onClick={cancelModalClose} variant="secondary">No, volver</Button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Mostrar mensaje de error si existe */}
       {apiError && (
         <div className="w-full bg-red-900/30 border border-red-700 text-red-400 p-4 rounded-lg mb-2 flex items-center gap-3">
