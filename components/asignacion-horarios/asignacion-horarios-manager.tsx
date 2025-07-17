@@ -1,24 +1,18 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AsignacionHorarioCard } from "@/components/asignacion-horarios/asignacion-horario-card"
-import { v4 as uuidv4 } from "uuid"
-import type { Horario } from "../horarios/horarios-manager"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, ArrowLeft, Trash, Loader2, XCircle, Clock, Calendar } from "lucide-react"
+import { Search, UserPlus, ArrowLeft, Trash, Loader2, XCircle } from "lucide-react"
 import { SeleccionEmpleadoDialog } from "@/components/asignacion-horarios/seleccion-empleado-dialog"
 import { SelectorHorarioExistente } from "@/components/asignacion-horarios/selector-horario-existente"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import axios from "axios"
 import type { HorarioDto, HorarioAsignadoDto, EmpleadoDto, EmpleadoUI } from "../types/backend-types"
-import type {
-  HorarioAsignadoCreateDto,
-} from "../types/backend-types"
-
+import type { HorarioAsignadoCreateDto } from "../types/backend-types"
 
 // Tipos
 export type Empleado = {
@@ -535,34 +529,130 @@ export function AsignacionHorariosManager() {
                           </div>
                         </div>
 
-                        {/* Horarios por día */}
+                        {/* Vista cuadriculada del horario */}
                         <div className="space-y-4">
-                          <h4 className="font-medium">Horarios por día:</h4>
-                          <div className="grid gap-3">
-                            {horarioCompleto.detalles
-                              .sort((a, b) => (a.diaSemana || 0) - (b.diaSemana || 0))
-                              .map((detalle) => (
-                                <div
-                                  key={detalle.id}
-                                  className="flex items-center justify-between p-3 border rounded-md bg-slate-50 dark:bg-slate-900"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">{obtenerNombreDia(detalle.diaSemana)}</span>
-                                    {detalle.turno && (
-                                      <Badge variant="outline" className="text-xs">
-                                        Turno {detalle.turno}
-                                      </Badge>
+                          <h4 className="font-medium">Vista Semanal del Horario</h4>
+                          <div className="border rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full border-collapse min-w-[800px]">
+                                <thead>
+                                  <tr>
+                                    <th className="bg-slate-100 dark:bg-slate-800 p-2 border-b border-r text-center font-medium min-w-[80px] sticky left-0 z-10">
+                                      Hora
+                                    </th>
+                                    {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].map(
+                                      (dia) => (
+                                        <th
+                                          key={dia}
+                                          className="bg-slate-100 dark:bg-slate-800 p-2 border-b border-r text-center font-medium min-w-[100px]"
+                                        >
+                                          {dia}
+                                        </th>
+                                      ),
                                     )}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-sm">
-                                      {formatearHora(detalle.horaEntrada)} - {formatearHora(detalle.horaSalida)}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {Array.from({ length: 48 }, (_, i) => {
+                                    const hora = Math.floor(i / 2)
+                                    const minutos = i % 2 === 0 ? "00" : "30"
+                                    const horaFormateada = `${hora.toString().padStart(2, "0")}:${minutos}`
+
+                                    return (
+                                      <tr key={horaFormateada}>
+                                        <td className="bg-slate-50 dark:bg-slate-900 p-2 border-b border-r text-center font-medium text-sm sticky left-0 z-10">
+                                          {horaFormateada}
+                                        </td>
+                                        {[1, 2, 3, 4, 5, 6, 7].map((diaSemana) => {
+                                          // Buscar si hay un detalle para este día y hora
+                                          const detalleEncontrado = horarioCompleto.detalles.find((detalle) => {
+                                            if (detalle.diaSemana !== diaSemana) return false
+
+                                            // Convertir horas a minutos para comparar
+                                            const horaActualMinutos = hora * 60 + (minutos === "30" ? 30 : 0)
+
+                                            const [horaEntradaH, horaEntradaM] = detalle.horaEntrada
+                                              .split(":")
+                                              .map(Number)
+                                            const [horaSalidaH, horaSalidaM] = detalle.horaSalida.split(":").map(Number)
+
+                                            const entradaMinutos = horaEntradaH * 60 + horaEntradaM
+                                            const salidaMinutos = horaSalidaH * 60 + horaSalidaM
+
+                                            return (
+                                              horaActualMinutos >= entradaMinutos && horaActualMinutos < salidaMinutos
+                                            )
+                                          })
+
+                                          const estaOcupado = !!detalleEncontrado
+                                          const turno = detalleEncontrado?.turno
+
+                                          // Colores diferentes para diferentes turnos
+                                          const getColorTurno = (turno?: number) => {
+                                            if (!turno) return ""
+                                            const colores = [
+                                              "bg-blue-200 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700",
+                                              "bg-green-200 dark:bg-green-900/50 border-green-300 dark:border-green-700",
+                                              "bg-purple-200 dark:bg-purple-900/50 border-purple-300 dark:border-purple-700",
+                                              "bg-orange-200 dark:bg-orange-900/50 border-orange-300 dark:border-orange-700",
+                                              "bg-pink-200 dark:bg-pink-900/50 border-pink-300 dark:border-pink-700",
+                                            ]
+                                            return colores[(turno - 1) % colores.length]
+                                          }
+
+                                          return (
+                                            <td
+                                              key={`${diaSemana}-${horaFormateada}`}
+                                              className={`border-b border-r h-6 text-center text-xs ${
+                                                estaOcupado
+                                                  ? `${getColorTurno(turno)} font-medium`
+                                                  : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                                              }`}
+                                              title={
+                                                estaOcupado
+                                                  ? `Turno ${turno} - ${formatearHora(detalleEncontrado.horaEntrada)} a ${formatearHora(detalleEncontrado.horaSalida)}`
+                                                  : `${["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][diaSemana]} ${horaFormateada}`
+                                              }
+                                            >
+                                              {estaOcupado && (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                  <span className="text-xs font-bold">T{turno}</span>
+                                                </div>
+                                              )}
+                                            </td>
+                                          )
+                                        })}
+                                      </tr>
+                                    )
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* Leyenda de turnos */}
+                          <div className="flex flex-wrap gap-2 items-center text-sm">
+                            <span className="font-medium">Leyenda:</span>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 bg-blue-200 dark:bg-blue-900/50 border border-blue-300 dark:border-blue-700 rounded"></div>
+                              <span>Turno 1</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 bg-green-200 dark:bg-green-900/50 border border-green-300 dark:border-green-700 rounded"></div>
+                              <span>Turno 2</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 bg-purple-200 dark:bg-purple-900/50 border border-purple-300 dark:border-purple-700 rounded"></div>
+                              <span>Turno 3</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 bg-orange-200 dark:bg-orange-900/50 border border-orange-300 dark:border-orange-700 rounded"></div>
+                              <span>Turno 4</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-4 bg-pink-200 dark:bg-pink-900/50 border border-pink-300 dark:border-pink-700 rounded"></div>
+                              <span>Turno 5+</span>
+                            </div>
                           </div>
                         </div>
                       </CardContent>

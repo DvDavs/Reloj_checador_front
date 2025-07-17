@@ -4,7 +4,7 @@ import React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Trash2, Eye, Plus, X, Moon, Sun, Sunset, Sunrise, Merge } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -402,8 +402,16 @@ export function HorarioTableroBloques({ bloques, bloquesOcupados = {}, onChange 
     { nombre: "Madrugada", horas: horasCompletas.slice(0, 6), icon: Moon, color: "bg-indigo-50 dark:bg-indigo-950" },
     { nombre: "Mañana", horas: horasCompletas.slice(6, 12), icon: Sunrise, color: "bg-orange-50 dark:bg-orange-950" },
     { nombre: "Tarde", horas: horasCompletas.slice(12, 18), icon: Sun, color: "bg-yellow-50 dark:bg-yellow-950" },
-    { nombre: "Noche", horas: horasCompletas.slice(18, 24), icon: Sunset, color: "bg-purple-50 dark:bg-purple-950" },
+    { nombre: "Noche", horas: horasCompletas.slice(18, 24), icon: Sunset, color: "bg-purple-50 dark:bg-purple-400" },
   ]
+
+  // Función para obtener el período del día y su icono (agregar antes del return)
+  const convertirAMinutos = (hora: string): number => {
+    const [h, m] = hora.split(":").map(Number)
+    return h * 60 + m
+  }
+
+  const bloquesHorarios = bloques
 
   return (
     <div className="space-y-6">
@@ -684,12 +692,6 @@ export function HorarioTableroBloques({ bloques, bloquesOcupados = {}, onChange 
           </div>
           <span>Selección actual</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-4 h-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-600 rounded-sm flex items-center justify-center">
-            <span className="text-red-600 dark:text-red-400 text-xs font-bold">×</span>
-          </div>
-          <span>Horario ocupado (conflicto)</span>
-        </div>
         {/* ✅ NUEVA LEYENDA: Fusión automática */}
         <div className="flex items-center gap-1">
           <Merge className="h-4 w-4 text-orange-600" />
@@ -703,50 +705,172 @@ export function HorarioTableroBloques({ bloques, bloquesOcupados = {}, onChange 
       {mostrarVistaPrevia && (
         <Card>
           <CardHeader>
-            <CardTitle>Resumen de Horarios</CardTitle>
+            <CardTitle>Vista Cuadriculada del Horario Semanal</CardTitle>
+            <CardDescription>
+              Horario completo de la semana • Intervalos de 30 minutos • Total: {calcularTotalHoras().toFixed(1)} horas
+              semanales
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-medium mb-2">Horas por día</h4>
-                <div className="space-y-2">
-                  {diasSemana.map((dia, index) => (
-                    <div key={dia} className="flex justify-between items-center border-b pb-1">
-                      <span className="flex items-center gap-1">
-                        {diasSemanaDisplay[index]}
-                        {hayBloquesContiguos(dia) && <Merge className="h-3 w-3 text-orange-500" />}
-                      </span>
-                      <span className="font-medium">{calcularHorasPorDia(dia).toFixed(1)} horas</span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between items-center pt-1 font-bold">
-                    <span>Total Semanal</span>
-                    <span>{calcularTotalHoras().toFixed(1)} horas</span>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-slate-300 dark:border-slate-700">
+                <thead>
+                  <tr>
+                    <th className="border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-2 text-center font-medium min-w-[80px] sticky left-0 z-10">
+                      Hora
+                    </th>
+                    {diasSemanaDisplay.map((dia, index) => {
+                      const diaKey = diasSemana[index]
+                      const horasDelDia = calcularHorasPorDia(diaKey)
+                      return (
+                        <th
+                          key={dia}
+                          className="border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-2 text-center font-medium min-w-[100px]"
+                        >
+                          <div>{dia}</div>
+                          <div className="text-xs text-muted-foreground font-normal">
+                            {horasDelDia.toFixed(1)}h
+                            {hayBloquesContiguos(diaKey) && (
+                              <span className="ml-1">
+                                <Merge className="h-3 w-3 inline text-orange-500" />
+                              </span>
+                            )}
+                          </div>
+                        </th>
+                      )
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {intervalos.map((intervalo) => {
+                    const hora = Number.parseInt(intervalo.split(":")[0])
+                    const minutos = intervalo.split(":")[1]
+                    const esHoraCompleta = minutos === "00"
+                    const { periodo, icon: IconComponent, color } = obtenerPeriodoDelDia(hora)
+
+                    return (
+                      <tr
+                        key={intervalo}
+                        className={esHoraCompleta ? "border-t-2 border-slate-400 dark:border-slate-600" : ""}
+                      >
+                        <td
+                          className={cn(
+                            "border border-slate-300 dark:border-slate-700 p-2 text-center font-medium sticky left-0 z-10",
+                            esHoraCompleta ? "bg-slate-100 dark:bg-slate-800" : "bg-slate-50 dark:bg-slate-900",
+                          )}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            {esHoraCompleta && <IconComponent className={cn("h-3 w-3", color)} />}
+                            <span className={esHoraCompleta ? "font-semibold" : "text-sm"}>{intervalo}</span>
+                          </div>
+                          {esHoraCompleta && <div className="text-xs text-muted-foreground">{periodo}</div>}
+                        </td>
+                        {diasSemana.map((dia, diaIndex) => {
+                          const bloquesDelDia = ordenarBloquesPorHora(bloquesHorarios[dia] || [])
+                          const bloqueEnIntervalo = bloquesDelDia.find((bloque) => {
+                            const inicioMinutos = convertirAMinutos(bloque.inicio)
+                            const finMinutos = convertirAMinutos(bloque.fin)
+                            const intervaloMinutos = convertirAMinutos(intervalo)
+                            return intervaloMinutos >= inicioMinutos && intervaloMinutos < finMinutos
+                          })
+
+                          const esPrimerIntervaloDelBloque =
+                            bloqueEnIntervalo &&
+                            bloquesDelDia.some((bloque) => {
+                              return bloque.id === bloqueEnIntervalo.id && bloque.inicio === intervalo
+                            })
+
+                          const esUltimoIntervaloDelBloque =
+                            bloqueEnIntervalo &&
+                            bloquesDelDia.some((bloque) => {
+                              const finMinutos = convertirAMinutos(bloque.fin)
+                              const siguienteIntervaloMinutos = convertirAMinutos(intervalo) + 30
+                              return bloque.id === bloqueEnIntervalo.id && siguienteIntervaloMinutos >= finMinutos
+                            })
+
+                          return (
+                            <td
+                              key={`${intervalo}-${dia}`}
+                              className={cn(
+                                "border border-slate-300 dark:border-slate-700 p-1 text-center h-8 relative",
+                                bloqueEnIntervalo
+                                  ? "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700"
+                                  : "bg-white dark:bg-slate-950",
+                                esPrimerIntervaloDelBloque && "border-t-2 border-green-500 dark:border-green-400",
+                                esUltimoIntervaloDelBloque && "border-b-2 border-green-500 dark:border-green-400",
+                              )}
+                              title={
+                                bloqueEnIntervalo
+                                  ? `${diasSemanaDisplay[diaIndex]} - ${intervalo}: Bloque ${bloquesDelDia.indexOf(bloqueEnIntervalo) + 1} (${bloqueEnIntervalo.inicio} - ${bloqueEnIntervalo.fin})`
+                                  : `${diasSemanaDisplay[diaIndex]} - ${intervalo}: Sin horario`
+                              }
+                            >
+                              {bloqueEnIntervalo && (
+                                <div className="flex items-center justify-center h-full">
+                                  {esPrimerIntervaloDelBloque ? (
+                                    <div className="text-xs font-semibold text-green-800 dark:text-green-200">
+                                      B{bloquesDelDia.indexOf(bloqueEnIntervalo) + 1}
+                                    </div>
+                                  ) : (
+                                    <div className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full"></div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Leyenda mejorada */}
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-wrap items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-100 dark:bg-green-900 border-2 border-green-500 dark:border-green-400 rounded-sm flex items-center justify-center">
+                    <span className="text-xs font-bold text-green-800 dark:text-green-200">B</span>
                   </div>
+                  <span>Bloque configurado (B = número de bloque)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 rounded-sm flex items-center justify-center">
+                    <div className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full"></div>
+                  </div>
+                  <span>Continuación del bloque</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Merge className="h-4 w-4 text-orange-600" />
+                  <span>Día con bloques fusionables</span>
                 </div>
               </div>
-              <div>
-                <h4 className="font-medium mb-2">Bloques por día (ordenados cronológicamente)</h4>
-                <div className="space-y-2">
+
+              {/* Resumen de bloques por día */}
+              <div className="border-t pt-3">
+                <h4 className="font-medium mb-2">Resumen de Bloques por Día</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
                   {diasSemana.map((dia, index) => {
-                    const bloquesOrdenados = ordenarBloquesPorHora(bloques[dia] || [])
+                    const bloquesOrdenados = ordenarBloquesPorHora(bloquesHorarios[dia] || [])
+                    const horasDelDia = calcularHorasPorDia(dia)
                     return (
-                      <div key={dia} className="border-b pb-2">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium flex items-center gap-1">
-                            {diasSemanaDisplay[index]}
-                            {hayBloquesContiguos(dia) && <Merge className="h-3 w-3 text-orange-500" />}
-                          </span>
-                          <span className="text-sm text-muted-foreground">{bloquesOrdenados.length} bloques</span>
+                      <div key={dia} className="border rounded-md p-2 text-sm">
+                        <div className="font-medium flex items-center gap-1">
+                          {diasSemanaDisplay[index]}
+                          {hayBloquesContiguos(dia) && <Merge className="h-3 w-3 text-orange-500" />}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {bloquesOrdenados.length} bloque{bloquesOrdenados.length !== 1 ? "s" : ""} •{" "}
+                          {horasDelDia.toFixed(1)}h
                         </div>
                         {bloquesOrdenados.length > 0 && (
                           <div className="mt-1 space-y-1">
                             {bloquesOrdenados.map((bloque, bloqueIndex) => {
-                              const duracion =
-                                (convertirHoraAMinutos(bloque.fin) - convertirHoraAMinutos(bloque.inicio)) / 60
+                              const duracion = (convertirAMinutos(bloque.fin) - convertirAMinutos(bloque.inicio)) / 60
                               return (
-                                <div key={bloque.id} className="text-xs text-muted-foreground ml-2">
-                                  Bloque {bloqueIndex + 1}: {bloque.inicio} - {bloque.fin} ({duracion.toFixed(1)}h)
+                                <div key={bloque.id} className="text-xs text-muted-foreground">
+                                  B{bloqueIndex + 1}: {bloque.inicio}-{bloque.fin} ({duracion.toFixed(1)}h)
                                 </div>
                               )
                             })}

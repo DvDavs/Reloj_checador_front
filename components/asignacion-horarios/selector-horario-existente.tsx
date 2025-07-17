@@ -1,11 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Clock, Calendar, CheckCircle, Plus, AlertTriangle, Loader2, XCircle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import {
+  Clock,
+  Calendar,
+  CheckCircle,
+  Plus,
+  AlertTriangle,
+  Loader2,
+  XCircle,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import axios from "axios"
@@ -35,6 +47,11 @@ export function SelectorHorarioExistente({
   const [fechaFin, setFechaFin] = useState<string>("")
   const [tipoHorarioSeleccionado, setTipoHorarioSeleccionado] = useState<number | null>(null)
 
+  // Estados para búsqueda y paginación
+  const [terminoBusqueda, setTerminoBusqueda] = useState<string>("")
+  const [paginaActual, setPaginaActual] = useState<number>(1)
+  const elementosPorPagina = 3
+
   // API Base URL para las peticiones
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
 
@@ -49,6 +66,11 @@ export function SelectorHorarioExistente({
       fetchTiposHorario()
     }
   }, [horarioSeleccionado, empleadoId])
+
+  // Resetear página cuando cambia el término de búsqueda
+  useEffect(() => {
+    setPaginaActual(1)
+  }, [terminoBusqueda])
 
   const fetchHorariosDisponibles = async () => {
     try {
@@ -123,6 +145,29 @@ export function SelectorHorarioExistente({
     }
   }
 
+  // Filtrar horarios por término de búsqueda
+  const horariosFiltrados = useMemo(() => {
+    if (!Array.isArray(horariosDisponibles)) return []
+
+    return horariosDisponibles
+      .filter((horario) => horario && horario.id && horario.nombre) // Filtrar horarios válidos
+      .filter((horario) => {
+        if (!terminoBusqueda.trim()) return true
+
+        const termino = terminoBusqueda.toLowerCase().trim()
+        const nombre = horario.nombre?.toLowerCase() || ""
+        const descripcion = horario.descripcion?.toLowerCase() || ""
+
+        return nombre.includes(termino) || descripcion.includes(termino)
+      })
+  }, [horariosDisponibles, terminoBusqueda])
+
+  // Calcular paginación
+  const totalPaginas = Math.ceil(horariosFiltrados.length / elementosPorPagina)
+  const indiceInicio = (paginaActual - 1) * elementosPorPagina
+  const indiceFin = indiceInicio + elementosPorPagina
+  const horariosPaginados = horariosFiltrados.slice(indiceInicio, indiceFin)
+
   const handleSeleccionar = (horario: HorarioDto) => {
     setHorarioSeleccionado(horario.id)
     // Resetear tipo de horario seleccionado cuando se cambia de horario
@@ -130,7 +175,7 @@ export function SelectorHorarioExistente({
   }
 
   const handleConfirmarSeleccion = async () => {
-    const horario = horariosDisponibles.find((h) => h.id === horarioSeleccionado)
+    const horario = horariosFiltrados.find((h) => h.id === horarioSeleccionado)
     if (!horario) return
 
     // Si no hay empleadoId, solo devolver el horario seleccionado
@@ -235,6 +280,19 @@ export function SelectorHorarioExistente({
     }
   }
 
+  const handlePaginaAnterior = () => {
+    setPaginaActual((prev) => Math.max(1, prev - 1))
+  }
+
+  const handlePaginaSiguiente = () => {
+    setPaginaActual((prev) => Math.min(totalPaginas, prev + 1))
+  }
+
+  const limpiarBusqueda = () => {
+    setTerminoBusqueda("")
+    setPaginaActual(1)
+  }
+
   // Verificar si se puede confirmar la selección
   const puedeConfirmar = horarioSeleccionado && (!empleadoId || tipoHorarioSeleccionado)
 
@@ -325,80 +383,172 @@ export function SelectorHorarioExistente({
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {horariosDisponibles
-              .filter((horario) => horario && horario.id && horario.nombre) // Filtrar horarios válidos
-              .map((horario) => {
-                const estaSeleccionado = horarioSeleccionado === horario.id
-                const horasTotales = calcularHorasTotales(horario)
-                const diasActivos = obtenerDiasActivos(horario)
-
-                return (
-                  <Card
-                    key={horario.id}
-                    className={cn(
-                      "cursor-pointer transition-all duration-200 hover:shadow-md",
-                      estaSeleccionado && "ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-slate-900",
-                    )}
-                    onClick={() => handleSeleccionar(horario)}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">{horario.nombre}</CardTitle>
-                        {estaSeleccionado && <CheckCircle className="h-5 w-5 text-blue-500" />}
-                      </div>
-                      {horario.descripcion && <p className="text-sm text-muted-foreground">{horario.descripcion}</p>}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{horasTotales.toFixed(1)} horas semanales</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{diasActivos} días activos</span>
-                        </div>
-
-                        {/* Mostrar detalles de horarios */}
-                        <div className="space-y-1">
-                          {(horario.detalles || [])
-                            .filter((detalle) => detalle && detalle.horaEntrada && detalle.horaSalida) // Filtrar detalles válidos
-                            .sort((a, b) => (a.diaSemana || 0) - (b.diaSemana || 0))
-                            .slice(0, 3) // Mostrar solo los primeros 3
-                            .map((detalle) => (
-                              <div
-                                key={detalle.id || Math.random()}
-                                className="text-xs text-muted-foreground flex justify-between"
-                              >
-                                <span>{obtenerNombreDia(detalle.diaSemana)}</span>
-                                <span>
-                                  {formatearHora(detalle.horaEntrada)} - {formatearHora(detalle.horaSalida)}
-                                  {detalle.turno && ` (T${detalle.turno})`}
-                                </span>
-                              </div>
-                            ))}
-                          {(horario.detalles || []).length > 3 && (
-                            <div className="text-xs text-muted-foreground text-center">
-                              +{horario.detalles.length - 3} más...
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-1">
-                          <Badge variant="outline" className="text-xs border-blue-500 text-blue-600">
-                            Original
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {horario.detalles.length} turnos
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+          {/* Buscador */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar horarios por nombre o descripción..."
+                value={terminoBusqueda}
+                onChange={(e) => setTerminoBusqueda(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            {terminoBusqueda && (
+              <Button variant="outline" onClick={limpiarBusqueda}>
+                <XCircle className="h-4 w-4" />
+              </Button>
+            )}
           </div>
+
+          {/* Información de resultados */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              {horariosFiltrados.length === 0
+                ? "No se encontraron horarios"
+                : `${horariosFiltrados.length} horario${horariosFiltrados.length !== 1 ? "s" : ""} encontrado${horariosFiltrados.length !== 1 ? "s" : ""}`}
+              {terminoBusqueda && ` para "${terminoBusqueda}"`}
+            </span>
+            {totalPaginas > 1 && (
+              <span>
+                Página {paginaActual} de {totalPaginas}
+              </span>
+            )}
+          </div>
+
+          {horariosFiltrados.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <h4 className="font-medium mb-2">No se encontraron horarios</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {terminoBusqueda
+                    ? `No hay horarios que coincidan con "${terminoBusqueda}"`
+                    : "No hay horarios disponibles"}
+                </p>
+                <div className="flex gap-2 justify-center">
+                  {terminoBusqueda && (
+                    <Button variant="outline" onClick={limpiarBusqueda}>
+                      Limpiar búsqueda
+                    </Button>
+                  )}
+                  <Button onClick={onCrearNuevo}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear Nuevo Horario
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Grid de horarios paginados */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {horariosPaginados.map((horario) => {
+                  const estaSeleccionado = horarioSeleccionado === horario.id
+                  const horasTotales = calcularHorasTotales(horario)
+                  const diasActivos = obtenerDiasActivos(horario)
+
+                  return (
+                    <Card
+                      key={horario.id}
+                      className={cn(
+                        "cursor-pointer transition-all duration-200 hover:shadow-md",
+                        estaSeleccionado && "ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-slate-900",
+                      )}
+                      onClick={() => handleSeleccionar(horario)}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">{horario.nombre}</CardTitle>
+                          {estaSeleccionado && <CheckCircle className="h-5 w-5 text-blue-500" />}
+                        </div>
+                        {horario.descripcion && <p className="text-sm text-muted-foreground">{horario.descripcion}</p>}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{horasTotales.toFixed(1)} horas semanales</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{diasActivos} días activos</span>
+                          </div>
+
+                          {/* Mostrar detalles de horarios */}
+                          <div className="space-y-1">
+                            {(horario.detalles || [])
+                              .filter((detalle) => detalle && detalle.horaEntrada && detalle.horaSalida) // Filtrar detalles válidos
+                              .sort((a, b) => (a.diaSemana || 0) - (b.diaSemana || 0))
+                              .slice(0, 3) // Mostrar solo los primeros 3
+                              .map((detalle) => (
+                                <div
+                                  key={detalle.id || Math.random()}
+                                  className="text-xs text-muted-foreground flex justify-between"
+                                >
+                                  <span>{obtenerNombreDia(detalle.diaSemana)}</span>
+                                  <span>
+                                    {formatearHora(detalle.horaEntrada)} - {formatearHora(detalle.horaSalida)}
+                                    {detalle.turno && ` (T${detalle.turno})`}
+                                  </span>
+                                </div>
+                              ))}
+                            {(horario.detalles || []).length > 3 && (
+                              <div className="text-xs text-muted-foreground text-center">
+                                +{horario.detalles.length - 3} más...
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-1">
+                            <Badge variant="outline" className="text-xs border-blue-500 text-blue-600">
+                              Original
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {horario.detalles.length} turnos
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+
+              {/* Controles de paginación */}
+              {totalPaginas > 1 && (
+                <div className="flex items-center justify-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handlePaginaAnterior} disabled={paginaActual === 1}>
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Anterior
+                  </Button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pagina) => (
+                      <Button
+                        key={pagina}
+                        variant={pagina === paginaActual ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPaginaActual(pagina)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pagina}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePaginaSiguiente}
+                    disabled={paginaActual === totalPaginas}
+                  >
+                    Siguiente
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
 
           {/* Formulario de configuración si hay empleadoId */}
           {horarioSeleccionado && empleadoId && (
@@ -457,7 +607,7 @@ export function SelectorHorarioExistente({
                       id="fechaInicio"
                       value={fechaInicio}
                       onChange={(e) => setFechaInicio(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                       required
                     />
                   </div>
@@ -470,8 +620,8 @@ export function SelectorHorarioExistente({
                       id="fechaFin"
                       value={fechaFin}
                       onChange={(e) => setFechaFin(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      min={fechaInicio} // La fecha fin no puede ser anterior a la fecha inicio
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                      min={fechaInicio}
                     />
                   </div>
                 </div>
