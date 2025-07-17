@@ -409,12 +409,13 @@ export function FormularioHorario({ horarioId, onSave, onCancel }: FormularioHor
           if (horarioActual.data.detalles && horarioActual.data.detalles.length > 0) {
             console.log(`Eliminando ${horarioActual.data.detalles.length} detalles existentes...`)
 
-            const deletePromises = horarioActual.data.detalles.map(async (detalle) => {
+            const deleteResults = []
+            for (const detalle of horarioActual.data.detalles) {
               if (detalle.id) {
                 try {
                   await axios.delete(`${API_BASE_URL}/api/horarios/${horarioId}/detalles/${detalle.id}`)
                   console.log(`Detalle ${detalle.id} eliminado exitosamente`)
-                  return { success: true, id: detalle.id }
+                  deleteResults.push({ success: true, id: detalle.id })
                 } catch (deleteError: any) {
                   console.warn(
                     `Error al eliminar detalle ${detalle.id}:`,
