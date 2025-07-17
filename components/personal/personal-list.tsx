@@ -17,58 +17,30 @@ import { MoreHorizontal, Search, Edit, Trash2, Eye, Calendar, ChevronLeft, Chevr
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-const personal = [
-  {
-    id: 1,
-    nombre: "Juan Pérez López",
-    rfc: "PELJ850512ABC",
-    curp: "PELJ850512HDFRZN01",
-    departamento: "Administración",
-    puesto: "Gerente",
-    fechaIngreso: "01/01/2020",
-    activo: true,
-  },
-  {
-    id: 2,
-    nombre: "María Rodríguez Gómez",
-    rfc: "ROGM780623DEF",
-    curp: "ROGM780623MDFDRR05",
-    departamento: "Recursos Humanos",
-    puesto: "Coordinador",
-    fechaIngreso: "15/03/2019",
-    activo: true,
-  },
-  {
-    id: 3,
-    nombre: "Carlos Sánchez Vega",
-    rfc: "SAVC900214GHI",
-    curp: "SAVC900214HDFNGR09",
-    departamento: "Contabilidad",
-    puesto: "Contador",
-    fechaIngreso: "10/05/2021",
-    activo: true,
-  },
-  {
-    id: 4,
-    nombre: "Ana Martínez Ruiz",
-    rfc: "MARA881107JKL",
-    curp: "MARA881107MDFRZN03",
-    departamento: "Administración",
-    puesto: "Asistente",
-    fechaIngreso: "20/02/2022",
-    activo: true,
-  },
-  {
-    id: 5,
-    nombre: "Roberto González Torres",
-    rfc: "GOTR750830MNO",
-    curp: "GOTR750830HDFNRB07",
-    departamento: "Sistemas",
-    puesto: "Desarrollador",
-    fechaIngreso: "05/09/2018",
-    activo: false,
-  },
-]
+import { useEffect } from "react";
+
+export function PersonalList() {
+  const [personal, setPersonal] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchPersonalData() {
+      try {
+        const response = await fetch("/api/personal");
+        if (!response.ok) {
+          throw new Error("Failed to fetch personal data");
+        }
+        const data = await response.json();
+        setPersonal(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPersonalData();
+  }, []);
 
 export function PersonalList() {
   const [searchTerm, setSearchTerm] = useState("")
