@@ -43,6 +43,7 @@ export function PersonalList() {
   }, []);
 
 export function PersonalList() {
+  const { personal } = usePersonalData();
   const [searchTerm, setSearchTerm] = useState("")
 
   const filteredPersonal = personal.filter(
