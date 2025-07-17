@@ -66,7 +66,11 @@ export function RegistroForm() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Fecha y Hora</label>
-            <Input type="datetime-local" defaultValue={new Date().toISOString().slice(0, 16)} />
+            <Input
+              type="datetime-local"
+              value={fechaHora}
+              onChange={(e) => setFechaHora(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
