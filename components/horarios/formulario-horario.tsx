@@ -429,8 +429,8 @@ export function FormularioHorario({ horarioId, onSave, onCancel }: FormularioHor
               return { success: true, id: "no-id" }
             })
 
-            const deleteResults = await Promise.all(deletePromises)
-            const failedDeletes = deleteResults.filter((result) => !result.success)
+            const deleteResultsSummary = await Promise.all(deletePromises)
+            const failedDeletes = deleteResultsSummary.filter((result) => !result.success)
 
             if (failedDeletes.length > 0) {
               console.warn(`${failedDeletes.length} detalles no se pudieron eliminar:`, failedDeletes)
