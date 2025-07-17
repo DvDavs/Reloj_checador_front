@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+node_modules/
 
 # next.js
 /.next/
@@ -9,6 +10,7 @@
 
 # production
 /build
+build/
 
 # debug
 npm-debug.log*
@@ -18,6 +20,11 @@ yarn-error.log*
 
 # env files
 .env*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -26,23 +33,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# idea
+.idea
 
-# node_modules y dependencias
-node_modules/
+# backend-resources
+backend-resources
 
-# build de producción
-build/
-
-# archivos de configuración locales
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# logs y caché
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# cache and system files
 .cache/
 .DS_Store
