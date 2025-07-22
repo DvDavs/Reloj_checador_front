@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
     Table,
     TableBody,
@@ -14,24 +13,12 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
     UserPlus,
-    Search,
     Edit,
-    Loader2,
-    AlertCircle,
-    RefreshCw,
     Eye,
     Fingerprint,
-    ChevronUp,
-    ChevronDown,
+    Loader2,
+    AlertCircle,
 } from "lucide-react";
 import axios from "axios";
 import {
@@ -48,6 +35,15 @@ import { EmployeeDetailsModal } from "./components/employee-details-modal";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Badge } from "@/components/ui/badge";
+
+// Shared components
+import { PageHeader } from "@/app/components/shared/page-header";
+import { SearchInput } from "@/app/components/shared/search-input";
+import { LoadingState } from "@/app/components/shared/loading-state";
+import { ErrorState } from "@/app/components/shared/error-state";
+import { SortableHeader } from "@/app/components/shared/sortable-header";
+import { PaginationWrapper } from "@/app/components/shared/pagination-wrapper";
+import { useTableState } from "@/app/hooks/use-table-state";
 
 // --- Tipos ---
 interface EmpleadoBackend {
@@ -79,78 +75,43 @@ interface EmployeeDisplayData {
 }
 
 // --- Constantes ---
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 const ITEMS_PER_PAGE = 10;
-
-// --- Helper para Paginación ---
-const getPaginationRange = (
-    currentPage: number,
-    totalPages: number,
-    siblingCount = 1
-): (number | "...")[] => {
-    const totalPageNumbers = siblingCount + 5;
-
-    if (totalPages <= totalPageNumbers) {
-        return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-
-    const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
-    const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
-
-    const shouldShowLeftDots = leftSiblingIndex > 2;
-    const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
-
-    const firstPageIndex = 1;
-    const lastPageIndex = totalPages;
-
-    if (!shouldShowLeftDots && shouldShowRightDots) {
-        let leftItemCount = 3 + 2 * siblingCount;
-        let leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
-        return [...leftRange, "...", totalPages];
-    }
-
-    if (shouldShowLeftDots && !shouldShowRightDots) {
-        let rightItemCount = 3 + 2 * siblingCount;
-        let rightRange = Array.from(
-            { length: rightItemCount },
-            (_, i) => totalPages - rightItemCount + i + 1
-        );
-        return [firstPageIndex, "...", ...rightRange];
-    }
-
-    if (shouldShowLeftDots && shouldShowRightDots) {
-        let middleRange = Array.from(
-            { length: rightSiblingIndex - leftSiblingIndex + 1 },
-            (_, i) => leftSiblingIndex + i
-        );
-        return [firstPageIndex, "...", ...middleRange, "...", lastPageIndex];
-    }
-
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-};
 
 // --- Componente ---
 export default function EmpleadosPage() {
     const router = useRouter();
     const { toast } = useToast();
+    
+    // Data state
     const [allEmployees, setAllEmployees] = useState<EmpleadoBackend[]>([]);
-    const [filteredEmployees, setFilteredEmployees] = useState<
-        EmpleadoBackend[]
-    >([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [currentPage, setCurrentPage] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    
+    // Modal state
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [employeeToDelete, setEmployeeToDelete] =
-        useState<EmpleadoBackend | null>(null);
+    const [employeeToDelete, setEmployeeToDelete] = useState<EmpleadoBackend | null>(null);
     const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
-    const [selectedEmployee, setSelectedEmployee] =
-        useState<EmpleadoBackend | null>(null);
-    const [sortField, setSortField] = useState<string | null>(null);
-    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+    const [selectedEmployee, setSelectedEmployee] = useState<EmpleadoBackend | null>(null);
+
+    // Table state using custom hook
+    const {
+        paginatedData,
+        searchTerm,
+        currentPage,
+        sortField,
+        sortDirection,
+        totalPages,
+        handleSearch,
+        handleSort,
+        handlePageChange,
+    } = useTableState({
+        data: allEmployees,
+        itemsPerPage: ITEMS_PER_PAGE,
+        searchFields: ['id', 'primerNombre', 'segundoNombre', 'primerApellido', 'segundoApellido', 'rfc', 'curp', 'correoInstitucional', 'estatusNombre'],
+        defaultSortField: 'id',
+    });
 
     const getFullName = useCallback((emp: EmpleadoBackend | null): string => {
         if (!emp) return "N/A";
@@ -171,7 +132,6 @@ export default function EmpleadosPage() {
                 `${API_BASE_URL}/api/empleados`
             );
             setAllEmployees(response.data || []);
-            setFilteredEmployees(response.data || []);
         } catch (err: any) {
             console.error("Error fetching employees:", err);
             const errorMsg =
@@ -182,7 +142,6 @@ export default function EmpleadosPage() {
                 `Error al cargar empleados: ${errorMsg}. Verifique la conexión con la API.`
             );
             setAllEmployees([]);
-            setFilteredEmployees([]);
         } finally {
             setIsLoading(false);
         }
@@ -191,38 +150,6 @@ export default function EmpleadosPage() {
     useEffect(() => {
         fetchEmployees();
     }, [fetchEmployees]);
-
-    useEffect(() => {
-        const lowerSearchTerm = searchTerm.toLowerCase();
-        const filtered = allEmployees.filter((employee) => {
-            const fullName = getFullName(employee).toLowerCase();
-            const matchesSearch =
-                employee.id.toString().includes(lowerSearchTerm) ||
-                fullName.includes(lowerSearchTerm) ||
-                (employee.rfc &&
-                    employee.rfc.toLowerCase().includes(lowerSearchTerm)) ||
-                (employee.curp &&
-                    employee.curp.toLowerCase().includes(lowerSearchTerm)) ||
-                (employee.correoInstitucional &&
-                    employee.correoInstitucional
-                        .toLowerCase()
-                        .includes(lowerSearchTerm)) ||
-                (employee.estatusNombre &&
-                    employee.estatusNombre
-                        .toLowerCase()
-                        .includes(lowerSearchTerm));
-
-            return matchesSearch;
-        });
-
-        setFilteredEmployees(filtered);
-        const newTotalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-        if (currentPage > newTotalPages && newTotalPages > 0) {
-            setCurrentPage(1);
-        } else if (newTotalPages === 0) {
-            setCurrentPage(1);
-        }
-    }, [searchTerm, allEmployees, currentPage, getFullName]);
 
     const mapEmployeeToDisplay = useCallback(
         (emp: EmpleadoBackend): EmployeeDisplayData => {
@@ -297,145 +224,35 @@ export default function EmpleadosPage() {
         // El modal ya muestra una notificación, así que no es necesario hacer nada aquí.
     };
 
-    const handleSort = (field: string) => {
-        if (sortField === field) {
-            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-        } else {
-            setSortField(field);
-            setSortDirection("asc");
-        }
-    };
-
-    const getSortedEmployees = useCallback(() => {
-        if (!sortField) return filteredEmployees;
-
-        return [...filteredEmployees].sort((a, b) => {
-            let aValue: any;
-            let bValue: any;
-
-            switch (sortField) {
-                case "id":
-                    aValue = a.id;
-                    bValue = b.id;
-                    break;
-                case "nombre":
-                    aValue = getFullName(a).toLowerCase();
-                    bValue = getFullName(b).toLowerCase();
-                    break;
-                case "rfc":
-                    aValue = (a.rfc || "").toLowerCase();
-                    bValue = (b.rfc || "").toLowerCase();
-                    break;
-                case "estado":
-                    aValue = (a.estatusNombre || "").toLowerCase();
-                    bValue = (b.estatusNombre || "").toLowerCase();
-                    break;
-                default:
-                    return 0;
-            }
-
-            if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-            if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-            return 0;
-        });
-    }, [filteredEmployees, sortField, sortDirection, getFullName]);
-
-    const sortedEmployees = getSortedEmployees();
-
-    const totalPages = Math.ceil(sortedEmployees.length / ITEMS_PER_PAGE);
-    const paginatedEmployees = sortedEmployees.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
-
-    const SortableHeader = ({
-        field,
-        children,
-    }: {
-        field: string;
-        children: React.ReactNode;
-    }) => (
-        <TableHead
-            className="cursor-pointer hover:bg-zinc-800/50 select-none"
-            onClick={() => handleSort(field)}
-        >
-            <div className="flex items-center gap-2">
-                {children}
-                <div className="flex flex-col">
-                    <ChevronUp
-                        className={`h-3 w-3 ${
-                            sortField === field && sortDirection === "asc"
-                                ? "text-blue-400"
-                                : "text-zinc-600"
-                        }`}
-                    />
-                    <ChevronDown
-                        className={`h-3 w-3 -mt-1 ${
-                            sortField === field && sortDirection === "desc"
-                                ? "text-blue-400"
-                                : "text-zinc-600"
-                        }`}
-                    />
-                </div>
-            </div>
-        </TableHead>
-    );
-
     return (
         <>
             <div className="p-6 md:p-8">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    <h1 className="text-2xl md:text-3xl font-bold">
-                        Gestión de Empleados
-                    </h1>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            onClick={() => fetchEmployees()}
-                            variant="outline"
-                            size="icon"
-                            className="h-9 w-9"
-                        >
-                            <RefreshCw
-                                className={`h-4 w-4 ${
-                                    isLoading ? "animate-spin" : ""
-                                }`}
-                            />
-                            <span className="sr-only">Refrescar</span>
-                        </Button>
+                <PageHeader
+                    title="Gestión de Empleados"
+                    isLoading={isLoading}
+                    onRefresh={fetchEmployees}
+                    actions={
                         <Link href="/empleados/registrar">
                             <Button className="h-9">
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 Registrar
                             </Button>
                         </Link>
-                    </div>
-                </div>
+                    }
+                />
 
-                <div className="relative mb-6">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
-                    <Input
-                        type="search"
-                        placeholder="Buscar por ID, nombre, RFC, CURP..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                        className="pl-10 w-full"
-                    />
-                </div>
+                <SearchInput
+                    value={searchTerm}
+                    onChange={handleSearch}
+                    placeholder="Buscar por ID, nombre, RFC, CURP..."
+                />
 
                 {isLoading && (
-                    <div className="flex justify-center items-center p-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                        <p className="ml-4 text-lg">Cargando empleados...</p>
-                    </div>
+                    <LoadingState message="Cargando empleados..." />
                 )}
+
                 {error && (
-                    <div className="flex items-center gap-2 text-red-400 bg-red-500/10 p-4 rounded-md">
-                        <AlertCircle className="h-6 w-6" />
-                        <p>{error}</p>
-                    </div>
+                    <ErrorState message={error} />
                 )}
 
                 {!isLoading && !error && (
@@ -444,16 +261,36 @@ export default function EmpleadosPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <SortableHeader field="id">
+                                        <SortableHeader
+                                            field="id"
+                                            sortField={sortField}
+                                            sortDirection={sortDirection}
+                                            onSort={handleSort}
+                                        >
                                             ID
                                         </SortableHeader>
-                                        <SortableHeader field="nombre">
+                                        <SortableHeader
+                                            field="primerNombre"
+                                            sortField={sortField}
+                                            sortDirection={sortDirection}
+                                            onSort={handleSort}
+                                        >
                                             Nombre Completo
                                         </SortableHeader>
-                                        <SortableHeader field="rfc">
+                                        <SortableHeader
+                                            field="rfc"
+                                            sortField={sortField}
+                                            sortDirection={sortDirection}
+                                            onSort={handleSort}
+                                        >
                                             RFC
                                         </SortableHeader>
-                                        <SortableHeader field="estado">
+                                        <SortableHeader
+                                            field="estatusNombre"
+                                            sortField={sortField}
+                                            sortDirection={sortDirection}
+                                            onSort={handleSort}
+                                        >
                                             Estado
                                         </SortableHeader>
                                         <TableHead className="text-right">
@@ -462,10 +299,9 @@ export default function EmpleadosPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {paginatedEmployees.length > 0 ? (
-                                        paginatedEmployees.map((employee) => {
-                                            const displayData =
-                                                mapEmployeeToDisplay(employee);
+                                    {paginatedData.length > 0 ? (
+                                        paginatedData.map((employee) => {
+                                            const displayData = mapEmployeeToDisplay(employee);
                                             return (
                                                 <TableRow key={employee.id}>
                                                     <TableCell className="font-medium">
@@ -480,14 +316,12 @@ export default function EmpleadosPage() {
                                                     <TableCell>
                                                         <Badge
                                                             variant={
-                                                                displayData.estado.toLowerCase() ===
-                                                                "activo"
+                                                                displayData.estado.toLowerCase() === "activo"
                                                                     ? "default"
                                                                     : "secondary"
                                                             }
                                                             className={
-                                                                displayData.estado.toLowerCase() ===
-                                                                "activo"
+                                                                displayData.estado.toLowerCase() === "activo"
                                                                     ? "bg-green-500/20 text-green-400 border-green-500/30"
                                                                     : "bg-zinc-500/20 text-zinc-400 border-zinc-500/30"
                                                             }
@@ -500,11 +334,7 @@ export default function EmpleadosPage() {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                onClick={() =>
-                                                                    handleViewDetails(
-                                                                        employee
-                                                                    )
-                                                                }
+                                                                onClick={() => handleViewDetails(employee)}
                                                                 title="Ver Detalles"
                                                                 className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
                                                             >
@@ -513,22 +343,14 @@ export default function EmpleadosPage() {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                onClick={() =>
-                                                                    handleEdit(
-                                                                        employee.id
-                                                                    )
-                                                                }
+                                                                onClick={() => handleEdit(employee.id)}
                                                                 title="Editar Empleado"
                                                                 className="text-green-400 hover:text-green-300 hover:bg-green-500/10"
                                                             >
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
                                                             <Link
-                                                                href={`/empleados/asignar-huella?id=${
-                                                                    employee.id
-                                                                }&nombre=${encodeURIComponent(
-                                                                    displayData.nombre
-                                                                )}`}
+                                                                href={`/empleados/asignar-huella?id=${employee.id}&nombre=${encodeURIComponent(displayData.nombre)}`}
                                                             >
                                                                 <Button
                                                                     variant="ghost"
@@ -546,10 +368,7 @@ export default function EmpleadosPage() {
                                         })
                                     ) : (
                                         <TableRow>
-                                            <TableCell
-                                                colSpan={5}
-                                                className="text-center h-24"
-                                            >
+                                            <TableCell colSpan={5} className="text-center h-24">
                                                 No se encontraron empleados.
                                             </TableCell>
                                         </TableRow>
@@ -558,78 +377,11 @@ export default function EmpleadosPage() {
                             </Table>
                         </div>
 
-                        {totalPages > 1 && (
-                            <div className="mt-6">
-                                <Pagination>
-                                    <PaginationContent>
-                                        <PaginationItem>
-                                            <PaginationPrevious
-                                                href="#"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    setCurrentPage((p) =>
-                                                        Math.max(1, p - 1)
-                                                    );
-                                                }}
-                                                className={
-                                                    currentPage === 1
-                                                        ? "pointer-events-none opacity-50"
-                                                        : ""
-                                                }
-                                            />
-                                        </PaginationItem>
-
-                                        {getPaginationRange(
-                                            currentPage,
-                                            totalPages
-                                        ).map((page, index) => (
-                                            <PaginationItem key={index}>
-                                                {page === "..." ? (
-                                                    <span className="px-4 py-2">
-                                                        ...
-                                                    </span>
-                                                ) : (
-                                                    <PaginationLink
-                                                        href="#"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            setCurrentPage(
-                                                                page as number
-                                                            );
-                                                        }}
-                                                        isActive={
-                                                            currentPage === page
-                                                        }
-                                                    >
-                                                        {page}
-                                                    </PaginationLink>
-                                                )}
-                                            </PaginationItem>
-                                        ))}
-
-                                        <PaginationItem>
-                                            <PaginationNext
-                                                href="#"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    setCurrentPage((p) =>
-                                                        Math.min(
-                                                            totalPages,
-                                                            p + 1
-                                                        )
-                                                    );
-                                                }}
-                                                className={
-                                                    currentPage === totalPages
-                                                        ? "pointer-events-none opacity-50"
-                                                        : ""
-                                                }
-                                            />
-                                        </PaginationItem>
-                                    </PaginationContent>
-                                </Pagination>
-                            </div>
-                        )}
+                        <PaginationWrapper
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                        />
                     </>
                 )}
             </div>

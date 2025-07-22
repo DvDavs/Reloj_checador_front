@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save, Loader2, AlertCircle } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import axios from 'axios';
+import { BreadcrumbNav } from "@/app/components/shared/breadcrumb-nav";
+import { LoadingState } from "@/app/components/shared/loading-state";
+import { ErrorState } from "@/app/components/shared/error-state";
 
 // Interfaz para los datos que se cargan y se editan
 interface EmpleadoEditData {
@@ -184,47 +187,62 @@ export default function EditarEmpleadoPage() {
 
     // --- Renderizado ---
     if (isLoading) {
-        return ( /* ... loading state ... */
-             <div className="flex justify-center items-center min-h-screen">
-                <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
-                <span className="ml-4 text-xl text-zinc-400">Cargando datos del empleado...</span>
+        return (
+            <div className="p-6 md:p-8">
+                <BreadcrumbNav
+                    items={[
+                        { label: "Empleados", href: "/empleados" },
+                        { label: "Editar Empleado" }
+                    ]}
+                    backHref="/empleados"
+                />
+                <LoadingState 
+                    message="Cargando datos del empleado..." 
+                    className="flex justify-center items-center min-h-[400px]"
+                />
             </div>
         );
     }
 
     if (fetchError) {
-        return ( /* ... fetch error state ... */
-             <div className="p-8">
-                 <div className="flex items-center gap-2 mb-8">
-                     <Link href="/empleados" aria-label="Volver a la lista de empleados">
-                         <Button variant="outline" size="icon" className="h-8 w-8 rounded-full"> <ArrowLeft className="h-4 w-4" /> </Button>
-                     </Link>
-                     <h1 className="text-3xl font-bold text-red-500">Error al Cargar</h1>
-                 </div>
-                 <Card className="max-w-3xl mx-auto bg-red-900/20 border-red-700">
-                     <CardHeader> <CardTitle>Error</CardTitle> </CardHeader>
-                     <CardContent>
-                         <p className="text-red-300">{fetchError}</p>
-                     </CardContent>
-                      <CardFooter>
-                          <Link href="/empleados"><Button variant="outline">Volver a la lista</Button></Link>
-                      </CardFooter>
-                 </Card>
-             </div>
+        return (
+            <div className="p-6 md:p-8">
+                <BreadcrumbNav
+                    items={[
+                        { label: "Empleados", href: "/empleados" },
+                        { label: "Error al Cargar" }
+                    ]}
+                    backHref="/empleados"
+                />
+                <h1 className="text-2xl md:text-3xl font-bold text-red-500 mb-8">Error al Cargar</h1>
+                <Card className="max-w-3xl mx-auto bg-red-900/20 border-red-700">
+                    <CardHeader>
+                        <CardTitle>Error</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ErrorState message={fetchError} className="text-red-300" />
+                    </CardContent>
+                    <CardFooter>
+                        <Link href="/empleados">
+                            <Button variant="outline">Volver a la lista</Button>
+                        </Link>
+                    </CardFooter>
+                </Card>
+            </div>
         );
     }
 
     return (
-        <div className="p-8">
-             {/* ... Encabezado ... */}
-             <div className="flex items-center gap-2 mb-8">
-                <Link href="/empleados" aria-label="Volver a la lista de empleados">
-                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full">
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                </Link>
-                <h1 className="text-3xl font-bold">Editar Empleado</h1>
-            </div>
+        <div className="p-6 md:p-8">
+            <BreadcrumbNav
+                items={[
+                    { label: "Empleados", href: "/empleados" },
+                    { label: "Editar Empleado" }
+                ]}
+                backHref="/empleados"
+            />
+            
+            <h1 className="text-2xl md:text-3xl font-bold mb-8">Editar Empleado</h1>
 
             <Card className="max-w-3xl mx-auto bg-zinc-900 border-zinc-800">
                  {/* ... CardHeader ... */}
@@ -234,11 +252,12 @@ export default function EditarEmpleadoPage() {
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-6">
-                         {/* ... Error de Submit ... */}
+                         {/* Error de Submit */}
                          {error && (
-                            <div className="p-3 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg flex items-center gap-2 text-sm">
-                                <AlertCircle className="h-4 w-4 flex-shrink-0" /> <p>{error}</p>
-                            </div>
+                            <ErrorState 
+                                message={error} 
+                                className="p-3 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg flex items-center gap-2 text-sm"
+                            />
                         )}
 
                         {/* --- Inputs de Texto (sin cambios) --- */}

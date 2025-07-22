@@ -15,6 +15,7 @@ import {
     ChevronRight,
     ChevronLeft,
     Search,
+    Calendar,
 } from "lucide-react";
 import { useSidebar } from "../../hooks/use-sidebar";
 import { Tooltip, TooltipProvider } from "./tooltip";
@@ -81,6 +82,22 @@ const navItems: NavItemData[] = [
                 icon: <Fingerprint size={18} />,
                 text: "Asignar Huella",
                 keywords: ["huella", "biometrico", "dactilar"],
+            },
+        ],
+    },
+    {
+        id: "horarios",
+        href: "/horarios",
+        icon: <ClipboardList size={20} />,
+        text: "Horarios",
+        keywords: ["horarios", "turnos", "jornadas"],
+        submenu: [
+            {
+                id: "horarios-asignados",
+                href: "/horarios/asignados",
+                icon: <Calendar size={18} />,
+                text: "Horarios Asignados",
+                keywords: ["asignados", "lista", "ver"],
             },
         ],
     },

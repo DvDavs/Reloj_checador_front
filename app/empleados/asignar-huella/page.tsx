@@ -467,9 +467,6 @@ function AsignarHuellaContent() {
             });
 
             setAvailableReaders(readersWithStatus);
-            if (readersWithStatus.length === 0) {
-                setGeneralError("No se encontraron lectores conectados.");
-            }
 
             // Validar lector actual si cambió el estado
             const stillValid = readersWithStatus.some(
