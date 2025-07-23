@@ -28,7 +28,8 @@ import { LoadingState } from "@/app/components/shared/loading-state";
 import { ErrorState } from "@/app/components/shared/error-state";
 import { SortableHeader } from "@/app/components/shared/sortable-header";
 import { PaginationWrapper } from "@/app/components/shared/pagination-wrapper";
-import { useTableState } from "@/app/hooks/use-table-state";
+import { useDebounce } from "@/app/hooks/use-debounce";
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 const ITEMS_PER_PAGE = 10;
@@ -38,53 +39,65 @@ export default function HorariosAsignadosPage() {
   const { toast } = useToast();
   
   // Data state
-  const [horariosAsignados, setHorariosAsignados] = useState<HorarioAsignadoDto[]>([]);
+  const [data, setData] = useState<{ content: HorarioAsignadoDto[], totalPages: number }>({ content: [], totalPages: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Table state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [sortField, setSortField] = useState('id');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
   // Modal state
   const [selectedItem, setSelectedItem] = useState<HorarioAsignadoDto | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Table state using custom hook
-  const {
-    paginatedData,
-    searchTerm,
-    currentPage,
-    sortField,
-    sortDirection,
-    totalPages,
-    handleSearch,
-    handleSort,
-    handlePageChange,
-  } = useTableState({
-    data: horariosAsignados,
-    itemsPerPage: ITEMS_PER_PAGE,
-    searchFields: ['empleadoNombre', 'horarioNombre', 'tipoHorarioNombre', 'id'],
-    defaultSortField: 'id',
-  });
-
   const fetchHorariosAsignados = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get<HorarioAsignadoDto[]>(`${API_BASE_URL}/api/horarios-asignados`);
-      setHorariosAsignados(response.data || []);
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        size: ITEMS_PER_PAGE.toString(),
+        sort: `${sortField},${sortDirection}`,
+        search: debouncedSearchTerm,
+      });
+
+      const response = await axios.get(`${API_BASE_URL}/api/horarios-asignados/paginado?${params.toString()}`);
+      setData(response.data);
     } catch (err: any) {
       console.error("Error fetching horarios asignados:", err);
       const errorMsg = err.response?.data?.message || err.message || "No se pudo cargar la lista de horarios asignados.";
       setError(`Error al cargar horarios asignados: ${errorMsg}. Verifique la conexión con la API.`);
-      setHorariosAsignados([]);
+      setData({ content: [], totalPages: 0 });
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentPage, sortField, sortDirection, debouncedSearchTerm]);
 
   useEffect(() => {
     fetchHorariosAsignados();
   }, [fetchHorariosAsignados]);
+
+  const handleSort = (field: string) => {
+    const newDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
+    setSortField(field);
+    setSortDirection(newDirection);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(0); // Reset to first page on new search
+  };
 
   const handleViewDetails = (item: HorarioAsignadoDto) => {
     setSelectedItem(item);
@@ -112,8 +125,8 @@ export default function HorariosAsignadosPage() {
     try {
       await axios.delete(`${API_BASE_URL}/api/horarios-asignados/${selectedItem.id}`);
       
-      // Remove the item from the list
-      setHorariosAsignados(prev => prev.filter(h => h.id !== selectedItem.id));
+      // Refetch the data for the current page
+      fetchHorariosAsignados();
       setIsDeleteDialogOpen(false);
       
       toast({
@@ -192,7 +205,7 @@ export default function HorariosAsignadosPage() {
                       ID
                     </SortableHeader>
                     <SortableHeader
-                      field="empleadoNombre"
+                      field="empleado.nombreCompleto" // Adjust field for backend sorting
                       sortField={sortField}
                       sortDirection={sortDirection}
                       onSort={handleSort}
@@ -200,7 +213,7 @@ export default function HorariosAsignadosPage() {
                       Empleado
                     </SortableHeader>
                     <SortableHeader
-                      field="horarioNombre"
+                      field="horario.nombre" // Adjust field for backend sorting
                       sortField={sortField}
                       sortDirection={sortDirection}
                       onSort={handleSort}
@@ -208,22 +221,36 @@ export default function HorariosAsignadosPage() {
                       Horario
                     </SortableHeader>
                     <SortableHeader
-                      field="tipoHorarioNombre"
+                      field="tipoHorario.nombre" // Adjust field for backend sorting
                       sortField={sortField}
                       sortDirection={sortDirection}
                       onSort={handleSort}
                     >
                       Tipo Horario
                     </SortableHeader>
-                    <TableHead>Fecha Inicio</TableHead>
-                    <TableHead>Fecha Fin</TableHead>
+                    <SortableHeader
+                      field="fechaInicio"
+                      sortField={sortField}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                        Fecha Inicio
+                    </SortableHeader>
+                     <SortableHeader
+                      field="fechaFin"
+                      sortField={sortField}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                        Fecha Fin
+                    </SortableHeader>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedData.length > 0 ? (
-                    paginatedData.map((item) => (
+                  {data.content.length > 0 ? (
+                    data.content.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.id}</TableCell>
                         <TableCell>{item.empleadoNombre}</TableCell>
@@ -289,7 +316,7 @@ export default function HorariosAsignadosPage() {
 
             <PaginationWrapper
               currentPage={currentPage}
-              totalPages={totalPages}
+              totalPages={data.totalPages}
               onPageChange={handlePageChange}
             />
           </>
