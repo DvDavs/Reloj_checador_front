@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useReducer, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { EnhancedStepIndicator, EnhancedStepInfo } from "@/app/components/shared/enhanced-step-indicator";
 import { WizardAction, WizardState, EmpleadoSimpleDTO, HorarioAsignadoCreateDto, WizardStep } from "../../registrar/types";
 import { PageHeader } from "@/app/components/shared/page-header";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +26,7 @@ import { getScheduleTypes, checkOverlap, createHorarioTemplate, updateHorarioAsi
 import { BreadcrumbNav } from "@/app/components/shared/breadcrumb-nav";
 import Link from "next/link";
 import { LoadingState } from "@/app/components/shared/loading-state";
+import { WizardStepper } from "@/app/components/shared/wizard-stepper";
 
 const wizardReducer = (state: WizardState, action: WizardAction): WizardState => {
   switch (action.type) {
@@ -86,6 +86,7 @@ const initialState: WizardState = {
     assignmentStartDate: null,
     assignmentEndDate: null,
     selectedScheduleTypeId: null,
+    newlyCreatedTemplateId: null,
     isSubmitting: false,
     error: null,
 };
@@ -429,67 +430,19 @@ export default function ScheduleAssignmentEditPage() {
         loadAssignmentData();
     }, [id, router, toast]);
 
-    // Helper function to determine validation status for edit mode
-    const getValidationStatus = (stepNumber: number): 'valid' | 'invalid' | 'pending' | undefined => {
-        switch (stepNumber) {
-            case 1:
-                return 'valid'; // Employee is always valid in edit mode
-            case 2:
-                if (state.step === 'selectSchedule') {
-                    if (state.scheduleSelectionType === 'existing' && state.selectedTemplateId) return 'valid';
-                    if (state.scheduleSelectionType) return 'pending';
-                }
-                break;
-            case 3:
-                if (state.step === 'setDates') {
-                    if (state.assignmentStartDate && state.selectedScheduleTypeId) {
-                        const areDatesValid = !state.assignmentEndDate || state.assignmentEndDate >= state.assignmentStartDate;
-                        return areDatesValid ? 'valid' : 'invalid';
-                    }
-                    if (state.assignmentStartDate || state.selectedScheduleTypeId) return 'pending';
-                }
-                break;
-        }
-        return undefined;
-    };
-
-    const steps: EnhancedStepInfo[] = [
-        { 
-            number: 1, 
-            title: "Empleado", 
-            description: "Empleado seleccionado",
-            isCompleted: true, 
-            isCurrent: false,
-            validationStatus: 'valid',
-            isClickable: false
-        },
-        { 
-            number: 2, 
-            title: "Definir Horario", 
-            description: "Modificar plantilla",
-            isCompleted: state.step !== 'selectSchedule' && state.selectedTemplateId !== null, 
-            isCurrent: state.step === 'selectSchedule',
-            validationStatus: getValidationStatus(2),
-            isClickable: true
-        },
-        { 
-            number: 3, 
-            title: "Asignar Fechas", 
-            description: "Fechas y tipo de horario",
-            isCompleted: state.step !== 'setDates' && state.assignmentStartDate !== null && state.selectedScheduleTypeId !== null, 
-            isCurrent: state.step === 'setDates',
-            validationStatus: getValidationStatus(3),
-            isClickable: true
-        },
-        { 
-            number: 4, 
-            title: "Resumen", 
-            description: "Revisar cambios",
-            isCompleted: false, 
-            isCurrent: state.step === 'summary',
-            isClickable: false
-        },
+    const WIZARD_STEPS = [
+        { label: "Empleado", id: 'selectEmployee' },
+        { label: "Horario", id: 'selectSchedule' },
+        { label: "Fechas", id: 'setDates' },
+        { label: "Resumen", id: 'summary' }
     ];
+
+    const currentStepNumber = React.useMemo(() => {
+        // Find the index of the current step based on its ID
+        const stepIndex = WIZARD_STEPS.findIndex(s => s.id === state.step);
+        // Add 1 to make it a 1-based index for the stepper component
+        return stepIndex + 1;
+    }, [state.step]);
     
     const handleSave = async () => {
         dispatch({ type: 'SUBMIT_START' });
@@ -598,22 +551,7 @@ export default function ScheduleAssignmentEditPage() {
              </div>
 
            <div className="my-6">
-             <EnhancedStepIndicator 
-                steps={steps} 
-                onStepClick={(stepNumber) => {
-                    // Allow navigation to previous completed steps (except employee step)
-                    if (stepNumber === 1) return; // Employee step is not editable
-                    
-                    const targetStep = ['selectEmployee', 'selectSchedule', 'setDates', 'summary'][stepNumber - 1] as WizardStep;
-                    const currentStepIndex = ['selectEmployee', 'selectSchedule', 'setDates', 'summary'].indexOf(state.step);
-                    const targetStepIndex = stepNumber - 1;
-                    
-                    // Only allow navigation to previous steps or current step (excluding employee)
-                    if (targetStepIndex <= currentStepIndex && targetStepIndex > 0) {
-                        dispatch({ type: 'SET_STEP', payload: targetStep });
-                    }
-                }}
-             />
+             <WizardStepper steps={WIZARD_STEPS} currentStep={currentStepNumber} />
            </div>
 
             {state.error && (
@@ -628,7 +566,7 @@ export default function ScheduleAssignmentEditPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-xl">
-                            {steps.find(s => s.isCurrent)?.title}
+                            {WIZARD_STEPS.find(s => s.id === state.step)?.label}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="min-h-[350px] p-6">

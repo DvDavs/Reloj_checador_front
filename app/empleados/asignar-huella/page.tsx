@@ -68,6 +68,7 @@ import { getBrowserSessionId } from "@/lib/sessionId";
 
 // Import the new HandSelector component
 import { HandSelector, fingerIndexToName } from "./components/hand-selector";
+import { WizardStepper } from "@/app/components/shared/wizard-stepper";
 
 //
 // --------------------- Tipos y Constantes ---------------------
@@ -2041,6 +2042,14 @@ function AsignarHuellaContent() {
     // --------------------- Render Principal ---------------------
     //
 
+    const STEPS = [
+        { label: "Empleado" },
+        { label: "Lector" },
+        { label: "Dedo" },
+        { label: "Captura" },
+        { label: "Finalizado" },
+    ];
+
     return (
         <div className="p-6 md:p-8">
             {/* Encabezado */}
@@ -2060,55 +2069,7 @@ function AsignarHuellaContent() {
             </div>
 
             {/* Stepper (diseño V2) */}
-            <div className="mb-8 max-w-4xl mx-auto">
-                <div className="flex items-center justify-between">
-                    {[
-                        "Empleado",
-                        "Lector",
-                        "Dedo",
-                        "Captura",
-                        "Finalizado",
-                    ].map((label, index) => (
-                        <React.Fragment key={index}>
-                            <div className="flex flex-col items-center text-center w-1/10 px-1">
-                                <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center border-2 mb-1 ${
-                                        currentStep > index + 1
-                                            ? "bg-blue-600 border-blue-600"
-                                            : currentStep === index + 1
-                                            ? "border-blue-500 bg-blue-900/50"
-                                            : "border-zinc-600 bg-zinc-800"
-                                    } transition-colors`}
-                                >
-                                    {currentStep > index + 1 ? (
-                                        <CheckCircle size={16} />
-                                    ) : (
-                                        <span>{index + 1}</span>
-                                    )}
-                                </div>
-                                <span
-                                    className={`text-xs leading-tight ${
-                                        currentStep >= index + 1
-                                            ? "text-zinc-200"
-                                            : "text-zinc-500"
-                                    }`}
-                                >
-                                    {label}
-                                </span>
-                            </div>
-                            {index < 4 && (
-                                <div
-                                    className={`flex-1 h-0.5 mt-4 ${
-                                        currentStep > index + 1
-                                            ? "bg-blue-600"
-                                            : "bg-zinc-700"
-                                    }`}
-                                ></div>
-                            )}
-                        </React.Fragment>
-                    ))}
-                </div>
-            </div>
+            <WizardStepper steps={STEPS} currentStep={currentStep} className="mb-8" />
 
             {/* Mensaje de error general */}
             {generalError && currentStep !== 4 && (
