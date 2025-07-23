@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScheduleGridEditor } from "@/app/components/shared/schedule-grid-editor";
 import { getHorarioTemplates } from "@/lib/api";
-import { CalendarIcon, Loader2, User, Calendar as CalendarIcon2, CheckCircle, CalendarDays, ClipboardCheck, PartyPopper } from "lucide-react";
+import { CalendarIcon, Loader2, User, Users, Calendar as CalendarIcon2, CheckCircle, CalendarDays, ClipboardCheck, PartyPopper, ArrowLeft, ArrowRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -22,7 +22,7 @@ import { es } from "date-fns/locale";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { getScheduleTypes, checkOverlap, createHorarioTemplate, createHorarioAsignado } from "@/lib/api/schedule-api";
+import { getScheduleTypes, createHorarioTemplate, createHorarioAsignado, getApiErrorMessage } from "@/lib/api/schedule-api";
 import { BreadcrumbNav } from "@/app/components/shared/breadcrumb-nav";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -146,84 +146,79 @@ function Step2_SelectSchedule({ state, dispatch, setTemplates }: {
     }, [dispatch]);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Elige una Opción de Horario</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <VisualOptionCard
-                        icon={<List className="h-8 w-8" />}
-                        title="Plantilla Existente"
-                        description="Usa un horario predefinido."
-                        isSelected={state.scheduleSelectionType === 'existing'}
-                        onClick={() => handleSelectionTypeChange('existing')}
-                    />
-                    <VisualOptionCard
-                        icon={<FilePlus2 className="h-8 w-8" />}
-                        title="Nueva Plantilla"
-                        description="Crea un horario personalizado."
-                        isSelected={state.scheduleSelectionType === 'new'}
-                        onClick={() => handleSelectionTypeChange('new')}
-                    />
-                </div>
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <VisualOptionCard
+                    icon={<List className="h-8 w-8" />}
+                    title="Plantilla Existente"
+                    description="Usa un horario predefinido."
+                    isSelected={state.scheduleSelectionType === 'existing'}
+                    onClick={() => handleSelectionTypeChange('existing')}
+                />
+                <VisualOptionCard
+                    icon={<FilePlus2 className="h-8 w-8" />}
+                    title="Nueva Plantilla"
+                    description="Crea un horario personalizado."
+                    isSelected={state.scheduleSelectionType === 'new'}
+                    onClick={() => handleSelectionTypeChange('new')}
+                />
+            </div>
 
-                <AnimatePresence>
-                    {state.scheduleSelectionType === 'existing' && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="pl-2 pt-4 overflow-hidden"
-                        >
-                            {isLoading ? (
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Loader2 className="h-4 w-4 animate-spin"/> Cargando plantillas...
-                                </div>
-                            ) : error ? (
-                                <Alert variant="destructive">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertTitle>Error</AlertTitle>
-                                    <AlertDescription>{error}</AlertDescription>
-                                </Alert>
-                            ) : (
-                                <Select
-                                    value={state.selectedTemplateId?.toString()}
-                                    onValueChange={handleTemplateSelectChange}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccione una plantilla..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {templates.map(template => (
-                                            <SelectItem key={template.id} value={template.id.toString()}>
-                                                {template.nombre}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        </motion.div>
-                    )}
+            <AnimatePresence>
+                {state.scheduleSelectionType === 'existing' && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="pl-2 pt-4 overflow-hidden"
+                    >
+                        {isLoading ? (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin"/> Cargando plantillas...
+                            </div>
+                        ) : error ? (
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        ) : (
+                            <Select
+                                value={state.selectedTemplateId?.toString()}
+                                onValueChange={handleTemplateSelectChange}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleccione una plantilla..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {templates.map(template => (
+                                        <SelectItem key={template.id} value={template.id.toString()}>
+                                            {template.nombre}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </motion.div>
+                )}
 
-                    {state.scheduleSelectionType === 'new' && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="pl-2 pt-4 overflow-hidden"
-                        >
-                            <NewScheduleTemplateForm 
-                                scheduleData={state.newScheduleData}
-                                onDataChange={handleNewScheduleDataChange}
-                            />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </CardContent>
-        </Card>
+                {state.scheduleSelectionType === 'new' && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="pl-2 pt-4 overflow-hidden"
+                    >
+                        <NewScheduleTemplateForm 
+                            scheduleData={state.newScheduleData}
+                            onDataChange={handleNewScheduleDataChange}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
 
@@ -261,58 +256,54 @@ function Step3_SetDates({ state, dispatch, setScheduleTypes }: {
     }
 
     return (
-        <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-                <CardTitle>Define las Fechas y el Tipo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label>Fecha de Inicio</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {state.assignmentStartDate ? format(state.assignmentStartDate, "PPP") : <span>Seleccione fecha</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={state.assignmentStartDate ?? undefined}
-                                    onSelect={(date) => handleDateChange('startDate', date)}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                     <div className="space-y-2">
-                        <Label>Fecha de Fin (Opcional)</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {state.assignmentEndDate ? format(state.assignmentEndDate, "PPP") : <span>Seleccione fecha</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={state.assignmentEndDate ?? undefined}
-                                    onSelect={(date) => handleDateChange('endDate', date)}
-                                    disabled={{ before: state.assignmentStartDate ?? new Date(0) }}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                </div>
-                {state.assignmentStartDate && state.assignmentEndDate && state.assignmentEndDate < state.assignmentStartDate && (
-                    <p className="text-sm text-destructive">La fecha de fin debe ser posterior a la fecha de inicio.</p>
-                )}
-
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label>Tipo de Horario</Label>
+                    <Label>Fecha de Inicio</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start text-left font-normal">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {state.assignmentStartDate ? format(state.assignmentStartDate, "PPP") : <span>Seleccione fecha</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="single"
+                                selected={state.assignmentStartDate ?? undefined}
+                                onSelect={(date) => handleDateChange('startDate', date)}
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                 <div className="space-y-2">
+                    <Label>Fecha de Fin (Opcional)</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start text-left font-normal">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {state.assignmentEndDate ? format(state.assignmentEndDate, "PPP") : <span>Seleccione fecha</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="single"
+                                selected={state.assignmentEndDate ?? undefined}
+                                onSelect={(date) => handleDateChange('endDate', date)}
+                                disabled={{ before: state.assignmentStartDate ?? new Date(0) }}
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            </div>
+            {state.assignmentStartDate && state.assignmentEndDate && state.assignmentEndDate < state.assignmentStartDate && (
+                <p className="text-sm text-destructive">La fecha de fin debe ser posterior a la fecha de inicio.</p>
+            )}
+
+            <div className="space-y-2">
+                <Label>Tipo de Horario</Label>
                      {isLoading ? (
                          <div className="flex items-center gap-2 text-muted-foreground">
                             <Loader2 className="h-4 w-4 animate-spin"/> Cargando tipos...
@@ -346,9 +337,8 @@ function Step3_SetDates({ state, dispatch, setScheduleTypes }: {
                             })}
                         </div>
                     )}
-                </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
 
@@ -361,9 +351,7 @@ function Step4_Summary({ state, templates, scheduleTypes }: { state: WizardState
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-             <h3 className="text-2xl font-bold text-center mb-4">Confirmar Asignación</h3>
-             
+        <div className="space-y-6">
              <Card>
                 <CardHeader className="flex flex-row items-center space-x-4">
                     <User className="w-8 h-8 text-primary" />
@@ -439,16 +427,40 @@ export default function ScheduleAssignmentWizardPage() {
     const stableSetScheduleTypes = React.useCallback(setScheduleTypes, []);
     
     const WIZARD_STEPS = [
-        { label: "Empleado", id: 'selectEmployee' },
-        { label: "Horario", id: 'selectSchedule' },
-        { label: "Fechas", id: 'setDates' },
-        { label: "Resumen", id: 'summary' },
-        { label: "Finalizado", id: 'completed' }
+        { 
+            label: "Empleado", 
+            id: 'selectEmployee',
+            description: "Busca y selecciona el empleado al que se le asignará el horario."
+        },
+        { 
+            label: "Horario", 
+            id: 'selectSchedule',
+            description: "Elige una plantilla de horario existente o crea una nueva para la asignación."
+        },
+        { 
+            label: "Fechas", 
+            id: 'setDates',
+            description: "Define el rango de fechas y la categoría del horario que se está asignando."
+        },
+        { 
+            label: "Resumen", 
+            id: 'summary',
+            description: "Verifica todos los detalles antes de guardar la asignación de forma permanente."
+        },
+        { 
+            label: "Finalizado", 
+            id: 'completed',
+            description: "La asignación ha sido creada exitosamente."
+        }
     ];
 
-    const currentStepNumber = React.useMemo(() => {
+    const currentStepConfig = React.useMemo(() => {
         const stepIndex = WIZARD_STEPS.findIndex(s => s.id === state.step);
-        return stepIndex + 1;
+        return {
+            ...WIZARD_STEPS[stepIndex],
+            number: stepIndex + 1,
+            title: `Paso ${stepIndex + 1}: ${WIZARD_STEPS[stepIndex].label}`
+        };
     }, [state.step]);
 
 
@@ -483,18 +495,6 @@ export default function ScheduleAssignmentWizardPage() {
                 throw new Error("No se ha seleccionado ni creado un horario.");
             }
 
-            // El resto de la lógica (checkOverlap, createHorarioAsignado) permanece igual...
-            const overlapResult = await checkOverlap({
-                empleadoId: state.selectedEmployee!.id,
-                fechaInicio: startDateStr,
-                fechaFin: endDateStr,
-                horarioId: horarioId,
-            });
-
-            if (overlapResult.hasOverlap) {
-                throw new Error(overlapResult.message || "El empleado ya tiene un horario asignado que se solapa con las fechas y el horario seleccionados.");
-            }
-
             await createHorarioAsignado({
                 empleadoId: state.selectedEmployee!.id,
                 horarioId: horarioId!,
@@ -515,10 +515,11 @@ export default function ScheduleAssignmentWizardPage() {
 
         } catch (error: any) {
             console.error("Error al guardar la asignación:", error);
-            dispatch({ type: 'SUBMIT_ERROR', payload: error.message || "Ocurrió un error desconocido." });
+            const errorMessage = getApiErrorMessage(error);
+            dispatch({ type: 'SUBMIT_ERROR', payload: errorMessage });
             toast({
                 title: "Error en la Asignación",
-                description: error.message || "No se pudo completar la operación. Por favor, intente de nuevo.",
+                description: errorMessage,
                 variant: "destructive",
             });
         }
@@ -562,8 +563,57 @@ export default function ScheduleAssignmentWizardPage() {
         }
     }
 
+    const renderStepContent = () => {
+        switch (state.step) {
+            case 'selectEmployee':
+                return (
+                    <div className="space-y-6">
+                        <EmployeeSearch
+                            value={state.selectedEmployee}
+                            onChange={(emp) => dispatch({ type: 'SELECT_EMPLOYEE', payload: emp })}
+                        />
+                        {state.selectedEmployee && (
+                            <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-16 w-16 bg-zinc-800 rounded-full flex items-center justify-center">
+                                        <Users className="h-8 w-8 text-blue-500" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold">
+                                            {state.selectedEmployee.nombreCompleto}
+                                        </h2>
+                                        <p className="text-zinc-400">
+                                            ID interno: {state.selectedEmployee.id}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            case 'selectSchedule':
+                return <Step2_SelectSchedule state={state} dispatch={dispatch} setTemplates={stableSetTemplates} />;
+            case 'setDates':
+                return <Step3_SetDates state={state} dispatch={dispatch} setScheduleTypes={stableSetScheduleTypes} />;
+            case 'summary':
+                return <Step4_Summary state={state} templates={templates} scheduleTypes={scheduleTypes} />;
+            case 'completed':
+                 return <CompletionStep 
+                    title="Asignación Finalizada"
+                    message={`El horario ha sido asignado correctamente a ${state.selectedEmployee?.nombreCompleto || 'el empleado'}.`}
+                    primaryActionLink="/horarios/asignados"
+                    primaryActionText="Ver Todas las Asignaciones"
+                    secondaryActionText="Asignar Otro Horario"
+                    onSecondaryAction={() => dispatch({ type: 'RESET' })}
+                />;
+            default:
+                return null;
+        }
+    };
+
+
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <main className="p-6 md:p-8">
              <BreadcrumbNav 
                 items={[
                     { label: "Horarios Asignados", href: "/horarios/asignados" },
@@ -572,15 +622,10 @@ export default function ScheduleAssignmentWizardPage() {
                 backHref="/horarios/asignados"
              />
 
-             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">Asistente de Asignación de Horarios</h1>
-                <Link href="/horarios/asignados">
-                    <Button variant="outline">Cancelar</Button>
-                </Link>
-             </div>
+            <h1 className="text-3xl font-bold tracking-tight mt-4">Asistente de Asignación de Horarios</h1>
 
-           <div className="my-6">
-                <WizardStepper steps={WIZARD_STEPS} currentStep={currentStepNumber} />
+           <div className="my-8">
+                <WizardStepper steps={WIZARD_STEPS} currentStep={currentStepConfig.number} />
            </div>
 
             {state.error && (
@@ -592,66 +637,88 @@ export default function ScheduleAssignmentWizardPage() {
             )}
 
            <div className="max-w-4xl mx-auto">
-                <Card>
+                <Card className="bg-zinc-900 border-zinc-800">
                     <CardHeader>
-                        <CardTitle className="text-xl">
-                            {WIZARD_STEPS.find(s => s.id === state.step)?.label}
-                        </CardTitle>
+                        <CardTitle>{currentStepConfig.title}</CardTitle>
+                        <p className="text-muted-foreground pt-1">{currentStepConfig.description}</p>
                     </CardHeader>
                     <CardContent className="min-h-[350px] p-6">
-                        {state.step === 'selectEmployee' && (
-                            <EmployeeSearch
-                                value={state.selectedEmployee}
-                                onChange={(emp) => dispatch({ type: 'SELECT_EMPLOYEE', payload: emp })}
-                            />
-                        )}
-                        {state.step === 'selectSchedule' && (
-                           <Step2_SelectSchedule state={state} dispatch={dispatch} setTemplates={stableSetTemplates} />
-                        )}
-                        {state.step === 'setDates' && (
-                            <Step3_SetDates state={state} dispatch={dispatch} setScheduleTypes={stableSetScheduleTypes} />
-                        )}
-                        {state.step === 'summary' && (
-                            <Step4_Summary state={state} templates={templates} scheduleTypes={scheduleTypes} />
-                        )}
-                        {state.step === 'completed' && (
-                            <CompletionStep />
-                        )}
+                        {renderStepContent()}
                     </CardContent>
-                    <CardFooter className="flex justify-between">
-                        {state.step !== 'completed' && (
-                            <>
-                                <Button variant="outline" onClick={handleBack} disabled={state.step === 'selectEmployee'}>
-                                    Atrás
-                                </Button>
-                                <Button onClick={handleNext} disabled={
-                                    (state.step === 'selectEmployee' && !state.selectedEmployee) ||
-                                    (state.step === 'selectSchedule' && !(
-                                        (state.scheduleSelectionType === 'existing' && state.selectedTemplateId !== null) ||
-                                        (state.scheduleSelectionType === 'new' && state.newScheduleData.nombre.trim() !== '' && state.newScheduleData.detalles.length > 0)
-                                    )) ||
-                                    (state.step === 'setDates' && !(
-                                        state.assignmentStartDate &&
-                                        state.selectedScheduleTypeId &&
-                                        (!state.assignmentEndDate || state.assignmentEndDate >= state.assignmentStartDate)
-                                    ))
-                                }>
-                                    {state.step === 'summary' ? (
-                                        state.isSubmitting ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Guardando...
-                                            </>
-                                        ) : (
-                                            'Guardar Asignación'
-                                        )
-                                    ) : 'Siguiente'}
-                                </Button>
-                            </>
-                        )}
-                    </CardFooter>
+                    {state.step !== 'completed' && (
+                        <CardFooter className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-b-lg border-t border-zinc-800">
+                            {state.step === 'selectEmployee' ? (
+                                <>
+                                    <Link href="/horarios/asignados">
+                                        <Button variant="outline">Cancelar</Button>
+                                    </Link>
+                                    <Button
+                                        onClick={handleNext}
+                                        disabled={!state.selectedEmployee}
+                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                                    >
+                                        Siguiente
+                                        <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex-grow">
+                                        {state.selectedEmployee && (
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-shrink-0 h-10 w-10 bg-zinc-800 rounded-full flex items-center justify-center">
+                                                    <User className="h-5 w-5 text-blue-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-sm text-white">{state.selectedEmployee.nombreCompleto}</p>
+                                                    <p className="text-xs text-zinc-400">ID: {state.selectedEmployee.id}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleBack}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <ArrowLeft className="h-4 w-4" />
+                                            Atrás
+                                        </Button>
+                                        <Button
+                                            onClick={handleNext}
+                                            disabled={
+                                                (state.step === 'selectSchedule' && !(
+                                                    (state.scheduleSelectionType === 'existing' && state.selectedTemplateId !== null) ||
+                                                    (state.scheduleSelectionType === 'new' && state.newScheduleData.nombre.trim() !== '' && state.newScheduleData.detalles.length > 0)
+                                                )) ||
+                                                (state.step === 'setDates' && !(
+                                                    state.assignmentStartDate &&
+                                                    state.selectedScheduleTypeId &&
+                                                    (!state.assignmentEndDate || state.assignmentEndDate >= state.assignmentStartDate)
+                                                ))
+                                            }
+                                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            {state.step === 'summary' ? (
+                                                state.isSubmitting ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Guardando...
+                                                    </>
+                                                ) : (
+                                                    'Guardar Asignación'
+                                                )
+                                            ) : 'Siguiente'}
+                                            {state.step !== 'summary' && <ArrowRight className="h-4 w-4" />}
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </CardFooter>
+                    )}
                 </Card>
            </div>
-        </div>
+        </main>
     )
 } 

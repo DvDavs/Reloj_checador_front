@@ -29,6 +29,9 @@ next-env.d.ts
 # IDES
 .idea
 .kiro
+.kiro/*
+.kiro/specs/*
+
 
 # backend-resources
 backend-resources

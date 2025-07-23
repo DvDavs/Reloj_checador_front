@@ -69,6 +69,7 @@ import { getBrowserSessionId } from "@/lib/sessionId";
 // Import the new HandSelector component
 import { HandSelector, fingerIndexToName } from "./components/hand-selector";
 import { WizardStepper } from "@/app/components/shared/wizard-stepper";
+import { EmployeeSearch } from "@/app/components/shared/employee-search";
 
 //
 // --------------------- Tipos y Constantes ---------------------
@@ -1222,107 +1223,12 @@ function AsignarHuellaContent() {
                                 <Label className="text-sm font-medium text-zinc-400">
                                     Buscar empleado
                                 </Label>
-                                <Popover
-                                    open={openEmployeePopover}
-                                    onOpenChange={setOpenEmployeePopover}
-                                >
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openEmployeePopover}
-                                            className="w-full justify-between"
-                                        >
-                                            {selectedEmployee
-                                                ? selectedEmployee.nombre
-                                                : "Seleccionar empleado..."}
-                                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[400px] p-0">
-                                        <Command>
-                                            <CommandInput
-                                                placeholder="Buscar empleado..."
-                                                className="h-9"
-                                                value={employeeSearchValue}
-                                                onValueChange={(val) => {
-                                                    setEmployeeSearchValue(val);
-                                                    searchEmployees(val);
-                                                }}
-                                            />
-                                            <CommandList>
-                                                {isSearching ? (
-                                                    <div className="p-4 text-center text-sm text-zinc-400">
-                                                        <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                                                        Buscando...
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <CommandEmpty>
-                                                            No se encontraron
-                                                            empleados.
-                                                        </CommandEmpty>
-                                                        <CommandGroup className="max-h-[300px] overflow-auto">
-                                                            {employeesFound.map(
-                                                                (emp) => (
-                                                                    <CommandItem
-                                                                        key={
-                                                                            emp.id
-                                                                        }
-                                                                        value={
-                                                                            emp.nombre
-                                                                        }
-                                                                        onSelect={() => {
-                                                                            setSelectedEmployee(
-                                                                                {
-                                                                                    id: emp.id,
-                                                                                    nombre: emp.nombre,
-                                                                                }
-                                                                            );
-                                                                            setOpenEmployeePopover(
-                                                                                false
-                                                                            );
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex flex-col">
-                                                                            <span>
-                                                                                {
-                                                                                    emp.nombre
-                                                                                }
-                                                                            </span>
-                                                                            {emp.numeroTarjeta &&
-                                                                                emp.area && (
-                                                                                    <span className="text-xs text-zinc-500">
-                                                                                        {
-                                                                                            emp.numeroTarjeta
-                                                                                        }{" "}
-                                                                                        -{" "}
-                                                                                        {
-                                                                                            emp.area
-                                                                                        }
-                                                                                    </span>
-                                                                                )}
-                                                                        </div>
-                                                                        <CheckCircle
-                                                                            className={`ml-auto h-4 w-4 ${
-                                                                                selectedEmployee?.id ===
-                                                                                emp.id
-                                                                                    ? "opacity-100"
-                                                                                    : "opacity-0"
-                                                                            }`}
-                                                                        />
-                                                                    </CommandItem>
-                                                                )
-                                                            )}
-                                                        </CommandGroup>
-                                                    </>
-                                                )}
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                                <EmployeeSearch
+                                  value={selectedEmployee}
+                                  onChange={(emp) => setSelectedEmployee(emp)}
+                                  showAllOnOpen={true}
+                                />
                             </div>
-
                             {selectedEmployee && (
                                 <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                                     <div className="flex items-center gap-4">
@@ -1331,11 +1237,10 @@ function AsignarHuellaContent() {
                                         </div>
                                         <div>
                                             <h2 className="text-xl font-bold">
-                                                {selectedEmployee.nombre}
+                                                {selectedEmployee.nombreCompleto || selectedEmployee.nombre}
                                             </h2>
                                             <p className="text-zinc-400">
-                                                ID interno:{" "}
-                                                {selectedEmployee.id}
+                                                ID interno: {selectedEmployee.id}
                                             </p>
                                         </div>
                                     </div>

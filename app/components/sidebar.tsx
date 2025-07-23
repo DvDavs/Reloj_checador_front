@@ -93,9 +93,16 @@ const navItems: NavItemData[] = [
         keywords: ["horarios", "turnos", "jornadas"],
         submenu: [
             {
+                id: "horarios-asignar",
+                href: "/horarios/asignados/registrar",
+                icon: <Calendar size={18} />,
+                text: "Asignar Horario",
+                keywords: ["asignar", "nuevo", "horario", "calendario"],
+            },
+            {
                 id: "horarios-asignados",
                 href: "/horarios/asignados",
-                icon: <Calendar size={18} />,
+                icon: <ClipboardList size={18} />,
                 text: "Horarios Asignados",
                 keywords: ["asignados", "lista", "ver"],
             },

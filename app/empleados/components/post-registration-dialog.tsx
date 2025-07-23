@@ -5,9 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Fingerprint, User, CheckCircle, ArrowRight } from "lucide-react";
 
 interface PostRegistrationDialogProps {
@@ -40,50 +38,48 @@ export function PostRegistrationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-6">
-          <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
-            <h3 className="text-sm font-medium text-zinc-300 mb-3">¿Qué deseas hacer a continuación?</h3>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-600/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Fingerprint className="w-3 h-3 text-blue-400" />
+        <div className="pt-6 pb-2">
+          <h3 className="text-lg font-medium text-center mb-6 text-zinc-200">¿Qué deseas hacer a continuación?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Card 1: Asignar Huella */}
+            <div
+              onClick={onAssignFingerprint}
+              className="group relative p-6 bg-zinc-800/50 rounded-lg border border-zinc-700 hover:border-blue-500 hover:bg-zinc-800 cursor-pointer transition-all duration-300 transform hover:-translate-y-1"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-4 bg-blue-600/20 rounded-full p-4 flex items-center justify-center ring-4 ring-blue-600/10">
+                  <Fingerprint className="w-8 h-8 text-blue-400" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-white">Asignar Huella Dactilar</p>
-                  <p className="text-xs text-zinc-400">Configura la autenticación biométrica para el empleado</p>
-                </div>
+                <p className="font-semibold text-lg text-white mb-2">Asignar Huella Ahora</p>
+                <p className="text-sm text-zinc-400">
+                  Configura la autenticación biométrica del empleado.
+                </p>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-zinc-600/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <User className="w-3 h-3 text-zinc-400" />
+              <div className="absolute top-3 right-3 flex items-center justify-center w-8 h-8 bg-blue-600 rounded-full text-white transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                <ArrowRight className="h-5 w-5" />
+              </div>
+            </div>
+
+            {/* Card 2: Ver Lista */}
+            <div
+              onClick={onContinueToDetails}
+              className="group relative p-6 bg-zinc-800/50 rounded-lg border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800 cursor-pointer transition-all duration-300 transform hover:-translate-y-1"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-4 bg-zinc-600/20 rounded-full p-4 flex items-center justify-center ring-4 ring-zinc-600/10">
+                  <User className="w-8 h-8 text-zinc-400" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-white">Ver Lista de Empleados</p>
-                  <p className="text-xs text-zinc-400">Regresar a la lista principal (puedes asignar la huella después)</p>
-                </div>
+                <p className="font-semibold text-lg text-white mb-2">Ver Lista de Empleados</p>
+                <p className="text-sm text-zinc-400">
+                  Vuelve al listado y asigna la huella después.
+                </p>
+              </div>
+               <div className="absolute top-3 right-3 flex items-center justify-center w-8 h-8 bg-zinc-600 rounded-full text-white transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                <ArrowRight className="h-5 w-5" />
               </div>
             </div>
           </div>
         </div>
-
-        <DialogFooter className="flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="outline"
-            onClick={onContinueToDetails}
-            className="border-zinc-700 hover:bg-zinc-800 hover:text-white flex-1 order-2 sm:order-1"
-          >
-            <User className="mr-2 h-4 w-4" />
-            Ver Lista de Empleados
-          </Button>
-          <Button
-            onClick={onAssignFingerprint}
-            className="bg-blue-600 hover:bg-blue-700 text-white flex-1 order-1 sm:order-2"
-          >
-            <Fingerprint className="mr-2 h-4 w-4" />
-            Asignar Huella Ahora
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

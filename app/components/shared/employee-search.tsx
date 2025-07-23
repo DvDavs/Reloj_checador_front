@@ -32,6 +32,7 @@ interface EmployeeSearchProps {
   onChange: (employee: EmpleadoSimpleDTO | null) => void;
   placeholder?: string;
   disabled?: boolean;
+  showAllOnOpen?: boolean;
 }
 
 export function EmployeeSearch({
@@ -39,6 +40,7 @@ export function EmployeeSearch({
   onChange,
   placeholder = "Buscar por nombre, RFC o CURP...", // <-- Placeholder actualizado
   disabled = false,
+  showAllOnOpen = false,
 }: EmployeeSearchProps) {
   const [open, setOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -49,15 +51,18 @@ export function EmployeeSearch({
 
   React.useEffect(() => {
     const fetchEmployees = async () => {
-      if (!debouncedSearchTerm) {
+      if (!debouncedSearchTerm && !showAllOnOpen) {
         setEmployees([]);
         return;
       }
       setIsLoading(true);
       setError(null);
       try {
-        // Esta función debe devolver EmpleadoSimpleDTO con rfc y curp
-        const data = await searchEmployees(debouncedSearchTerm);
+        const data = debouncedSearchTerm
+          ? await searchEmployees(debouncedSearchTerm)
+          : showAllOnOpen
+            ? await searchEmployees("")
+            : [];
         setEmployees(data || []);
       } catch (err: any) {
         setError(err.message || "Error al cargar empleados");
@@ -70,7 +75,7 @@ export function EmployeeSearch({
     if (open) {
       fetchEmployees();
     }
-  }, [debouncedSearchTerm, open]);
+  }, [debouncedSearchTerm, open, showAllOnOpen]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

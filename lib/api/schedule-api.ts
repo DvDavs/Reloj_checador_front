@@ -4,6 +4,30 @@ import { HorarioTemplateDTO, TipoHorarioDTO, HorarioAsignadoCreateDto } from "@/
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
+/**
+ * Extracts a meaningful error message from an API error object.
+ * @param error The error object, expected to be an AxiosError or standard Error.
+ * @returns A user-friendly error message string.
+ */
+export const getApiErrorMessage = (error: unknown): string => {
+  if (axios.isAxiosError(error)) {
+    // Error with a response from the server
+    if (error.response?.data?.message) {
+      return error.response.data.message;
+    }
+    // Error without a server response (e.g., network error)
+    if (error.request) {
+      return "Error de red: No se pudo conectar con el servidor.";
+    }
+  }
+  // Standard JavaScript error
+  if (error instanceof Error) {
+    return error.message;
+  }
+  // Fallback for unknown errors
+  return "Ocurrió un error inesperado.";
+};
+
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
@@ -15,7 +39,7 @@ export const getHorarioTemplates = async (): Promise<HorarioTemplateDTO[]> => {
     return response.data;
   } catch (error) {
     console.error("Error fetching schedule templates:", error);
-    throw new Error("Failed to fetch schedule templates.");
+    throw new Error(getApiErrorMessage(error));
   }
 };
 
@@ -26,7 +50,7 @@ export const getScheduleTypes = async (): Promise<TipoHorarioDTO[]> => {
     return response.data;
   } catch (error) {
     console.error("Error fetching schedule types:", error);
-    throw new Error("Failed to fetch schedule types.");
+    throw new Error(getApiErrorMessage(error));
   }
 };
 
@@ -37,26 +61,7 @@ export const createHorarioTemplate = async (templateData: Omit<HorarioTemplateDT
         return response.data;
     } catch (error) {
         console.error("Error creating schedule template:", error);
-        throw new Error("Failed to create schedule template.");
-    }
-};
-
-// Checks for schedule overlaps
-export const checkOverlap = async (params: {
-    empleadoId: number;
-    fechaInicio: string;
-    fechaFin: string | null;
-    horarioId: number;
-    detalles?: any[]; // Keep this flexible for now
-    asignacionIdExcluir?: number;
-}): Promise<{ hasOverlap: boolean, message?: string }> => {
-    try {
-        const response = await api.get("/api/horarios-asignados/verificar-traslape", { params });
-        return { hasOverlap: response.data.traslape };
-    } catch (error: any) {
-        console.error("Error checking for overlap:", error);
-        const message = error.response?.data?.message || "Failed to check for schedule overlap.";
-        return { hasOverlap: true, message }; // Assume overlap on error to be safe
+        throw new Error(getApiErrorMessage(error));
     }
 };
 
@@ -67,7 +72,7 @@ export const createHorarioAsignado = async (assignmentData: HorarioAsignadoCreat
         return response.data;
     } catch (error) {
         console.error("Error creating schedule assignment:", error);
-        throw new Error("Failed to create schedule assignment.");
+        throw new Error(getApiErrorMessage(error));
     }
 };
 
@@ -78,7 +83,7 @@ export const getHorarioAsignadoById = async (id: number): Promise<HorarioAsignad
         return response.data;
     } catch (error) {
         console.error(`Error fetching schedule assignment with ID ${id}:`, error);
-        throw new Error(`Failed to fetch schedule assignment with ID ${id}.`);
+        throw new Error(getApiErrorMessage(error));
     }
 };
 
@@ -89,6 +94,6 @@ export const updateHorarioAsignado = async (id: number, assignmentData: HorarioA
         return response.data;
     } catch (error) {
         console.error(`Error updating schedule assignment with ID ${id}:`, error);
-        throw new Error(`Failed to update schedule assignment with ID ${id}.`);
+        throw new Error(getApiErrorMessage(error));
     }
 }; 

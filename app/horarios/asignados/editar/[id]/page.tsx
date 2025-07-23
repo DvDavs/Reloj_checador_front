@@ -22,7 +22,7 @@ import { es } from "date-fns/locale";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { getScheduleTypes, checkOverlap, createHorarioTemplate, updateHorarioAsignado, getHorarioTemplates, getHorarioAsignadoById } from "@/lib/api/schedule-api";
+import { getScheduleTypes, createHorarioTemplate, updateHorarioAsignado, getHorarioTemplates, getHorarioAsignadoById, getApiErrorMessage } from "@/lib/api/schedule-api";
 import { BreadcrumbNav } from "@/app/components/shared/breadcrumb-nav";
 import Link from "next/link";
 import { LoadingState } from "@/app/components/shared/loading-state";
@@ -464,19 +464,6 @@ export default function ScheduleAssignmentEditPage() {
                 throw new Error("No se ha seleccionado un horario.");
             }
 
-            // Verify Overlaps, excluding the current assignment
-            const overlapResult = await checkOverlap({
-                empleadoId: state.selectedEmployee!.id,
-                fechaInicio: startDateStr,
-                fechaFin: endDateStr,
-                horarioId: horarioId,
-                asignacionIdExcluir: id,
-            });
-
-            if (overlapResult.hasOverlap) {
-                throw new Error(overlapResult.message || "La modificación causa un traslape con otro horario existente.");
-            }
-
             // Update the assignment
             await updateHorarioAsignado(id, {
                 empleadoId: state.selectedEmployee!.id,
@@ -492,8 +479,9 @@ export default function ScheduleAssignmentEditPage() {
 
         } catch (error: any) {
             console.error("Error al actualizar la asignación:", error);
-            dispatch({ type: 'SUBMIT_ERROR', payload: error.message || "Ocurrió un error desconocido." });
-            toast({ title: "Error en la Actualización", description: error.message, variant: "destructive" });
+            const errorMessage = getApiErrorMessage(error);
+            dispatch({ type: 'SUBMIT_ERROR', payload: errorMessage });
+            toast({ title: "Error en la Actualización", description: errorMessage, variant: "destructive" });
         }
     }
 

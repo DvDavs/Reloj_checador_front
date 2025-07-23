@@ -1,25 +1,30 @@
 "use client";
 
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-export const CompletionStep = () => {
-  const router = useRouter();
+interface CompletionStepProps {
+  title: string;
+  message: string;
+  primaryActionText: string;
+  primaryActionLink: string;
+  secondaryActionText?: string;
+  onSecondaryAction?: () => void;
+}
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push('/horarios/asignados');
-    }, 5000); // 5 segundos
-
-    return () => clearTimeout(timer);
-  }, [router]);
-
+export const CompletionStep: React.FC<CompletionStepProps> = ({
+  title,
+  message,
+  primaryActionText,
+  primaryActionLink,
+  secondaryActionText,
+  onSecondaryAction,
+}) => {
   return (
-    <div className="flex flex-col items-center justify-center text-center">
+    <div className="flex flex-col items-center justify-center text-center p-4">
         <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -38,7 +43,7 @@ export const CompletionStep = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
         >
-            ¡Asignación Completada!
+            {title}
         </motion.h2>
         <motion.p 
             className="mt-2 text-muted-foreground"
@@ -46,20 +51,22 @@ export const CompletionStep = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
         >
-            El horario ha sido asignado correctamente.
+            {message}
         </motion.p>
         <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="mt-8"
+            className="mt-8 flex flex-col sm:flex-row gap-4"
         >
-            <Button onClick={() => router.push('/horarios/asignados')}>
-                Ir a la Lista de Horarios
-            </Button>
-            <p className="mt-2 text-xs text-muted-foreground">
-                Serás redirigido en unos segundos...
-            </p>
+            <Link href={primaryActionLink}>
+                <Button>{primaryActionText}</Button>
+            </Link>
+            {onSecondaryAction && secondaryActionText && (
+                 <Button variant="outline" onClick={onSecondaryAction}>
+                    {secondaryActionText}
+                </Button>
+            )}
         </motion.div>
     </div>
   );
