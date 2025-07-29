@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScheduleGridEditor } from "@/app/components/shared/schedule-grid-editor";
+import InteractiveWeeklySchedule, { TimeSlot, WeeklySchedule, DayOfWeek } from "@/app/components/shared/WeeklyScheduleGrid";
 import { NewScheduleData } from "../types";
 import { AlertCircle, Clock, ClipboardCheck } from "lucide-react";
 
@@ -14,12 +14,59 @@ interface NewScheduleTemplateFormProps {
   onDataChange: (data: Partial<NewScheduleData>) => void;
 }
 
+// Utilidades para transformar entre array plano y WeeklySchedule
+const detallesToWeeklySchedule = (detalles: any[]): WeeklySchedule => {
+  const schedule: WeeklySchedule = {
+    LUNES: [], MARTES: [], MIERCOLES: [], JUEVES: [], VIERNES: [], SABADO: [], DOMINGO: []
+  };
+  detalles.forEach((d) => {
+    const dia = d.diaSemana as DayOfWeek;
+    if (schedule[dia]) {
+      schedule[dia].push({
+        horaEntrada: d.horaEntrada,
+        horaSalida: d.horaSalida,
+      });
+    }
+  });
+  return schedule;
+};
+
+const weeklyScheduleToDetalles = (schedule: WeeklySchedule): any[] => {
+  const detalles: any[] = [];
+  Object.entries(schedule).forEach(([diaSemana, slots]) => {
+    slots.forEach((slot: TimeSlot, index: number) => {
+      detalles.push({
+        diaSemana: diaSemana as DayOfWeek,
+        horaEntrada: slot.horaEntrada,
+        horaSalida: slot.horaSalida,
+        turno: index + 1, // Se genera el número de turno secuencialmente por día
+      });
+    });
+  });
+  return detalles;
+};
+
 export function NewScheduleTemplateForm({
   scheduleData,
   onDataChange,
 }: NewScheduleTemplateFormProps) {
   const isNameValid = scheduleData.nombre.trim().length > 0;
   const hasDetails = scheduleData.detalles.length > 0;
+
+  // Estado local para el editor
+  const [weeklySchedule, setWeeklySchedule] = React.useState<WeeklySchedule>(
+    detallesToWeeklySchedule(scheduleData.detalles)
+  );
+
+  // Sincronizar cambios externos
+  React.useEffect(() => {
+    setWeeklySchedule(detallesToWeeklySchedule(scheduleData.detalles));
+  }, [scheduleData.detalles]);
+
+  const handleScheduleChange = (newSchedule: WeeklySchedule) => {
+    setWeeklySchedule(newSchedule);
+    onDataChange({ detalles: weeklyScheduleToDetalles(newSchedule) });
+  };
 
   return (
     <motion.div 
@@ -114,9 +161,10 @@ export function NewScheduleTemplateForm({
             </div>
           )}
         </div>
-        <ScheduleGridEditor
-          value={scheduleData.detalles}
-          onChange={(detalles) => onDataChange({ detalles })}
+        <InteractiveWeeklySchedule
+          schedule={weeklySchedule}
+          onScheduleChange={handleScheduleChange}
+          editable={true}
         />
       </motion.div>
     </motion.div>

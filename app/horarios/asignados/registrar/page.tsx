@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScheduleGridEditor } from "@/app/components/shared/schedule-grid-editor";
 import { getHorarioTemplates } from "@/lib/api";
 import { CalendarIcon, Loader2, User, Users, Calendar as CalendarIcon2, CheckCircle, CalendarDays, ClipboardCheck, PartyPopper, ArrowLeft, ArrowRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -473,23 +472,26 @@ export default function ScheduleAssignmentWizardPage() {
 
             let horarioId = state.selectedTemplateId;
 
-            // ** LÓGICA MODIFICADA **
             if (state.scheduleSelectionType === 'new') {
-                // Si ya creamos la plantilla en un intento fallido anterior, usamos su ID
                 if (state.newlyCreatedTemplateId) {
                     horarioId = state.newlyCreatedTemplateId;
                 } else {
-                    // Si no, la creamos ahora y guardamos su ID en el estado
                     if (!state.newScheduleData.nombre) {
                         throw new Error("El nombre de la nueva plantilla de horario es obligatorio.");
                     }
-                    const newTemplate = await createHorarioTemplate(state.newScheduleData);
+                    if (state.newScheduleData.detalles.length === 0) {
+                        throw new Error("La nueva plantilla debe tener al menos un turno definido.");
+                    }
+                    
+                    // Aseguramos que los detalles tengan el campo 'turno'
+                    const detallesConTurno = state.newScheduleData.detalles.map((d, i) => ({ ...d, turno: d.turno || i + 1 }));
+                    const dataToSend = { ...state.newScheduleData, detalles: detallesConTurno };
+
+                    const newTemplate = await createHorarioTemplate(dataToSend);
                     horarioId = newTemplate.id;
-                    // Guardamos el ID para no volver a crearlo si algo falla después
                     dispatch({ type: 'SET_NEWLY_CREATED_TEMPLATE_ID', payload: horarioId });
                 }
             }
-            // ** FIN DE LA LÓGICA MODIFICADA **
 
             if (!horarioId) {
                 throw new Error("No se ha seleccionado ni creado un horario.");

@@ -106,6 +106,13 @@ const navItems: NavItemData[] = [
                 text: "Horarios Asignados",
                 keywords: ["asignados", "lista", "ver"],
             },
+            {
+                id: "horarios-plantillas",
+                href: "/horarios/plantillas",
+                icon: <ClipboardList size={18} />,
+                text: "Plantillas",
+                keywords: ["plantillas", "templates", "horarios"],
+            },
         ],
     },
 ];

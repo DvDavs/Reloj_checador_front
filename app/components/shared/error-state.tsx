@@ -1,20 +1,31 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ErrorStateProps {
   message: string;
   className?: string;
+  onRetry?: () => void;
 }
 
 export function ErrorState({ 
   message, 
-  className = "flex items-center gap-2 text-red-400 bg-red-500/10 p-4 rounded-md" 
+  className = "flex flex-col items-center justify-center gap-4 text-destructive p-8 rounded-lg border border-destructive/20 bg-destructive/5",
+  onRetry 
 }: ErrorStateProps) {
   return (
     <div className={className}>
-      <AlertCircle className="h-6 w-6" />
-      <p>{message}</p>
+      <div className="flex items-center gap-3">
+        <AlertCircle className="h-6 w-6" />
+        <p className="font-semibold text-lg">{message}</p>
+      </div>
+      {onRetry && (
+        <Button onClick={onRetry} variant="destructive" size="sm">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Reintentar
+        </Button>
+      )}
     </div>
   );
 }
