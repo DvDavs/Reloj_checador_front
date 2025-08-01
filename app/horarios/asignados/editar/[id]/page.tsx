@@ -573,7 +573,7 @@ export default function ScheduleAssignmentEditPage() {
     const stepIndex = WIZARD_STEPS.findIndex((s) => s.id === state.step);
     // Add 1 to make it a 1-based index for the stepper component
     return stepIndex + 1;
-  }, [state.step, WIZARD_STEPS]);
+  }, [state.step]);
 
   const handleSave = async () => {
     dispatch({ type: 'SUBMIT_START' });

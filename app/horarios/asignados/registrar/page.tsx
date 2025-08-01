@@ -544,10 +544,8 @@ export default function ScheduleAssignmentWizardPage() {
 
   // Pass setters down to children components to lift state up
   // This is a simple approach. For larger apps, consider Zustand or Context.
-  const stableSetTemplates = React.useCallback(setTemplates, [setTemplates]);
-  const stableSetScheduleTypes = React.useCallback(setScheduleTypes, [
-    setScheduleTypes,
-  ]);
+  const stableSetTemplates = React.useCallback(setTemplates, []);
+  const stableSetScheduleTypes = React.useCallback(setScheduleTypes, []);
 
   const WIZARD_STEPS = [
     {
@@ -588,7 +586,7 @@ export default function ScheduleAssignmentWizardPage() {
       number: stepIndex + 1,
       title: `Paso ${stepIndex + 1}: ${WIZARD_STEPS[stepIndex].label}`,
     };
-  }, [state.step, WIZARD_STEPS]);
+  }, [state.step]);
 
   const handleSave = async () => {
     dispatch({ type: 'SUBMIT_START' });

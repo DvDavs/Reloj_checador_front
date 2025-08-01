@@ -10,7 +10,7 @@ import React, {
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { LoginRequest, LoginResponse } from '@/lib/types/authTypes';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient, setupInterceptors } from '@/lib/apiClient';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -70,6 +70,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     delete apiClient.defaults.headers.common['Authorization'];
     router.push('/login');
   }, [router]);
+
+  // Configurar interceptores después de que logout esté definido
+  useEffect(() => {
+    setupInterceptors(logout);
+  }, [logout]);
 
   const value = {
     isAuthenticated: !!token,

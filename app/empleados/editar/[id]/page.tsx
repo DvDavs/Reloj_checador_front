@@ -1,10 +1,11 @@
-'use client';
+'use client'; // <-- 1. CONVERTIR A CLIENT COMPONENT
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
 import {
   Select,
   SelectContent,
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/card';
 import { Save, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient } from '@/lib/apiClient'; // <-- 2. USAR apiClient
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
 import { LoadingState } from '@/app/components/shared/loading-state';
 import { ErrorState } from '@/app/components/shared/error-state';

@@ -18,10 +18,13 @@ import {
   Calendar,
   Monitor,
   BarChart2,
+  LogOut,
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/use-sidebar';
+import { useAuth } from '../context/AuthContext';
 import { Tooltip, TooltipProvider } from './tooltip';
 import { CommandPalette } from './command-palette';
+import { Button } from '../../components/ui/button';
 
 // Estructura de datos dinámica para los elementos de navegación
 interface NavItemData {
@@ -266,6 +269,7 @@ export default function Sidebar() {
   const { isCollapsed, toggleCollapsed } = useSidebar();
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const { user, logout, isAuthenticated } = useAuth();
 
   // Actualizar submenús abiertos basado en la ruta actual
   useEffect(() => {
@@ -445,9 +449,9 @@ export default function Sidebar() {
             ))}
           </nav>
 
-          {/* User Info */}
+          {/* User Info & Logout Button */}
           <div className='p-4 border-t border-[hsl(var(--sidebar-border))]'>
-            {!isCollapsed ? (
+            {isAuthenticated && !isCollapsed ? (
               <div className='flex items-center gap-3 transition-opacity duration-150'>
                 <div className='w-8 h-8 rounded-full bg-[hsl(var(--sidebar-accent))] flex items-center justify-center'>
                   <Users
@@ -460,21 +464,51 @@ export default function Sidebar() {
                     Administrador
                   </p>
                   <p className='text-xs text-[hsl(var(--muted-foreground))] truncate'>
-                    admin@ito.mx
+                    {user?.roles.has('ROLE_ADMIN')
+                      ? 'Rol: Administrador'
+                      : 'Usuario'}
                   </p>
                 </div>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  onClick={logout}
+                  title='Cerrar Sesión'
+                  className='text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] transition-colors'
+                >
+                  <LogOut size={16} />
+                </Button>
               </div>
-            ) : (
-              <Tooltip content='Administrador'>
-                <div className='flex justify-center transition-opacity duration-150'>
-                  <div className='w-8 h-8 rounded-full bg-[hsl(var(--sidebar-accent))] flex items-center justify-center'>
-                    <Users
-                      size={16}
-                      className='text-[hsl(var(--sidebar-accent-foreground))]'
-                    />
-                  </div>
-                </div>
+            ) : isAuthenticated && isCollapsed ? (
+              <Tooltip content='Cerrar Sesión'>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  onClick={logout}
+                  className='w-full text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] transition-colors'
+                >
+                  <LogOut size={16} />
+                </Button>
               </Tooltip>
+            ) : (
+              <div className='flex items-center gap-3 transition-opacity duration-150'>
+                <div className='w-8 h-8 rounded-full bg-[hsl(var(--sidebar-accent))] flex items-center justify-center'>
+                  <Users
+                    size={16}
+                    className='text-[hsl(var(--sidebar-accent-foreground))]'
+                  />
+                </div>
+                {!isCollapsed && (
+                  <div className='flex-1 min-w-0'>
+                    <p className='text-sm font-medium text-[hsl(var(--sidebar-foreground))] truncate'>
+                      No autenticado
+                    </p>
+                    <p className='text-xs text-[hsl(var(--muted-foreground))] truncate'>
+                      Inicia sesión
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </motion.div>
