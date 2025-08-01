@@ -32,6 +32,5 @@ next-env.d.ts
 .kiro/*
 .kiro/specs/*
 
-
 # backend-resources
 backend-resources
