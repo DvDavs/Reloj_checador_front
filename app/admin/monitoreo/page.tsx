@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   ShieldX,
 } from 'lucide-react';
-import axios from 'axios';
+import { apiClient } from '@/lib/apiClient';
 import {
   Dialog,
   DialogContent,
@@ -42,7 +42,7 @@ export default function SessionMonitoringPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get<ReservedReader[]>(
+      const response = await apiClient.get<ReservedReader[]>(
         `${API_BASE_URL}/api/v1/multi-fingerprint/readers/reserved`
       );
       setReservedReaders(response.data);
@@ -72,7 +72,7 @@ export default function SessionMonitoringPage() {
     setError(null);
 
     try {
-      await axios.post(
+      await apiClient.post(
         `${API_BASE_URL}/api/v1/multi-fingerprint/readers/release`,
         null,
         {

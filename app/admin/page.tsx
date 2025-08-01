@@ -11,7 +11,7 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react'; // Añadir iconos
-import axios from 'axios';
+import { apiClient } from '@/lib/apiClient';
 import { getBrowserSessionId } from '@/lib/sessionId';
 
 // Tipos (Mantener simple aquí)
@@ -46,7 +46,7 @@ export default function AdminDashboard() {
     setScanners([]);
     try {
       // GET /readers ya devuelve solo los disponibles (no reservados)
-      const response = await axios.get<string[]>(
+      const response = await apiClient.get<string[]>(
         `${API_BASE_URL}/api/v1/multi-fingerprint/readers`
       );
       const availableScanners = response.data.map((name) => ({

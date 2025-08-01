@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo } from "react";
-import axios from "axios";
+import { useState, useEffect, useMemo } from 'react';
+import { apiClient } from '@/lib/apiClient';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { HorarioDto, detallesToWeeklySchedule } from "../types";
-import { LoadingState } from "@/app/components/shared/loading-state";
-import { ErrorState } from "@/app/components/shared/error-state";
-import { ScheduleDisplay } from "./schedule-display";
-import { Separator } from "@/components/ui/separator";
+} from '@/components/ui/dialog';
+import { HorarioDto, detallesToWeeklySchedule } from '../types';
+import { LoadingState } from '@/app/components/shared/loading-state';
+import { ErrorState } from '@/app/components/shared/error-state';
+import { ScheduleDisplay } from './schedule-display';
+import { Separator } from '@/components/ui/separator';
 
 interface DetailsDialogProps {
   isOpen: boolean;
@@ -21,9 +21,14 @@ interface DetailsDialogProps {
   templateId: number | null;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
-export function DetailsDialog({ isOpen, onClose, templateId }: DetailsDialogProps) {
+export function DetailsDialog({
+  isOpen,
+  onClose,
+  templateId,
+}: DetailsDialogProps) {
   const [template, setTemplate] = useState<HorarioDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +37,16 @@ export function DetailsDialog({ isOpen, onClose, templateId }: DetailsDialogProp
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get<HorarioDto>(`${API_BASE_URL}/api/horarios/${id}`);
+      const response = await apiClient.get<HorarioDto>(
+        `${API_BASE_URL}/api/horarios/${id}`
+      );
       setTemplate(response.data);
     } catch (err: any) {
-      console.error("Error fetching template details:", err);
-      const errorMsg = err.response?.data?.message || err.message || "No se pudo cargar la plantilla.";
+      console.error('Error fetching template details:', err);
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        'No se pudo cargar la plantilla.';
       setError(errorMsg);
       setTemplate(null);
     } finally {
@@ -62,11 +72,16 @@ export function DetailsDialog({ isOpen, onClose, templateId }: DetailsDialogProp
 
   const renderContent = () => {
     if (isLoading) {
-      return <LoadingState message="Cargando detalles..." />;
+      return <LoadingState message='Cargando detalles...' />;
     }
 
     if (error) {
-      return <ErrorState message={error} onRetry={() => templateId && fetchTemplateDetails(templateId)} />;
+      return (
+        <ErrorState
+          message={error}
+          onRetry={() => templateId && fetchTemplateDetails(templateId)}
+        />
+      );
     }
 
     if (template) {
@@ -78,20 +93,24 @@ export function DetailsDialog({ isOpen, onClose, templateId }: DetailsDialogProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>
-            {template ? `Detalles de: ${template.nombre}` : "Detalles de la Plantilla"}
+            {template
+              ? `Detalles de: ${template.nombre}`
+              : 'Detalles de la Plantilla'}
           </DialogTitle>
           <DialogDescription>
-            {template ? `ID: ${template.id}` : "Cargando información de la plantilla..."}
+            {template
+              ? `ID: ${template.id}`
+              : 'Cargando información de la plantilla...'}
           </DialogDescription>
         </DialogHeader>
         <Separator />
-        <div className="py-4 min-h-[200px] flex items-center justify-center">
+        <div className='py-4 min-h-[200px] flex items-center justify-center'>
           {renderContent()}
         </div>
       </DialogContent>
     </Dialog>
   );
-} 
+}
