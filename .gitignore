@@ -2,7 +2,6 @@
 
 # dependencies
 /node_modules
-node_modules/
 
 # next.js
 /.next/
@@ -10,7 +9,6 @@ node_modules/
 
 # production
 /build
-build/
 
 # debug
 npm-debug.log*
@@ -20,11 +18,6 @@ yarn-error.log*
 
 # env files
 .env*
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # vercel
 .vercel
@@ -39,7 +32,3 @@ next-env.d.ts
 
 # backend-resources
 backend-resources
-
-# cache and system files
-.cache/
-.DS_Store

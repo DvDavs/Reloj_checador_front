@@ -6,7 +6,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { Home, Clock, Users, ClipboardList, UserPlus, Fingerprint, ChevronDown, ChevronRight, Calendar} from "lucide-react"
+import { Home, Clock, Users, ClipboardList, UserPlus, Fingerprint, ChevronDown, ChevronRight } from "lucide-react"
 
 // ... (Interfaz NavItemProps sin cambios) ...
 interface NavItemProps {
@@ -124,22 +124,8 @@ export default function Sidebar() {
                 text="Asignar Huella"
                 isActive={pathname === "/empleados/asignar-huella"}
               />*/}
-              
             </motion.div>
           )}
-          <NavItem
-            href="/horarios"
-            icon={<Clock size={20} />}
-            text="Horarios"
-            isActive={pathname === "/horarios"}
-          />
-          <NavItem
-            href="/asignacion-horarios"
-            icon={<Calendar size={20} />}
-            text="Asignación de Horarios"
-            isActive={pathname === "/asignacion-horarios"}
-          />
-          
         </div>
       </nav>
 
