@@ -3,6 +3,7 @@ import "./globals.css"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import MainLayout from "./layouts/main-layout"
+import { Toaster } from "@/components/ui/toaster" // <-- Importa el Toaster
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,16 +21,9 @@ export default function RootLayout({
       <body className={`${inter.className} dark`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <MainLayout>{children}</MainLayout>
+          <Toaster /> {/* <-- Añade el Toaster aquí */}
         </ThemeProvider>
       </body>
     </html>
   )
 }
-
-
-
-import './globals.css'
-
-export const metadata = {
-      generator: 'v0.dev'
-    };

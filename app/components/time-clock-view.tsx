@@ -511,7 +511,6 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
 
   // Nuevas variables de estado para integración con backend
   const [stompApiError, setStompApiError] = useState<string | null>(null)
-  const [componentApiError, setComponentApiError] = useState<string | null>(null)
   const [isReaderReady, setIsReaderReady] = useState(false)
   const [employeeIdForHook, setEmployeeIdForHook] = useState<number | null>(null)
 
@@ -763,16 +762,8 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
     initialReaderName: selectedReader,
     initialSessionId: sessionId,
     onChecadorEvent: handleChecadorEventCallback,
-    onConnectionError: (error) => {
-      setStompApiError(error)
-      if (error) {
-        console.error("Error de conexión STOMP:", error)
-      }
-    },
-    onReadyStateChange: (isReady) => {
-      setIsReaderReady(isReady)
-      console.log("Estado de lector actualizado:", isReady ? "Listo" : "No listo")
-    },
+    onConnectionError: setStompApiError,
+    onReadyStateChange: setIsReaderReady,
     apiBaseUrl: API_BASE_URL,
   })
 
@@ -780,13 +771,16 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
   useEffect(() => {
     if (isConnected && isReaderReady) {
       setScanState("ready") // El lector está conectado y el checador iniciado
-      setComponentApiError(null) // Limpiar errores del componente si el lector está listo
+      // Limpiar errores si el lector está listo, excepto si el error es del hook de datos
+      if (!errorLoadingData) {
+        setStompApiError(null)
+      }
     } else if (isConnected && !isReaderReady && !stompApiError) {
       setScanState("idle") // Conectado pero esperando que el checador inicie (o en proceso)
     } else if (!isConnected || stompApiError) {
       setScanState("failed") // No conectado o error
     }
-  }, [isConnected, isReaderReady, stompApiError])
+  }, [isConnected, isReaderReady, stompApiError, errorLoadingData])
 
   // useEffect to update local state based on props (readerName, browserSessionId)
   useEffect(() => {
@@ -1341,10 +1335,10 @@ export default function TimeClock({ selectedReader, sessionId }: { selectedReade
         </div>
 
         {/* Mostrar mensaje de error si existe (prioritize STOMP hook error, then component API error) */}
-        {(stompApiError || componentApiError || errorLoadingData) && (
+        {(stompApiError || errorLoadingData) && (
           <div className="w-full bg-red-900/30 border border-red-700 text-red-400 p-4 rounded-lg mb-2 flex items-center gap-3">
             <XCircle className="h-5 w-5 flex-shrink-0" />
-            <p>{stompApiError || componentApiError || errorLoadingData}</p>
+            <p>{stompApiError || errorLoadingData}</p>
           </div>
         )}
 
