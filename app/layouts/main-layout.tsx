@@ -1,41 +1,41 @@
-"use client"
+// app/layouts/main-layout.tsx
+'use client';
 
-import type React from "react"
-import { useState } from "react"
-import { usePathname } from "next/navigation"
-import Sidebar from "../components/sidebar"
-import { Menu } from "lucide-react"
+import type React from 'react';
+import { usePathname } from 'next/navigation'; // Importa el hook
+import { useAuth } from '../context/AuthContext'; // Importa useAuth
+import { Loader2 } from 'lucide-react'; // Importa el ícono de carga
+import Sidebar from '../components/sidebar';
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const [isSidebarOpen, setSidebarOpen] = useState(false) // For mobile overlay
-  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false) // For desktop collapse
+export default function MainLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const { isLoading } = useAuth(); // Usa el hook para obtener el estado de carga
 
-  // No mostrar el sidebar SOLO en la página del reloj checador
-  const isClockPage = pathname === "/reloj-checador"
-
-  if (isClockPage) {
-    return <>{children}</>
+  // Si la autenticación todavía está cargando, muestra un spinner global
+  if (isLoading) {
+    return (
+      <div className='flex h-screen w-full items-center justify-center bg-black'>
+        <Loader2 className='h-8 w-8 animate-spin text-blue-500' />
+      </div>
+    );
   }
 
-  return (
-    <div className="flex h-screen bg-black">
-      <Sidebar
-        isOpen={isSidebarOpen}
-        setIsOpen={setSidebarOpen}
-        isCollapsed={isSidebarCollapsed}
-        setIsCollapsed={setSidebarCollapsed}
-      />
-      <div className="flex flex-1 flex-col">
-        {/* Mobile-only header */}
-        <header className="md:hidden bg-zinc-900 border-b border-zinc-800 p-4">
-          <button onClick={() => setSidebarOpen(true)} className="text-white">
-            <Menu size={24} />
-          </button>
-        </header>
-        <main className="flex-1 overflow-auto">{children}</main>
-      </div>
-    </div>
-  )
-}
+  // Define las rutas que NO deben tener el layout principal (sidebar, etc.)
+  const noLayoutRoutes = ['/login', '/reloj-checador'];
 
+  if (noLayoutRoutes.includes(pathname)) {
+    return <>{children}</>;
+  }
+
+  // El layout normal para el resto de las páginas
+  return (
+    <div className='flex h-screen bg-black'>
+      <Sidebar />
+      <main className='flex-1 overflow-auto'>{children}</main>
+    </div>
+  );
+}
