@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from 'react';
 
 interface UseTableStateProps<T> {
   data: T[];
@@ -15,26 +15,29 @@ export function useTableState<T extends Record<string, any>>({
   searchFields = [],
   defaultSortField,
 }: UseTableStateProps<T>) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<string | null>(defaultSortField || null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortField, setSortField] = useState<string | null>(
+    defaultSortField || null
+  );
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Filtrar datos basado en el término de búsqueda
   const filteredData = useMemo(() => {
     if (!searchTerm.trim()) return data;
-    
-    const lowerSearchTerm = searchTerm.toLowerCase();
+
+    const searchWords = searchTerm.toLowerCase().split(' ').filter(Boolean);
+
     return data.filter((item) => {
-      return searchFields.some((field) => {
-        const value = item[field];
-        if (value == null) return false;
-        return String(value).toLowerCase().includes(lowerSearchTerm);
-      });
+      return searchWords.every((word) =>
+        searchFields.some((field) => {
+          const value = item[field];
+          if (value == null) return false;
+          return String(value).toLowerCase().includes(word);
+        })
+      );
     });
   }, [data, searchTerm, searchFields]);
 
-  // Ordenar datos
   const sortedData = useMemo(() => {
     if (!sortField) return filteredData;
 
@@ -46,64 +49,64 @@ export function useTableState<T extends Record<string, any>>({
       if (aValue == null) return 1;
       if (bValue == null) return -1;
 
-      const aStr = String(aValue).toLowerCase();
-      const bStr = String(bValue).toLowerCase();
+      const isNumeric =
+        typeof aValue === 'number' && typeof bValue === 'number';
 
-      if (aStr < bStr) return sortDirection === "asc" ? -1 : 1;
-      if (aStr > bStr) return sortDirection === "asc" ? 1 : -1;
-      return 0;
+      if (isNumeric) {
+        const diff = aValue - bValue;
+        return sortDirection === 'asc' ? diff : -diff;
+      } else {
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+
+        if (aStr < bStr) return sortDirection === 'asc' ? -1 : 1;
+        if (aStr > bStr) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      }
     });
   }, [filteredData, sortField, sortDirection]);
 
-  // Calcular paginación
   const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return sortedData.slice(startIndex, startIndex + itemsPerPage);
   }, [sortedData, currentPage, itemsPerPage]);
 
-  // Handlers
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   }, []);
 
-  const handleSort = useCallback((field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  }, [sortField, sortDirection]);
+  const handleSort = useCallback(
+    (field: string) => {
+      if (sortField === field) {
+        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+        setSortField(field);
+        setSortDirection('asc');
+      }
+    },
+    [sortField, sortDirection]
+  );
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
   }, []);
 
-  // Ajustar página actual si es necesario
   const adjustedCurrentPage = useMemo(() => {
     if (totalPages === 0) return 1;
     return Math.min(currentPage, totalPages);
   }, [currentPage, totalPages]);
 
   return {
-    // Data
-    filteredData,
-    sortedData,
     paginatedData,
-    
-    // State
     searchTerm,
     currentPage: adjustedCurrentPage,
     sortField,
     sortDirection,
     totalPages,
-    
-    // Handlers
     handleSearch,
     handleSort,
     handlePageChange,
-    setCurrentPage,
   };
 }
