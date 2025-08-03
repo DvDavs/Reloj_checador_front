@@ -27,27 +27,31 @@ export interface HorarioTemplate {
 
 export const weeklyScheduleToDetalles = (
   schedule: WeeklySchedule
-): Omit<DetalleHorarioDto, 'id'>[] => {
-  const detalles: Omit<DetalleHorarioDto, 'id'>[] = [];
-  const dayNameToIndex: { [key in DayOfWeek]: number } = {
-    DOMINGO: 1,
-    LUNES: 2,
-    MARTES: 3,
-    MIERCOLES: 4,
-    JUEVES: 5,
-    VIERNES: 6,
-    SABADO: 7,
-  };
+): {
+  diaSemana: DayOfWeek;
+  horaEntrada: string;
+  horaSalida: string;
+  turno: number;
+}[] => {
+  const detalles: {
+    diaSemana: DayOfWeek;
+    horaEntrada: string;
+    horaSalida: string;
+    turno: number;
+  }[] = [];
 
   for (const day in schedule) {
     if (Object.prototype.hasOwnProperty.call(schedule, day)) {
       const daySlots = schedule[day as DayOfWeek] || [];
-      daySlots.forEach((slot) => {
+
+      daySlots.sort((a, b) => a.horaEntrada.localeCompare(b.horaEntrada));
+
+      daySlots.forEach((slot, index) => {
         detalles.push({
-          diaSemana: dayNameToIndex[day as DayOfWeek],
+          diaSemana: day as DayOfWeek,
           horaEntrada: slot.horaEntrada,
           horaSalida: slot.horaSalida,
-          turno: 1, // Asumimos turno 1, esto puede ajustarse si hay múltiples turnos por día.
+          turno: index + 1,
         });
       });
     }
@@ -79,6 +83,7 @@ export const detallesToWeeklySchedule = (
   };
 
   detalles.forEach((detalle) => {
+    // El backend nos da un número (1 para Domingo), lo convertimos al nombre del día para el frontend.
     const dayName = dayOfWeekMapping[detalle.diaSemana - 1];
 
     if (dayName) {
