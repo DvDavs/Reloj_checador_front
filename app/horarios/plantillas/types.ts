@@ -83,7 +83,6 @@ export const detallesToWeeklySchedule = (
   };
 
   detalles.forEach((detalle) => {
-    // El backend nos da un número (1 para Domingo), lo convertimos al nombre del día para el frontend.
     const dayName = dayOfWeekMapping[detalle.diaSemana - 1];
 
     if (dayName) {

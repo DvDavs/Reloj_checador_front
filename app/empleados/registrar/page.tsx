@@ -3,15 +3,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Card,
   CardContent,
@@ -26,6 +17,7 @@ import { apiClient } from '@/lib/apiClient';
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { PostRegistrationDialog } from '../components/post-registration-dialog';
+import { EmployeeForm } from '@/app/components/shared/employee-form';
 
 interface EmpleadoBackend {
   id: number;
@@ -36,6 +28,7 @@ interface EmpleadoBackend {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const NONE_VALUE_SELECT = '__NONE__';
 
 export default function RegistrarEmpleadoPage() {
   const router = useRouter();
@@ -46,9 +39,10 @@ export default function RegistrarEmpleadoPage() {
     segundoApellido: '',
     rfc: '',
     curp: '',
-    departamentoAcademicoId: null as number | null,
-    departamentoAdministrativoId: null as number | null,
-    tipoNombramientoPrincipal: '',
+    tarjeta: null as number | null,
+    nombramiento: '',
+    departamento: null as number | null,
+    academia: null as number | null,
     tipoNombramientoSecundario: '',
     estatusId: 1,
   });
@@ -59,19 +53,39 @@ export default function RegistrarEmpleadoPage() {
   const [createdEmployee, setCreatedEmployee] =
     useState<EmpleadoBackend | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const finalValue =
-      name === 'rfc' || name === 'curp' ? value.toUpperCase() : value;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    let finalValue: string | number | null = value;
+    if (type === 'number') {
+      finalValue = value === '' ? null : Number(value);
+    } else {
+      finalValue =
+        name === 'rfc' || name === 'curp' ? value.toUpperCase() : value;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
+    setError(null);
   };
 
   const handleSelectChange = (name: keyof typeof formData, value: string) => {
-    const isIdField = name.includes('Id');
+    const isIdField = name === 'departamento' || name === 'academia';
+    let finalValue: string | number | null;
+
+    if (value === NONE_VALUE_SELECT) {
+      finalValue = null;
+    } else if (isIdField) {
+      finalValue = value ? parseInt(value, 10) : null;
+    } else {
+      finalValue = value;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: isIdField ? (value ? parseInt(value, 10) : null) : value,
+      [name]: finalValue,
     }));
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,13 +96,14 @@ export default function RegistrarEmpleadoPage() {
     const payload = {
       rfc: formData.rfc || null,
       curp: formData.curp || null,
+      tarjeta: formData.tarjeta,
       primerNombre: formData.primerNombre || null,
       segundoNombre: formData.segundoNombre || null,
       primerApellido: formData.primerApellido || null,
       segundoApellido: formData.segundoApellido || null,
-      departamentoAcademicoId: formData.departamentoAcademicoId,
-      departamentoAdministrativoId: formData.departamentoAdministrativoId,
-      tipoNombramientoPrincipal: formData.tipoNombramientoPrincipal || null,
+      nombramiento: formData.nombramiento || null,
+      departamento: formData.departamento,
+      academia: formData.academia,
       tipoNombramientoSecundario: formData.tipoNombramientoSecundario || null,
       estatusId: formData.estatusId,
     };
@@ -158,7 +173,7 @@ export default function RegistrarEmpleadoPage() {
 
   const handleContinueToDetails = () => {
     if (createdEmployee) {
-      router.push(`/empleados`); // TODO: Cambiar a la página de detalles cuando exista
+      router.push(`/empleados`);
     }
   };
 
@@ -194,105 +209,13 @@ export default function RegistrarEmpleadoPage() {
                 />
               )}
 
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div className='space-y-2'>
-                  <Label htmlFor='primerNombre'>
-                    Primer Nombre <span className='text-red-500'>*</span>
-                  </Label>
-                  <Input
-                    id='primerNombre'
-                    name='primerNombre'
-                    value={formData.primerNombre}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='segundoNombre'>Segundo Nombre</Label>
-                  <Input
-                    id='segundoNombre'
-                    name='segundoNombre'
-                    value={formData.segundoNombre}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div className='space-y-2'>
-                  <Label htmlFor='primerApellido'>
-                    Primer Apellido <span className='text-red-500'>*</span>
-                  </Label>
-                  <Input
-                    id='primerApellido'
-                    name='primerApellido'
-                    value={formData.primerApellido}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='segundoApellido'>Segundo Apellido</Label>
-                  <Input
-                    id='segundoApellido'
-                    name='segundoApellido'
-                    value={formData.segundoApellido}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div className='space-y-2'>
-                  <Label htmlFor='rfc'>
-                    RFC <span className='text-red-500'>*</span>
-                  </Label>
-                  <Input
-                    id='rfc'
-                    name='rfc'
-                    placeholder='XXXX000000XXX'
-                    value={formData.rfc}
-                    onChange={handleChange}
-                    maxLength={13}
-                    className='uppercase'
-                    required
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='curp'>
-                    CURP <span className='text-red-500'>*</span>
-                  </Label>
-                  <Input
-                    id='curp'
-                    name='curp'
-                    placeholder='XXXX000000XXXXXX00'
-                    value={formData.curp}
-                    onChange={handleChange}
-                    maxLength={18}
-                    className='uppercase'
-                    required
-                  />
-                </div>
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='tipoNombramientoPrincipal'>
-                  Nombramiento Principal
-                </Label>
-                <Select
-                  value={formData.tipoNombramientoPrincipal}
-                  onValueChange={(value) =>
-                    handleSelectChange('tipoNombramientoPrincipal', value)
-                  }
-                >
-                  <SelectTrigger id='tipoNombramientoPrincipal'>
-                    <SelectValue placeholder='Seleccionar...' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='DOCENTE'>Docente</SelectItem>
-                    <SelectItem value='ADMINISTRATIVO'>
-                      Administrativo
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <EmployeeForm
+                formData={formData}
+                onChange={handleChange}
+                onSelectChange={handleSelectChange}
+                isSubmitting={isSubmitting}
+                noneValue={NONE_VALUE_SELECT}
+              />
             </CardContent>
 
             <CardFooter className='flex justify-between'>

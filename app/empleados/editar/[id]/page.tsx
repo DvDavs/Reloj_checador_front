@@ -1,18 +1,15 @@
-'use client'; // <-- 1. CONVERTIR A CLIENT COMPONENT
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Save, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { apiClient } from '@/lib/apiClient';
+import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
+import { LoadingState } from '@/app/components/shared/loading-state';
+import { ErrorState } from '@/app/components/shared/error-state';
+import { EmployeeForm } from '@/app/components/shared/employee-form';
 import {
   Card,
   CardContent,
@@ -21,31 +18,24 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Save, Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import { apiClient } from '@/lib/apiClient'; // <-- 2. USAR apiClient
-import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
-import { LoadingState } from '@/app/components/shared/loading-state';
-import { ErrorState } from '@/app/components/shared/error-state';
 
-// Interfaz para los datos que se cargan y se editan
 interface EmpleadoEditData {
   rfc?: string | null;
   curp?: string | null;
+  tarjeta?: number | null;
   primerNombre?: string | null;
   segundoNombre?: string | null;
   primerApellido?: string | null;
   segundoApellido?: string | null;
-  departamentoAcademicoId?: number | null;
-  departamentoAdministrativoId?: number | null;
-  tipoNombramientoPrincipal?: string | null; // Puede ser null
-  tipoNombramientoSecundario?: string | null; // Puede ser null
+  nombramiento?: string | null;
+  departamento?: number | null;
+  academia?: number | null;
+  tipoNombramientoSecundario?: string | null;
 }
 
-// --- Constantes ---
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-const NONE_VALUE_SELECT = '__NONE__'; // Valor especial para representar null en Select
+const NONE_VALUE_SELECT = '__NONE__';
 
 export default function EditarEmpleadoPage() {
   const router = useRouter();
@@ -59,9 +49,7 @@ export default function EditarEmpleadoPage() {
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Cargar datos del empleado (sin cambios en la lógica de fetch)
   const fetchEmpleadoData = useCallback(async () => {
-    // ... (lógica de fetch sin cambios) ...
     if (!employeeId) {
       setFetchError('No se proporcionó ID de empleado.');
       setIsLoading(false);
@@ -71,35 +59,30 @@ export default function EditarEmpleadoPage() {
     setFetchError(null);
     setError(null);
     try {
-      console.log(`Fetching data for employee ID: ${employeeId}`);
       const response = await apiClient.get<EmpleadoEditData>(
         `${API_BASE_URL}/api/empleados/${employeeId}`
       );
       const initialData: EmpleadoEditData = {
         rfc: response.data.rfc,
         curp: response.data.curp,
+        tarjeta: response.data.tarjeta,
         primerNombre: response.data.primerNombre,
         segundoNombre: response.data.segundoNombre,
         primerApellido: response.data.primerApellido,
         segundoApellido: response.data.segundoApellido,
-        departamentoAcademicoId: response.data.departamentoAcademicoId,
-        departamentoAdministrativoId:
-          response.data.departamentoAdministrativoId,
-        tipoNombramientoPrincipal: response.data.tipoNombramientoPrincipal,
+        nombramiento: response.data.nombramiento,
+        departamento: response.data.departamento,
+        academia: response.data.academia,
         tipoNombramientoSecundario: response.data.tipoNombramientoSecundario,
       };
       setFormData(initialData);
       setOriginalData(initialData);
-      console.log('Employee data loaded:', initialData);
     } catch (err: any) {
-      console.error('Error fetching employee data:', err);
       const errorMsg =
         err.response?.data?.message || err.message || 'Error desconocido';
       setFetchError(
         `No se pudo cargar la información del empleado (ID: ${employeeId}). ${errorMsg}`
       );
-      setFormData({});
-      setOriginalData({});
     } finally {
       setIsLoading(false);
     }
@@ -109,38 +92,37 @@ export default function EditarEmpleadoPage() {
     fetchEmpleadoData();
   }, [fetchEmpleadoData]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const finalValue =
-      name === 'rfc' || name === 'curp' ? value.toUpperCase() : value;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    let finalValue: string | number | null = value;
+    if (type === 'number') {
+      finalValue = value === '' ? null : Number(value);
+    } else {
+      finalValue =
+        name === 'rfc' || name === 'curp' ? value.toUpperCase() : value;
+    }
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
     setError(null);
   };
 
-  // *** MODIFICADO: Handle para Selects ***
   const handleSelectChange = (name: keyof EmpleadoEditData, value: string) => {
-    const isIdField = name.includes('Id');
+    const isIdField = name === 'departamento' || name === 'academia';
     let finalValue: string | number | null;
 
     if (value === NONE_VALUE_SELECT) {
-      // Si el usuario seleccionó "(Ninguno)", establece el valor a null
       finalValue = null;
     } else if (isIdField) {
-      // Si es un campo ID y no es "Ninguno", conviértelo a número
       finalValue = value ? parseInt(value, 10) : null;
     } else {
-      // Si es un campo de texto (como nombramiento) y no es "Ninguno", usa el valor string
       finalValue = value;
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: finalValue,
-    }));
-    setError(null); // Limpiar error al cambiar
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
+    setError(null);
   };
 
-  // handleSubmit (la lógica de comparación y envío no necesita cambios aquí)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employeeId) return;
@@ -154,21 +136,20 @@ export default function EditarEmpleadoPage() {
     const keysToCompare: (keyof EmpleadoEditData)[] = [
       'rfc',
       'curp',
+      'tarjeta',
       'primerNombre',
       'segundoNombre',
       'primerApellido',
       'segundoApellido',
-      'departamentoAcademicoId',
-      'departamentoAdministrativoId',
-      'tipoNombramientoPrincipal',
+      'nombramiento',
+      'departamento',
+      'academia',
       'tipoNombramientoSecundario',
     ];
 
     keysToCompare.forEach((key) => {
-      const currentValue = formData[key] ?? ''; // Trata null/undefined como '' para comparación
-      const originalValue = originalData[key] ?? ''; // Trata null/undefined como '' para comparación
-
-      // Compara si son diferentes (null/undefined/'' son iguales entre sí)
+      const currentValue = formData[key] ?? null;
+      const originalValue = originalData[key] ?? null;
 
       if (currentValue !== originalValue) {
         (payload as any)[key] = formData[key as keyof EmpleadoEditData];
@@ -182,7 +163,6 @@ export default function EditarEmpleadoPage() {
       return;
     }
 
-    // Validación básica en frontend
     if (
       !formData.primerNombre ||
       !formData.primerApellido ||
@@ -193,53 +173,22 @@ export default function EditarEmpleadoPage() {
       setIsSubmitting(false);
       return;
     }
-    if (formData.rfc && formData.rfc.length < 10) {
-      setError('RFC inválido (mínimo 10 caracteres).');
-      setIsSubmitting(false);
-      return;
-    }
-    if (formData.curp && formData.curp.length !== 18) {
-      setError('CURP inválido (debe tener 18 caracteres).');
-      setIsSubmitting(false);
-      return;
-    }
 
     try {
-      console.log(
-        `Sending PUT request for ID ${employeeId} with payload:`,
-        payload
-      );
       await apiClient.put(
         `${API_BASE_URL}/api/empleados/${employeeId}`,
         payload
       );
-      console.log('Employee updated successfully');
       router.push('/empleados');
     } catch (err: any) {
-      console.error('Error updating empleado:', err);
       const backendError =
-        err.response?.data?.message ||
-        err.response?.data ||
-        err.message ||
-        'Error desconocido';
-      let displayError =
-        typeof backendError === 'string'
-          ? backendError
-          : JSON.stringify(backendError);
-      if (
-        err.response?.data?.errors &&
-        Array.isArray(err.response.data.errors)
-      ) {
-        displayError = err.response.data.errors
-          .map((e: any) => e.defaultMessage || JSON.stringify(e))
-          .join('; ');
-      }
-      setError(`Error al actualizar: ${displayError}`);
+        err.response?.data?.message || err.message || 'Error desconocido';
+      setError(`Error al actualizar: ${backendError}`);
+    } finally {
       setIsSubmitting(false);
     }
   };
 
-  // --- Renderizado ---
   if (isLoading) {
     return (
       <div className='p-6 md:p-8'>
@@ -250,10 +199,7 @@ export default function EditarEmpleadoPage() {
           ]}
           backHref='/empleados'
         />
-        <LoadingState
-          message='Cargando datos del empleado...'
-          className='flex justify-center items-center min-h-[400px]'
-        />
+        <LoadingState message='Cargando datos del empleado...' />
       </div>
     );
   }
@@ -268,22 +214,7 @@ export default function EditarEmpleadoPage() {
           ]}
           backHref='/empleados'
         />
-        <h1 className='text-2xl md:text-3xl font-bold text-red-500 mb-8'>
-          Error al Cargar
-        </h1>
-        <Card className='max-w-3xl mx-auto bg-red-900/20 border-red-700'>
-          <CardHeader>
-            <CardTitle>Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ErrorState message={fetchError} className='text-red-300' />
-          </CardContent>
-          <CardFooter>
-            <Link href='/empleados'>
-              <Button variant='outline'>Volver a la lista</Button>
-            </Link>
-          </CardFooter>
-        </Card>
+        <ErrorState message={fetchError} />
       </div>
     );
   }
@@ -297,11 +228,8 @@ export default function EditarEmpleadoPage() {
         ]}
         backHref='/empleados'
       />
-
       <h1 className='text-2xl md:text-3xl font-bold mb-8'>Editar Empleado</h1>
-
       <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>
-        {/* ... CardHeader ... */}
         <CardHeader>
           <CardTitle>Información del Empleado</CardTitle>
           <CardDescription>
@@ -310,156 +238,15 @@ export default function EditarEmpleadoPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className='space-y-6'>
-            {/* Error de Submit */}
-            {error && (
-              <ErrorState
-                message={error}
-                className='p-3 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg flex items-center gap-2 text-sm'
-              />
-            )}
-
-            {/* --- Inputs de Texto (sin cambios) --- */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              <div className='space-y-2'>
-                <Label htmlFor='primerNombre'>
-                  Primer Nombre <span className='text-red-500'>*</span>
-                </Label>
-                <Input
-                  id='primerNombre'
-                  name='primerNombre'
-                  value={formData.primerNombre || ''}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='segundoNombre'>Segundo Nombre</Label>
-                <Input
-                  id='segundoNombre'
-                  name='segundoNombre'
-                  value={formData.segundoNombre || ''}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              <div className='space-y-2'>
-                <Label htmlFor='primerApellido'>
-                  Primer Apellido <span className='text-red-500'>*</span>
-                </Label>
-                <Input
-                  id='primerApellido'
-                  name='primerApellido'
-                  value={formData.primerApellido || ''}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='segundoApellido'>Segundo Apellido</Label>
-                <Input
-                  id='segundoApellido'
-                  name='segundoApellido'
-                  value={formData.segundoApellido || ''}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              <div className='space-y-2'>
-                <Label htmlFor='rfc'>
-                  RFC <span className='text-red-500'>*</span>
-                </Label>
-                <Input
-                  id='rfc'
-                  name='rfc'
-                  placeholder='XXXX000000XXX'
-                  value={formData.rfc || ''}
-                  onChange={handleChange}
-                  maxLength={13}
-                  className='uppercase'
-                  required
-                />
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='curp'>
-                  CURP <span className='text-red-500'>*</span>
-                </Label>
-                <Input
-                  id='curp'
-                  name='curp'
-                  placeholder='XXXX000000XXXXXX00'
-                  value={formData.curp || ''}
-                  onChange={handleChange}
-                  maxLength={18}
-                  className='uppercase'
-                  required
-                />
-              </div>
-            </div>
-
-            {/* --- Selects (MODIFICADOS) --- */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              <div className='space-y-2'>
-                <Label htmlFor='tipoNombramientoPrincipal'>
-                  Nombramiento Principal
-                </Label>
-                {/*
-                                   - El 'value' del Select debe ser el valor del estado o el valor especial si el estado es null/undefined
-                                   - El 'onValueChange' llama a handleSelectChange que ahora maneja el valor especial
-                                */}
-                <Select
-                  value={
-                    formData.tipoNombramientoPrincipal ?? NONE_VALUE_SELECT
-                  }
-                  onValueChange={(value) =>
-                    handleSelectChange('tipoNombramientoPrincipal', value)
-                  }
-                >
-                  <SelectTrigger id='tipoNombramientoPrincipal'>
-                    <SelectValue placeholder='Seleccionar...' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Usa el valor especial para la opción "Ninguno" */}
-                    <SelectItem value={NONE_VALUE_SELECT}>(Ninguno)</SelectItem>
-                    <SelectItem value='DOCENTE'>Docente</SelectItem>
-                    <SelectItem value='ADMINISTRATIVO'>
-                      Administrativo
-                    </SelectItem>
-                    {/* Añade más si aplica */}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='tipoNombramientoSecundario'>
-                  Nombramiento Secundario
-                </Label>
-                <Select
-                  value={
-                    formData.tipoNombramientoSecundario ?? NONE_VALUE_SELECT
-                  }
-                  onValueChange={(value) =>
-                    handleSelectChange('tipoNombramientoSecundario', value)
-                  }
-                >
-                  <SelectTrigger id='tipoNombramientoSecundario'>
-                    <SelectValue placeholder='Seleccionar...' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Usa el valor especial para la opción "Ninguno" */}
-                    <SelectItem value={NONE_VALUE_SELECT}>(Ninguno)</SelectItem>
-                    <SelectItem value='BASE'>Base</SelectItem>
-                    <SelectItem value='HONORARIOS'>Honorarios</SelectItem>
-                    <SelectItem value='CONFIANZA'>Confianza</SelectItem>
-                    <SelectItem value='INTERINATO'>Interinato</SelectItem>
-                    <SelectItem value='JEFE'>Interinato</SelectItem>
-                    {/* Añade más si aplica */}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {error && <ErrorState message={error} />}
+            <EmployeeForm
+              formData={formData}
+              onChange={handleChange}
+              onSelectChange={handleSelectChange}
+              isSubmitting={isSubmitting}
+              noneValue={NONE_VALUE_SELECT}
+            />
           </CardContent>
-          {/* ... CardFooter (sin cambios) ... */}
           <CardFooter className='flex justify-between'>
             <Link href='/empleados'>
               <Button type='button' variant='outline' disabled={isSubmitting}>
@@ -478,8 +265,7 @@ export default function EditarEmpleadoPage() {
                 </>
               ) : (
                 <>
-                  {' '}
-                  <Save className='mr-2 h-4 w-4' /> Guardar Cambios{' '}
+                  <Save className='mr-2 h-4 w-4' /> Guardar Cambios
                 </>
               )}
             </Button>

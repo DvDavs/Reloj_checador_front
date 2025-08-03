@@ -3,15 +3,15 @@
 /**
  * Posibles estados de una jornada de trabajo.
  */
-export type EstatusJornada = 
-  | "PENDIENTE"
-  | "EN_CURSO"
-  | "COMPLETADA"
-  | "RETARDO"
-  | "RETARDO_SIN_SALIDA"
-  | "AUSENTE_ENTRADA"
-  | "AUSENTE_SALIDA" 
-  | "AUSENTE";
+export type EstatusJornada =
+  | 'PENDIENTE'
+  | 'EN_CURSO'
+  | 'COMPLETADA'
+  | 'RETARDO'
+  | 'RETARDO_SIN_SALIDA'
+  | 'AUSENTE_ENTRADA'
+  | 'AUSENTE_SALIDA'
+  | 'AUSENTE';
 
 /**
  * Datos del estado de una jornada de trabajo recibido desde el backend.
@@ -31,25 +31,32 @@ export type JornadaEstadoDto = {
 };
 
 /**
- * Datos básicos de un empleado recibidos desde el backend.
+ * Datos básicos de un empleado recibidos desde el backend (EmpleadoDto de Spring Boot).
+ * @NOTA: Refleja los campos de la tabla `rh_personal`.
  */
 export type EmpleadoDto = {
   id: number;
   rfc: string;
   curp: string;
+  tarjeta?: number | null; // Nuevo campo
   primerNombre: string;
   segundoNombre: string | null;
   primerApellido: string;
   segundoApellido: string | null;
-  departamentoAcademicoId: number | null;
-  departamentoAdministrativoId: number | null;
-  tipoNombramientoPrincipal: string | null;
-  tipoNombramientoSecundario: string | null;
-  estatusId: number | null;
-  nombreCompleto: string;
-  // Campos adicionales calculados para UI
-  totalHoras?: string;
-  horasSemana?: string;
+
+  nombramiento?: string | null; // Nuevo campo (antes era tipoNombramientoPrincipal en algunos contextos)
+  departamento?: number | null; // Nuevo campo (antes era departamentoAcademicoId/departamentoAdministrativoId)
+  academia?: number | null; // Nuevo campo
+  departamentoNombre?: string | null; // Nuevo campo (para mostrar el nombre del departamento)
+  academiaNombre?: string | null; // Nuevo campo (para mostrar el nombre de la academia)
+
+  tipoNombramientoSecundario: string | null; // Mantenido
+  estatusId: number | null; // Mantenido
+  estatusNombre?: string | null; // Añadido para consistencia con backend Empleado entity
+
+  nombreCompleto: string; // Campo calculado en el backend
+  // Los campos `correoInstitucional`, `departamentoAcademicoId`, `departamentoAdministrativoId`,
+  // `tipoNombramientoPrincipal` (si se usaba como campo separado) son eliminados.
 };
 
 /**
@@ -64,24 +71,28 @@ export type BackendChecadorEvent = {
   rfc?: string;
   errorMessage?: string;
   accion?: 'entrada' | 'salida';
-  statusCode?: string;  // Código de estado del backend
-  statusType?: string;  // Tipo de estado (OK, INFO, ERROR)
-  data?: Record<string, any>;  // Datos adicionales del evento
+  statusCode?: string; // Código de estado del backend
+  statusType?: string; // Tipo de estado (OK, INFO, ERROR)
+  data?: Record<string, any>; // Datos adicionales del evento
 };
 
 /**
  * Evento enviado por el backend que contiene la información completa del estado
  * de asistencia de un empleado. Corresponde a FullAttendanceStateEvent.java.
- * 
+ *
  * Este evento es la fuente autoritativa de datos sobre el estado actual de
  * asistencia, incluyendo qué acción se recomienda a continuación.
  */
 export type FullAttendanceStateEvent = {
-  type: "FULL_ATTENDANCE_STATE_UPDATE"; // Literal type
+  type: 'FULL_ATTENDANCE_STATE_UPDATE'; // Literal type
   readerName: string;
-  employeeData: EmpleadoDto;
+  employeeData: EmpleadoDto; // Usar el EmpleadoDto actualizado
   dailyWorkSessions: JornadaEstadoDto[];
-  nextRecommendedActionBackend: "entrada" | "salida" | "ALL_COMPLETE" | "NO_ACTION";
+  nextRecommendedActionBackend:
+    | 'entrada'
+    | 'salida'
+    | 'ALL_COMPLETE'
+    | 'NO_ACTION';
   activeSessionIdBackend: number | null;
   justCompletedSessionIdBackend?: number | null;
 };
@@ -99,7 +110,7 @@ export type ScanHistoryItem = {
   name: string;
   time: Date;
   success: boolean;
-  action: "entrada" | "salida";
+  action: 'entrada' | 'salida';
   sessionId?: number;
   employeeId: string;
   statusCode?: string;
@@ -108,9 +119,4 @@ export type ScanHistoryItem = {
 /**
  * Estados posibles del escáner de huellas dactilares.
  */
-export type ScanState =
-  | "idle"
-  | "scanning"
-  | "success"
-  | "failed"
-  | "ready";
+export type ScanState = 'idle' | 'scanning' | 'success' | 'failed' | 'ready';
