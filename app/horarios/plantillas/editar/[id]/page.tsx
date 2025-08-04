@@ -1,32 +1,42 @@
-'use client'; // <-- 1. CONVERTIR A CLIENT COMPONENT
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import { apiClient } from '@/lib/apiClient'; // <-- 2. USAR apiClient
-import { EditTemplateForm } from '@/app/horarios/plantillas/components/edit-form';
+import { useParams, useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/apiClient';
 import { HorarioDto } from '../../types';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { LoadingState } from '@/app/components/shared/loading-state';
+import { TemplateForm } from '../../components/template-form';
+import { PageHeader } from '@/app/components/shared/page-header';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { getApiErrorMessage } from '@/lib/api/schedule-api';
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 export default function EditarPlantillaPage() {
   const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
   const templateId = params.id as string;
+
   const [initialData, setInitialData] = useState<HorarioDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 3. MOVER LA LÓGICA DE CARGA A useEffect
   const fetchHorario = useCallback(async (id: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      // Usa apiClient que ya tiene el token de autorización
       const response = await apiClient.get<HorarioDto>(`/api/horarios/${id}`);
       setInitialData(response.data);
-    } catch (error) {
-      console.error('Error fetching schedule template:', error);
+    } catch (err) {
+      console.error('Error fetching schedule template:', err);
       setError(
-        'No se pudo cargar la plantilla de horario. Verifique que la URL es correcta y tiene permisos.'
+        'No se pudo cargar la plantilla. Verifique que existe y tiene permisos.'
       );
     } finally {
       setIsLoading(false);
@@ -39,23 +49,90 @@ export default function EditarPlantillaPage() {
     }
   }, [templateId, fetchHorario]);
 
-  // 4. RENDERIZADO CONDICIONAL
+  const handleSave = async (payload: any) => {
+    if (!payload.nombre.trim()) {
+      setError('El nombre de la plantilla es obligatorio.');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await apiClient.put(
+        `${API_BASE_URL}/api/horarios/${templateId}`,
+        payload
+      );
+      toast({
+        title: 'Éxito',
+        description: 'La plantilla de horario ha sido actualizada.',
+      });
+      router.push('/horarios/plantillas');
+    } catch (err: any) {
+      console.error('Error updating schedule template:', err);
+      const errorMsg = getApiErrorMessage(err);
+      setError(errorMsg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (isLoading) {
     return <LoadingState message='Cargando plantilla...' />;
   }
 
-  if (error) {
+  if (error && !initialData) {
     return (
       <ErrorState message={error} onRetry={() => fetchHorario(templateId)} />
     );
   }
 
   if (!initialData) {
-    // Esto puede pasar si el fetch tiene éxito pero no devuelve datos
     return (
       <ErrorState message='No se encontraron datos para esta plantilla.' />
     );
   }
 
-  return <EditTemplateForm initialData={initialData} templateId={templateId} />;
+  return (
+    <div className='p-6 md:p-8'>
+      <PageHeader
+        title='Editar Plantilla de Horario'
+        isLoading={isSaving}
+        actions={
+          <div className='flex items-center gap-2'>
+            <Button
+              variant='outline'
+              onClick={() => router.back()}
+              disabled={isSaving}
+            >
+              <ArrowLeft className='mr-2 h-4 w-4' /> Cancelar
+            </Button>
+            <Button type='submit' form='template-form' disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              ) : (
+                <Save className='mr-2 h-4 w-4' />
+              )}
+              Guardar Cambios
+            </Button>
+          </div>
+        }
+      />
+
+      {error && (
+        <div className='my-4'>
+          <ErrorState message={error} />
+        </div>
+      )}
+
+      <TemplateForm
+        initialData={initialData}
+        onSave={handleSave}
+        isSaving={isSaving}
+        error={error}
+        clearError={() => setError(null)}
+        isEditMode={true}
+      />
+    </div>
+  );
 }

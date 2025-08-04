@@ -7,11 +7,11 @@ export interface HorarioAsignadoDto {
   tipoHorarioId: number;
   tipoHorarioNombre: string;
   activo: boolean;
-  fechaInicio: string; // ISO date format
-  fechaFin: string;    // ISO date format
+  fechaInicio: string;
+  fechaFin: string;
 }
 
 export interface ApiError {
   message: string;
   status?: number;
-} 
+}

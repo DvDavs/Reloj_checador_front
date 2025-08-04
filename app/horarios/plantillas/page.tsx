@@ -1,4 +1,3 @@
-// This comment is to trigger a re-compilation
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -18,8 +17,8 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/app/components/shared/status-badge';
 import { Eye, Edit, Trash2, PlusCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
 
-// Shared components
 import { PageHeader } from '@/app/components/shared/page-header';
 import { SearchInput } from '@/app/components/shared/search-input';
 import { LoadingState } from '@/app/components/shared/loading-state';
@@ -38,7 +37,6 @@ export default function HorariosPlantillasPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Data state
   const [data, setData] = useState<{
     content: HorarioPaginadoDto[];
     totalPages: number;
@@ -46,7 +44,6 @@ export default function HorariosPlantillasPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Table state
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
   const [sortField, setSortField] = useState('id');
@@ -54,7 +51,6 @@ export default function HorariosPlantillasPage() {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Modal and detail state
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
     null
   );
@@ -112,7 +108,7 @@ export default function HorariosPlantillasPage() {
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(0); // Reset to first page on new search
+    setCurrentPage(0);
   };
 
   const handleViewDetails = (id: number) => {
@@ -139,7 +135,6 @@ export default function HorariosPlantillasPage() {
 
     setIsDeleting(true);
     try {
-      // API uses DELETE for deactivation, not permanent deletion
       await apiClient.delete(`${API_BASE_URL}/api/horarios/${itemToDelete.id}`);
 
       fetchHorarios();
@@ -185,7 +180,7 @@ export default function HorariosPlantillasPage() {
         <SearchInput
           value={searchTerm}
           onChange={handleSearch}
-          placeholder='Buscar por nombre de plantilla...'
+          placeholder='Buscar por nombre o descripción...'
           className='mb-4'
         />
 
@@ -207,7 +202,23 @@ export default function HorariosPlantillasPage() {
                     >
                       Nombre
                     </SortableHeader>
+                    <SortableHeader
+                      field='descripcion'
+                      sortField={sortField}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Descripción
+                    </SortableHeader>
                     <TableHead>Estado</TableHead>
+                    <SortableHeader
+                      field='esHorarioJefe'
+                      sortField={sortField}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Tipo Horario
+                    </SortableHeader>
                     <TableHead className='text-right'>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -216,8 +227,18 @@ export default function HorariosPlantillasPage() {
                     data.content.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.nombre}</TableCell>
+                        <TableCell className='max-w-[250px] truncate'>
+                          {item.descripcion || '-'}
+                        </TableCell>
                         <TableCell>
                           <StatusBadge isActive={item.activo} />
+                        </TableCell>
+                        <TableCell>
+                          {item.esHorarioJefe ? (
+                            <Badge variant='outline'>Jefe</Badge>
+                          ) : (
+                            <Badge variant='secondary'>Regular</Badge>
+                          )}
                         </TableCell>
                         <TableCell className='text-right'>
                           <div className='flex justify-end items-center gap-1'>
@@ -254,7 +275,7 @@ export default function HorariosPlantillasPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={3} className='text-center h-24'>
+                      <TableCell colSpan={5} className='text-center h-24'>
                         No se encontraron plantillas de horarios.
                       </TableCell>
                     </TableRow>
