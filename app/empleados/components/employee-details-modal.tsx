@@ -227,18 +227,14 @@ export function EmployeeDetailsModal({
                 label='Estado'
                 value={
                   <Badge
-                    variant={
-                      employee.estatusNombre?.toLowerCase() === 'activo'
-                        ? 'default'
-                        : 'secondary'
-                    }
+                    variant={employee.estatusId === 1 ? 'default' : 'secondary'}
                     className={
-                      employee.estatusNombre?.toLowerCase() === 'activo'
+                      employee.estatusId === 1
                         ? 'bg-green-500/20 text-green-400 border-green-500/30'
                         : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
                     }
                   >
-                    {employee.estatusNombre || 'Desconocido'}
+                    {employee.estatusId === 1 ? 'Activo' : 'Inactivo'}
                   </Badge>
                 }
               />

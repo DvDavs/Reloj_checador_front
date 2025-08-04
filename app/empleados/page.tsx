@@ -113,10 +113,15 @@ export default function EmpleadosPage() {
 
   const mapEmployeeToDisplay = useCallback(
     (emp: EmpleadoDto): EmployeeDisplayData => {
-      let departamento = 'N/A';
-      if (emp.academiaNombre) departamento = emp.academiaNombre;
-      else if (emp.departamentoNombre) departamento = emp.departamentoNombre;
-      else if (emp.nombramiento) departamento = emp.nombramiento;
+      // --- CORRECCIÓN DE LÓGICA AQUÍ ---
+      // Se prioriza el nombre del departamento. Si no existe, se usa el nombramiento como fallback.
+      // La academia se mostrará en el modal de detalles, no en la columna principal.
+      let departamentoDisplay = 'N/A';
+      if (emp.departamentoNombre) {
+        departamentoDisplay = emp.departamentoNombre;
+      } else if (emp.nombramiento) {
+        departamentoDisplay = emp.nombramiento;
+      }
 
       const estado = emp.estatusId === 1 ? 'Activo' : 'Inactivo';
 
@@ -125,7 +130,7 @@ export default function EmpleadosPage() {
         nombre: getFullName(emp),
         rfc: emp.rfc ?? 'N/A',
         curp: emp.curp ?? 'N/A',
-        departamento: departamento,
+        departamento: departamentoDisplay,
         estado: estado,
       };
     },
