@@ -13,6 +13,17 @@ export interface DepartamentoDto {
   nombre: string;
 }
 
+export interface EmpleadoDto {
+  id: number;
+  nombreCompleto: string;
+  rfc: string;
+  numeroEmpleado: string;
+  departamento?: {
+    clave: string;
+    nombre: string;
+  };
+}
+
 export const getApiErrorMessage = (error: unknown): string => {
   if (error instanceof AxiosError) {
     if (error.response?.data?.message) {
@@ -100,6 +111,19 @@ export const updateHorarioAsignado = async (
     const response = await apiClient.put(
       `/api/horarios-asignados/${id}`,
       assignmentData
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error));
+  }
+};
+
+export const getEmpleadosAsignados = async (
+  horarioId: number
+): Promise<EmpleadoDto[]> => {
+  try {
+    const response = await apiClient.get(
+      `/api/horarios/${horarioId}/empleados`
     );
     return response.data;
   } catch (error) {
