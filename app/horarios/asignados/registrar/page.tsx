@@ -629,36 +629,41 @@ export default function ScheduleAssignmentWizardPage() {
 
       let horarioId = state.selectedTemplateId;
 
-      if (state.scheduleSelectionType === 'new') {
-        if (state.newlyCreatedTemplateId) {
-          horarioId = state.newlyCreatedTemplateId;
-        } else {
-          if (!state.newScheduleData.nombre) {
-            throw new Error(
-              'El nombre de la nueva plantilla de horario es obligatorio.'
-            );
-          }
-          if (state.newScheduleData.detalles.length === 0) {
-            throw new Error(
-              'La nueva plantilla debe tener al menos un turno definido.'
-            );
-          }
-
-          const detallesConTurno = state.newScheduleData.detalles.map(
-            (d, i) => ({ ...d, turno: d.turno || i + 1 })
+      // Si es un nuevo horario, crearlo primero si no ha sido creado ya.
+      if (
+        state.scheduleSelectionType === 'new' &&
+        !state.newlyCreatedTemplateId
+      ) {
+        if (!state.newScheduleData.nombre) {
+          throw new Error(
+            'El nombre de la nueva plantilla de horario es obligatorio.'
           );
-          const dataToSend = {
-            ...state.newScheduleData,
-            detalles: detallesConTurno,
-          };
-
-          const newTemplate = await createHorarioTemplate(dataToSend);
-          horarioId = newTemplate.id;
-          dispatch({
-            type: 'SET_NEWLY_CREATED_TEMPLATE_ID',
-            payload: horarioId,
-          });
         }
+        if (state.newScheduleData.detalles.length === 0) {
+          throw new Error(
+            'La nueva plantilla debe tener al menos un turno definido.'
+          );
+        }
+
+        const detallesConTurno = state.newScheduleData.detalles.map((d, i) => ({
+          ...d,
+          turno: d.turno || i + 1,
+        }));
+        const dataToSend = {
+          ...state.newScheduleData,
+          detalles: detallesConTurno,
+        };
+
+        const newTemplate = await createHorarioTemplate(dataToSend);
+
+        // Guardar el ID en el estado para futuras referencias y evitar duplicados.
+        dispatch({
+          type: 'SET_NEWLY_CREATED_TEMPLATE_ID',
+          payload: newTemplate.id,
+        });
+        horarioId = newTemplate.id;
+      } else if (state.scheduleSelectionType === 'new') {
+        horarioId = state.newlyCreatedTemplateId;
       }
 
       if (!horarioId) {

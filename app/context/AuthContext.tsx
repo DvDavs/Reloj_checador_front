@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser({ roles: new Set(roles) });
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
 
-    router.push('/empleados');
+    router.push('/');
   };
 
   const logout = useCallback(() => {
