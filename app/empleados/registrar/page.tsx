@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react'; // <-- Import useCallback
+import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,7 +52,6 @@ export default function RegistrarEmpleadoPage() {
   const [createdEmployee, setCreatedEmployee] =
     useState<EmpleadoBackend | null>(null);
 
-  // --- FIX STARTS HERE ---
   const getFullName = useCallback((emp: EmpleadoBackend | null): string => {
     if (!emp) return '';
     return [
@@ -64,7 +63,6 @@ export default function RegistrarEmpleadoPage() {
       .filter(Boolean)
       .join(' ');
   }, []);
-  // --- FIX ENDS HERE ---
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -82,7 +80,8 @@ export default function RegistrarEmpleadoPage() {
   };
 
   const handleSelectChange = (name: keyof typeof formData, value: string) => {
-    const finalValue = value === NONE_VALUE_SELECT ? null : value;
+    // --- CORRECCIÓN AQUÍ: Guardar "" en lugar de null ---
+    const finalValue = value === NONE_VALUE_SELECT ? '' : value;
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
     setError(null);
   };
@@ -97,6 +96,8 @@ export default function RegistrarEmpleadoPage() {
         ? parseInt(formData.departamento, 10)
         : null,
       academia: formData.academia ? parseInt(formData.academia, 10) : null,
+      nombramiento: formData.nombramiento || null, // Asegurar que se envíe null si está vacío
+      tipoNombramientoSecundario: formData.tipoNombramientoSecundario || null,
     };
     if (
       !payload.primerNombre ||

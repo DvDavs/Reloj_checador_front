@@ -18,9 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { toast } from 'sonner';
 
-// Interfaz para los datos que vienen de la API
 interface EmpleadoApiData {
   rfc?: string | null;
   curp?: string | null;
@@ -30,12 +28,11 @@ interface EmpleadoApiData {
   primerApellido?: string | null;
   segundoApellido?: string | null;
   nombramiento?: string | null;
-  departamento?: number | null; // Viene como número
-  academia?: number | null; // Viene como número
+  departamento?: number | null;
+  academia?: number | null;
   tipoNombramientoSecundario?: string | null;
 }
 
-// Interfaz para el estado del FORMULARIO
 interface EmpleadoFormData {
   rfc?: string | null;
   curp?: string | null;
@@ -45,8 +42,8 @@ interface EmpleadoFormData {
   primerApellido?: string | null;
   segundoApellido?: string | null;
   nombramiento?: string | null;
-  departamento?: string | null; // Se guarda como string (clave)
-  academia?: string | null; // Se guarda como string (clave)
+  departamento?: string | null;
+  academia?: string | null;
   tipoNombramientoSecundario?: string | null;
 }
 
@@ -112,7 +109,15 @@ export default function EditarEmpleadoPage() {
   };
 
   const handleSelectChange = (name: keyof EmpleadoFormData, value: string) => {
-    const finalValue = value === NONE_VALUE_SELECT ? null : value;
+    // --- CORRECCIÓN AQUÍ: Guardar "" en lugar de null para nombramientos ---
+    const isNombramientoField =
+      name === 'nombramiento' || name === 'tipoNombramientoSecundario';
+    let finalValue: string | null = value;
+
+    if (value === NONE_VALUE_SELECT) {
+      finalValue = isNombramientoField ? '' : null; // Nombramientos se van como "", deptos como null (o también "" si se prefiere)
+    }
+
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
     setError(null);
   };
@@ -124,18 +129,35 @@ export default function EditarEmpleadoPage() {
     setIsSubmitting(true);
     setError(null);
 
-    // --- CORRECCIÓN CRÍTICA: Enviar el estado completo del formulario (PUT) ---
-    // En lugar de calcular solo los cambios, enviamos el objeto completo.
-    // El backend se encargará de actualizar todos los campos con los valores actuales del formulario.
     const payload = {
       ...formData,
       departamento: formData.departamento
         ? parseInt(formData.departamento, 10)
         : null,
       academia: formData.academia ? parseInt(formData.academia, 10) : null,
+      // Los nombramientos ya están como "" o un valor, que el backend manejará
     };
 
-    // Validación simple en frontend
+    const originalPayloadComparable = {
+      ...originalData,
+      departamento: originalData.departamento
+        ? parseInt(originalData.departamento, 10)
+        : null,
+      academia: originalData.academia
+        ? parseInt(originalData.academia, 10)
+        : null,
+    };
+
+    // Compara el payload a enviar con los datos originales (también convertidos)
+    const hasChanges =
+      JSON.stringify(payload) !== JSON.stringify(originalPayloadComparable);
+
+    if (!hasChanges) {
+      setError('No se detectaron cambios para guardar.');
+      setIsSubmitting(false);
+      return;
+    }
+
     if (
       !formData.primerNombre ||
       !formData.primerApellido ||
@@ -143,20 +165,6 @@ export default function EditarEmpleadoPage() {
       !formData.curp
     ) {
       setError('Los campos con * son obligatorios.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Comparar con los datos originales para ver si hay cambios
-    const hasChanges =
-      JSON.stringify({
-        ...payload,
-        departamento: formData.departamento,
-        academia: formData.academia,
-      }) !== JSON.stringify(originalData);
-
-    if (!hasChanges) {
-      setError('No se detectaron cambios para guardar.');
       setIsSubmitting(false);
       return;
     }

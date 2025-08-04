@@ -17,8 +17,6 @@ import { apiClient } from '@/lib/apiClient';
 import { EmployeeDetailsModal } from './components/employee-details-modal';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
-
-// Shared components
 import { PageHeader } from '@/app/components/shared/page-header';
 import { SearchInput } from '@/app/components/shared/search-input';
 import { LoadingState } from '@/app/components/shared/loading-state';
@@ -48,7 +46,6 @@ export default function EmpleadosPage() {
   const [allEmployees, setAllEmployees] = useState<EmpleadoDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmpleadoDto | null>(
     null
@@ -82,9 +79,11 @@ export default function EmpleadosPage() {
     defaultSortField: 'id',
   });
 
-  const getFullName = useCallback((emp: EmpleadoDto | null): string => {
-    return emp?.nombreCompleto || 'Nombre no disponible';
-  }, []);
+  const getFullName = useCallback(
+    (emp: EmpleadoDto | null): string =>
+      emp?.nombreCompleto || 'Nombre no disponible',
+    []
+  );
 
   const fetchEmployees = useCallback(async () => {
     setIsLoading(true);
@@ -99,9 +98,7 @@ export default function EmpleadosPage() {
         err.response?.data?.message ||
         err.message ||
         'No se pudo cargar la lista de empleados.';
-      setError(
-        `Error al cargar empleados: ${errorMsg}. Verifique la conexión con la API.`
-      );
+      setError(`Error al cargar empleados: ${errorMsg}.`);
     } finally {
       setIsLoading(false);
     }
@@ -114,14 +111,9 @@ export default function EmpleadosPage() {
   const mapEmployeeToDisplay = useCallback(
     (emp: EmpleadoDto): EmployeeDisplayData => {
       // --- CORRECCIÓN DE LÓGICA AQUÍ ---
-      // Se prioriza el nombre del departamento. Si no existe, se usa el nombramiento como fallback.
-      // La academia se mostrará en el modal de detalles, no en la columna principal.
-      let departamentoDisplay = 'N/A';
-      if (emp.departamentoNombre) {
-        departamentoDisplay = emp.departamentoNombre;
-      } else if (emp.nombramiento) {
-        departamentoDisplay = emp.nombramiento;
-      }
+      // Muestra el nombre del departamento. Si no existe, muestra 'N/A'.
+      // Ya no usa 'nombramiento' como fallback en esta columna.
+      const departamentoDisplay = emp.departamentoNombre || 'N/A';
 
       const estado = emp.estatusId === 1 ? 'Activo' : 'Inactivo';
 
@@ -167,16 +159,13 @@ export default function EmpleadosPage() {
             </Link>
           }
         />
-
         <SearchInput
           value={searchTerm}
           onChange={handleSearch}
           placeholder='Buscar por ID, nombre, RFC, departamento...'
         />
-
         {isLoading && <LoadingState message='Cargando empleados...' />}
         {error && <ErrorState message={error} />}
-
         {!isLoading && !error && (
           <>
             <div className='overflow-x-auto rounded-lg border'>
@@ -309,7 +298,6 @@ export default function EmpleadosPage() {
           </>
         )}
       </div>
-
       {selectedEmployee && (
         <EmployeeDetailsModal
           employee={selectedEmployee}
