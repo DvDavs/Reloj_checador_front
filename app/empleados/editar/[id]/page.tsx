@@ -19,7 +19,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
-interface EmpleadoEditData {
+interface EmpleadoApiData {
   rfc?: string | null;
   curp?: string | null;
   tarjeta?: number | null;
@@ -33,6 +33,20 @@ interface EmpleadoEditData {
   tipoNombramientoSecundario?: string | null;
 }
 
+interface EmpleadoFormData {
+  rfc?: string | null;
+  curp?: string | null;
+  tarjeta?: number | null;
+  primerNombre?: string | null;
+  segundoNombre?: string | null;
+  primerApellido?: string | null;
+  segundoApellido?: string | null;
+  nombramiento?: string | null;
+  departamento?: string | null;
+  academia?: string | null;
+  tipoNombramientoSecundario?: string | null;
+}
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 const NONE_VALUE_SELECT = '__NONE__';
@@ -42,46 +56,33 @@ export default function EditarEmpleadoPage() {
   const params = useParams();
   const employeeId = params?.id as string;
 
-  const [formData, setFormData] = useState<EmpleadoEditData>({});
-  const [originalData, setOriginalData] = useState<EmpleadoEditData>({});
+  const [formData, setFormData] = useState<EmpleadoFormData>({});
+  const [originalData, setOriginalData] = useState<EmpleadoFormData>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchEmpleadoData = useCallback(async () => {
-    if (!employeeId) {
-      setFetchError('No se proporcionó ID de empleado.');
-      setIsLoading(false);
-      return;
-    }
+    if (!employeeId) return;
     setIsLoading(true);
     setFetchError(null);
-    setError(null);
     try {
-      const response = await apiClient.get<EmpleadoEditData>(
+      const response = await apiClient.get<EmpleadoApiData>(
         `${API_BASE_URL}/api/empleados/${employeeId}`
       );
-      const initialData: EmpleadoEditData = {
-        rfc: response.data.rfc,
-        curp: response.data.curp,
-        tarjeta: response.data.tarjeta,
-        primerNombre: response.data.primerNombre,
-        segundoNombre: response.data.segundoNombre,
-        primerApellido: response.data.primerApellido,
-        segundoApellido: response.data.segundoApellido,
-        nombramiento: response.data.nombramiento,
-        departamento: response.data.departamento,
-        academia: response.data.academia,
-        tipoNombramientoSecundario: response.data.tipoNombramientoSecundario,
+      const initialFormData: EmpleadoFormData = {
+        ...response.data,
+        departamento: response.data.departamento?.toString() ?? null,
+        academia: response.data.academia?.toString() ?? null,
       };
-      setFormData(initialData);
-      setOriginalData(initialData);
+      setFormData(initialFormData);
+      setOriginalData(initialFormData);
     } catch (err: any) {
       const errorMsg =
         err.response?.data?.message || err.message || 'Error desconocido';
       setFetchError(
-        `No se pudo cargar la información del empleado (ID: ${employeeId}). ${errorMsg}`
+        `No se pudo cargar la información del empleado: ${errorMsg}`
       );
     } finally {
       setIsLoading(false);
@@ -103,20 +104,17 @@ export default function EditarEmpleadoPage() {
       finalValue =
         name === 'rfc' || name === 'curp' ? value.toUpperCase() : value;
     }
-    setFormData((prev) => ({ ...prev, [name]: finalValue }));
+    setFormData((prev) => ({ ...prev, [name]: finalValue as any }));
     setError(null);
   };
 
-  const handleSelectChange = (name: keyof EmpleadoEditData, value: string) => {
-    const isIdField = name === 'departamento' || name === 'academia';
-    let finalValue: string | number | null;
+  const handleSelectChange = (name: keyof EmpleadoFormData, value: string) => {
+    const isNombramientoField =
+      name === 'nombramiento' || name === 'tipoNombramientoSecundario';
+    let finalValue: string | null = value;
 
     if (value === NONE_VALUE_SELECT) {
-      finalValue = null;
-    } else if (isIdField) {
-      finalValue = value ? parseInt(value, 10) : null;
-    } else {
-      finalValue = value;
+      finalValue = isNombramientoField ? '' : null;
     }
 
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
@@ -130,32 +128,26 @@ export default function EditarEmpleadoPage() {
     setIsSubmitting(true);
     setError(null);
 
-    const payload: Partial<EmpleadoEditData> = {};
-    let hasChanges = false;
+    const payload = {
+      ...formData,
+      departamento: formData.departamento
+        ? parseInt(formData.departamento, 10)
+        : null,
+      academia: formData.academia ? parseInt(formData.academia, 10) : null,
+    };
 
-    const keysToCompare: (keyof EmpleadoEditData)[] = [
-      'rfc',
-      'curp',
-      'tarjeta',
-      'primerNombre',
-      'segundoNombre',
-      'primerApellido',
-      'segundoApellido',
-      'nombramiento',
-      'departamento',
-      'academia',
-      'tipoNombramientoSecundario',
-    ];
+    const originalPayloadComparable = {
+      ...originalData,
+      departamento: originalData.departamento
+        ? parseInt(originalData.departamento, 10)
+        : null,
+      academia: originalData.academia
+        ? parseInt(originalData.academia, 10)
+        : null,
+    };
 
-    keysToCompare.forEach((key) => {
-      const currentValue = formData[key] ?? null;
-      const originalValue = originalData[key] ?? null;
-
-      if (currentValue !== originalValue) {
-        (payload as any)[key] = formData[key as keyof EmpleadoEditData];
-        hasChanges = true;
-      }
-    });
+    const hasChanges =
+      JSON.stringify(payload) !== JSON.stringify(originalPayloadComparable);
 
     if (!hasChanges) {
       setError('No se detectaron cambios para guardar.');
@@ -169,7 +161,7 @@ export default function EditarEmpleadoPage() {
       !formData.rfc ||
       !formData.curp
     ) {
-      setError('Primer Nombre, Primer Apellido, RFC y CURP son obligatorios.');
+      setError('Los campos con * son obligatorios.');
       setIsSubmitting(false);
       return;
     }
@@ -180,6 +172,7 @@ export default function EditarEmpleadoPage() {
         payload
       );
       router.push('/empleados');
+      router.refresh();
     } catch (err: any) {
       const backendError =
         err.response?.data?.message || err.message || 'Error desconocido';
@@ -190,33 +183,10 @@ export default function EditarEmpleadoPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className='p-6 md:p-8'>
-        <BreadcrumbNav
-          items={[
-            { label: 'Empleados', href: '/empleados' },
-            { label: 'Editar Empleado' },
-          ]}
-          backHref='/empleados'
-        />
-        <LoadingState message='Cargando datos del empleado...' />
-      </div>
-    );
+    return <LoadingState message='Cargando datos del empleado...' />;
   }
-
   if (fetchError) {
-    return (
-      <div className='p-6 md:p-8'>
-        <BreadcrumbNav
-          items={[
-            { label: 'Empleados', href: '/empleados' },
-            { label: 'Error al Cargar' },
-          ]}
-          backHref='/empleados'
-        />
-        <ErrorState message={fetchError} />
-      </div>
-    );
+    return <ErrorState message={fetchError} onRetry={fetchEmpleadoData} />;
   }
 
   return (
@@ -237,8 +207,12 @@ export default function EditarEmpleadoPage() {
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className='space-y-6'>
-            {error && <ErrorState message={error} />}
+          <CardContent>
+            {error && (
+              <div className='mb-4'>
+                <ErrorState message={error} />
+              </div>
+            )}
             <EmployeeForm
               formData={formData}
               onChange={handleChange}
@@ -260,12 +234,13 @@ export default function EditarEmpleadoPage() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />{' '}
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                   Actualizando...
                 </>
               ) : (
                 <>
-                  <Save className='mr-2 h-4 w-4' /> Guardar Cambios
+                  <Save className='mr-2 h-4 w-4' />
+                  Guardar Cambios
                 </>
               )}
             </Button>

@@ -79,8 +79,8 @@ const wizardReducer = (
       return {
         ...state,
         scheduleSelectionType: action.payload,
-        selectedTemplateId: null, // Reset other option
-        newScheduleData: initialState.newScheduleData, // Reset other option
+        selectedTemplateId: null,
+        newScheduleData: initialState.newScheduleData,
       };
 
     case 'SET_NEWLY_CREATED_TEMPLATE_ID':
@@ -163,7 +163,7 @@ function Step2_SelectSchedule({
       try {
         const data = await getHorarioTemplates();
         setLocalTemplates(data);
-        setTemplates(data); // Lift state up
+        setTemplates(data);
       } catch (err: any) {
         setError(err.message || 'No se pudieron cargar las plantillas.');
       } finally {
@@ -301,7 +301,7 @@ function Step3_SetDates({
       try {
         const data = await getScheduleTypes();
         setLocalScheduleTypes(data);
-        setScheduleTypes(data); // Lift state up
+        setScheduleTypes(data);
       } catch (err: any) {
         setError(err.message || 'No se pudieron cargar los tipos de horario.');
       } finally {
@@ -404,7 +404,6 @@ function Step3_SetDates({
         ) : (
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 pt-2'>
             {scheduleTypes.map((type) => {
-              // A simple way to assign icons based on name
               const getIcon = (name: string) => {
                 if (name.toLowerCase().includes('jefe'))
                   return <Briefcase className='h-8 w-8' />;
@@ -536,14 +535,11 @@ function Step4_Summary({
 export default function ScheduleAssignmentWizardPage() {
   const [state, dispatch] = useReducer(wizardReducer, initialState);
   const { toast } = useToast();
-  // States to hold data for summary
   const [templates, setTemplates] = React.useState<HorarioTemplateDTO[]>([]);
   const [scheduleTypes, setScheduleTypes] = React.useState<TipoHorarioDTO[]>(
     []
   );
 
-  // Pass setters down to children components to lift state up
-  // This is a simple approach. For larger apps, consider Zustand or Context.
   const stableSetTemplates = React.useCallback(setTemplates, []);
   const stableSetScheduleTypes = React.useCallback(setScheduleTypes, []);
 
@@ -614,7 +610,6 @@ export default function ScheduleAssignmentWizardPage() {
             );
           }
 
-          // Aseguramos que los detalles tengan el campo 'turno'
           const detallesConTurno = state.newScheduleData.detalles.map(
             (d, i) => ({ ...d, turno: d.turno || i + 1 })
           );
@@ -650,9 +645,6 @@ export default function ScheduleAssignmentWizardPage() {
         title: 'Asignación Exitosa',
         description: `El horario ha sido asignado correctamente a ${state.selectedEmployee?.nombreCompleto}.`,
       });
-
-      // Aquí puedes redirigir al usuario
-      // router.push("/horarios/asignados");
     } catch (error: any) {
       console.error('Error al guardar la asignación:', error);
       const errorMessage = getApiErrorMessage(error);

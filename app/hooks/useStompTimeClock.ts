@@ -101,8 +101,6 @@ const useStompTimeClock = ({
     client.activate();
     stompClientRef.current = client;
 
-    // --- LÓGICA DE LIMPIEZA ---
-
     const releaseOnUnload = () => {
       const url = `${apiBaseUrl}/api/v1/multi-fingerprint/release/${encodeURIComponent(initialReaderName)}?sessionId=${initialSessionId}`;
       navigator.sendBeacon(url);
@@ -112,13 +110,11 @@ const useStompTimeClock = ({
     window.addEventListener('beforeunload', releaseOnUnload);
 
     return () => {
-      console.log('Limpiando hook useStompTimeClock...');
+      console.log('useStompTimeClock: Limpiando hook...');
       window.removeEventListener('beforeunload', releaseOnUnload);
 
       const stopAndReleaseReader = async () => {
         try {
-          // No es necesario detener el checador explícitamente si la liberación lo hace.
-          // La liberación por sesión ahora se encarga de detener el hilo de captura.
           await apiClient.post(
             `${apiBaseUrl}/api/v1/multi-fingerprint/release/${encodeURIComponent(initialReaderName)}`,
             null,

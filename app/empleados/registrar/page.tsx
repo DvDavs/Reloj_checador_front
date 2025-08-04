@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,17 +41,28 @@ export default function RegistrarEmpleadoPage() {
     curp: '',
     tarjeta: null as number | null,
     nombramiento: '',
-    departamento: null as number | null,
-    academia: null as number | null,
+    departamento: null as string | null,
+    academia: null as string | null,
     tipoNombramientoSecundario: '',
     estatusId: 1,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [createdEmployee, setCreatedEmployee] =
     useState<EmpleadoBackend | null>(null);
+
+  const getFullName = useCallback((emp: EmpleadoBackend | null): string => {
+    if (!emp) return '';
+    return [
+      emp.primerNombre,
+      emp.segundoNombre,
+      emp.primerApellido,
+      emp.segundoApellido,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -64,27 +75,13 @@ export default function RegistrarEmpleadoPage() {
       finalValue =
         name === 'rfc' || name === 'curp' ? value.toUpperCase() : value;
     }
-
-    setFormData((prev) => ({ ...prev, [name]: finalValue }));
+    setFormData((prev) => ({ ...prev, [name]: finalValue as any }));
     setError(null);
   };
 
   const handleSelectChange = (name: keyof typeof formData, value: string) => {
-    const isIdField = name === 'departamento' || name === 'academia';
-    let finalValue: string | number | null;
-
-    if (value === NONE_VALUE_SELECT) {
-      finalValue = null;
-    } else if (isIdField) {
-      finalValue = value ? parseInt(value, 10) : null;
-    } else {
-      finalValue = value;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: finalValue,
-    }));
+    const finalValue = value === NONE_VALUE_SELECT ? '' : value;
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
     setError(null);
   };
 
@@ -92,22 +89,15 @@ export default function RegistrarEmpleadoPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-
     const payload = {
-      rfc: formData.rfc || null,
-      curp: formData.curp || null,
-      tarjeta: formData.tarjeta,
-      primerNombre: formData.primerNombre || null,
-      segundoNombre: formData.segundoNombre || null,
-      primerApellido: formData.primerApellido || null,
-      segundoApellido: formData.segundoApellido || null,
+      ...formData,
+      departamento: formData.departamento
+        ? parseInt(formData.departamento, 10)
+        : null,
+      academia: formData.academia ? parseInt(formData.academia, 10) : null,
       nombramiento: formData.nombramiento || null,
-      departamento: formData.departamento,
-      academia: formData.academia,
       tipoNombramientoSecundario: formData.tipoNombramientoSecundario || null,
-      estatusId: formData.estatusId,
     };
-
     if (
       !payload.primerNombre ||
       !payload.primerApellido ||
@@ -118,17 +108,6 @@ export default function RegistrarEmpleadoPage() {
       setIsSubmitting(false);
       return;
     }
-    if (payload.rfc && payload.rfc.length < 10) {
-      setError('RFC inválido.');
-      setIsSubmitting(false);
-      return;
-    }
-    if (payload.curp && payload.curp.length !== 18) {
-      setError('CURP inválido.');
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
       const response = await apiClient.post<EmpleadoBackend>(
         `${API_BASE_URL}/api/empleados`,
@@ -138,16 +117,8 @@ export default function RegistrarEmpleadoPage() {
       setIsDialogOpen(true);
     } catch (err: any) {
       const backendError =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.response?.data ||
-        err.message ||
-        'Error desconocido';
-      let displayError =
-        typeof backendError === 'string'
-          ? backendError
-          : JSON.stringify(backendError);
-      setError(`Error al crear el empleado: ${displayError}`);
+        err.response?.data?.message || err.message || 'Error desconocido';
+      setError(`Error al crear el empleado: ${backendError}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -155,18 +126,8 @@ export default function RegistrarEmpleadoPage() {
 
   const handleAssignFingerprint = () => {
     if (createdEmployee) {
-      const fullName = [
-        createdEmployee.primerNombre,
-        createdEmployee.segundoNombre,
-        createdEmployee.primerApellido,
-        createdEmployee.segundoApellido,
-      ]
-        .filter(Boolean)
-        .join(' ');
       router.push(
-        `/empleados/asignar-huella?id=${
-          createdEmployee.id
-        }&nombre=${encodeURIComponent(fullName)}`
+        `/empleados/asignar-huella?id=${createdEmployee.id}&nombre=${encodeURIComponent(getFullName(createdEmployee))}`
       );
     }
   };
@@ -187,11 +148,9 @@ export default function RegistrarEmpleadoPage() {
           ]}
           backHref='/empleados'
         />
-
         <h1 className='text-2xl md:text-3xl font-bold mb-8'>
           Registrar Nuevo Empleado
         </h1>
-
         <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>
           <CardHeader>
             <CardTitle>Información del Empleado</CardTitle>
@@ -201,14 +160,12 @@ export default function RegistrarEmpleadoPage() {
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
-            <CardContent className='space-y-6'>
+            <CardContent>
               {error && (
-                <ErrorState
-                  message={error}
-                  className='p-3 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg flex items-center gap-2 text-sm'
-                />
+                <div className='mb-4'>
+                  <ErrorState message={error} />
+                </div>
               )}
-
               <EmployeeForm
                 formData={formData}
                 onChange={handleChange}
@@ -217,7 +174,6 @@ export default function RegistrarEmpleadoPage() {
                 noneValue={NONE_VALUE_SELECT}
               />
             </CardContent>
-
             <CardFooter className='flex justify-between'>
               <Link href='/empleados'>
                 <Button type='button' variant='outline' disabled={isSubmitting}>
@@ -245,21 +201,13 @@ export default function RegistrarEmpleadoPage() {
           </form>
         </Card>
       </div>
-
       {createdEmployee && (
         <PostRegistrationDialog
           isOpen={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
           onAssignFingerprint={handleAssignFingerprint}
           onContinueToDetails={handleContinueToDetails}
-          employeeName={[
-            createdEmployee.primerNombre,
-            createdEmployee.segundoNombre,
-            createdEmployee.primerApellido,
-            createdEmployee.segundoApellido,
-          ]
-            .filter(Boolean)
-            .join(' ')}
+          employeeName={getFullName(createdEmployee)}
         />
       )}
     </>

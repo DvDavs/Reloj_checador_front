@@ -7,6 +7,11 @@ import {
 } from '@/app/horarios/asignados/registrar/types';
 import { AxiosError } from 'axios';
 
+export interface DepartamentoDto {
+  clave: string;
+  nombre: string;
+}
+
 export const getApiErrorMessage = (error: unknown): string => {
   if (error instanceof AxiosError) {
     if (error.response?.data?.message) {
@@ -20,6 +25,15 @@ export const getApiErrorMessage = (error: unknown): string => {
     return error.message;
   }
   return 'Ocurrió un error inesperado.';
+};
+
+export const getDepartamentos = async (): Promise<DepartamentoDto[]> => {
+  try {
+    const response = await apiClient.get('/api/departamentos');
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error));
+  }
 };
 
 export const getHorarioTemplates = async (): Promise<HorarioTemplateDTO[]> => {

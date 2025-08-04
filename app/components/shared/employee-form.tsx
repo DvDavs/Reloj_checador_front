@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -9,9 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { getDepartamentos, DepartamentoDto } from '@/lib/api/schedule-api';
+import { Loader2 } from 'lucide-react';
 
-// Tipos de datos más flexibles para aceptar null o undefined
 interface EmployeeFormData {
   primerNombre?: string | null;
   segundoNombre?: string | null;
@@ -21,8 +22,8 @@ interface EmployeeFormData {
   curp?: string | null;
   tarjeta?: number | null;
   nombramiento?: string | null;
-  departamento?: number | null;
-  academia?: number | null;
+  departamento?: string | null;
+  academia?: string | null;
   tipoNombramientoSecundario?: string | null;
 }
 
@@ -43,23 +44,32 @@ export function EmployeeForm({
   isSubmitting = false,
   noneValue = '__NONE__',
 }: EmployeeFormProps) {
-  // Opciones de ejemplo para Departamentos y Academias (deberían venir de una API)
-  const departamentoOptions = [
-    { id: 110100, name: 'DIRECCION' },
-    { id: 110200, name: 'SUBDIRECCION ACADEMICA' },
-    { id: 110300, name: 'SUBDIRECCION DE PLANEACION' },
-    { id: 110400, name: 'DEPTO DE CIENCIAS DE LA TIERRA' },
-  ];
+  const [departamentoOptions, setDepartamentoOptions] = useState<
+    DepartamentoDto[]
+  >([]);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
-  const academiaOptions = [
-    { id: 110400, name: 'ACADEMIA DE SISTEMAS' },
-    { id: 110500, name: 'ACADEMIA DE ELECTRICA' },
-    { id: 111200, name: 'ACADEMIA DE ING. MECATRONICA' },
-  ];
+  useEffect(() => {
+    const loadCatalog = async () => {
+      try {
+        setIsLoadingCatalog(true);
+        setCatalogError(null);
+        const data = await getDepartamentos();
+        setDepartamentoOptions(data);
+      } catch (error) {
+        console.error('Error al cargar el catálogo de departamentos:', error);
+        setCatalogError('No se pudo cargar el catálogo.');
+      } finally {
+        setIsLoadingCatalog(false);
+      }
+    };
+
+    loadCatalog();
+  }, []);
 
   return (
     <div className='space-y-6'>
-      {/* Nombres */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='primerNombre'>
@@ -85,8 +95,6 @@ export function EmployeeForm({
           />
         </div>
       </div>
-
-      {/* Apellidos */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='primerApellido'>
@@ -113,7 +121,6 @@ export function EmployeeForm({
         </div>
       </div>
 
-      {/* RFC, CURP y Tarjeta */}
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='rfc'>
@@ -161,7 +168,6 @@ export function EmployeeForm({
         </div>
       </div>
 
-      {/* Nombramientos */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='nombramiento'>Nombramiento</Label>
@@ -207,47 +213,62 @@ export function EmployeeForm({
         </div>
       </div>
 
-      {/* Departamentos / Academias */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='departamento'>Departamento</Label>
-          <Select
-            value={formData.departamento?.toString() || noneValue}
-            onValueChange={(value) => onSelectChange('departamento', value)}
-            disabled={isSubmitting}
-          >
-            <SelectTrigger id='departamento'>
-              <SelectValue placeholder='Seleccionar departamento...' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={noneValue}>(Ninguno)</SelectItem>
-              {departamentoOptions.map((option) => (
-                <SelectItem key={option.id} value={option.id.toString()}>
-                  {option.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isLoadingCatalog ? (
+            <div className='flex items-center justify-center h-10 border rounded-md bg-muted'>
+              <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
+            </div>
+          ) : catalogError ? (
+            <div className='text-destructive text-sm'>{catalogError}</div>
+          ) : (
+            <Select
+              value={formData.departamento || noneValue}
+              onValueChange={(value) => onSelectChange('departamento', value)}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger id='departamento'>
+                <SelectValue placeholder='Seleccionar departamento...' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={noneValue}>(Ninguno)</SelectItem>
+                {departamentoOptions.map((option) => (
+                  <SelectItem key={option.clave} value={option.clave}>
+                    {option.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className='space-y-2'>
           <Label htmlFor='academia'>Academia</Label>
-          <Select
-            value={formData.academia?.toString() || noneValue}
-            onValueChange={(value) => onSelectChange('academia', value)}
-            disabled={isSubmitting}
-          >
-            <SelectTrigger id='academia'>
-              <SelectValue placeholder='Seleccionar academia...' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={noneValue}>(Ninguno)</SelectItem>
-              {academiaOptions.map((option) => (
-                <SelectItem key={option.id} value={option.id.toString()}>
-                  {option.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isLoadingCatalog ? (
+            <div className='flex items-center justify-center h-10 border rounded-md bg-muted'>
+              <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
+            </div>
+          ) : catalogError ? (
+            <div className='text-destructive text-sm'>{catalogError}</div>
+          ) : (
+            <Select
+              value={formData.academia || noneValue}
+              onValueChange={(value) => onSelectChange('academia', value)}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger id='academia'>
+                <SelectValue placeholder='Seleccionar academia...' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={noneValue}>(Ninguno)</SelectItem>
+                {departamentoOptions.map((option) => (
+                  <SelectItem key={option.clave} value={option.clave}>
+                    {option.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
     </div>

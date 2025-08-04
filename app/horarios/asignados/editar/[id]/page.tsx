@@ -56,7 +56,6 @@ import Link from 'next/link';
 import { LoadingState } from '@/app/components/shared/loading-state';
 import { WizardStepper } from '@/app/components/shared/wizard-stepper';
 import { notFound } from 'next/navigation';
-// import { toWeeklySchedule, toDetalles, toHorarioTemplateForSave } from "../utils/schedule-mappers";
 
 const wizardReducer = (
   state: WizardState,
@@ -67,7 +66,6 @@ const wizardReducer = (
       return { ...state, ...action.payload };
     case 'SET_STEP':
       return { ...state, step: action.payload };
-    // Employee selection is disabled in edit mode, so no action needed
     case 'SELECT_EMPLOYEE':
       return state;
     case 'SET_SCHEDULE_SELECTION_TYPE':
@@ -106,9 +104,9 @@ const wizardReducer = (
 };
 
 const initialState: WizardState = {
-  step: 'selectSchedule', // Start at step 2
+  step: 'selectSchedule',
   selectedEmployee: null,
-  scheduleSelectionType: 'existing', // Default to existing
+  scheduleSelectionType: 'existing',
   selectedTemplateId: null,
   newScheduleData: {
     nombre: '',
@@ -148,7 +146,7 @@ function Step2_SelectSchedule({
       try {
         const data = await getHorarioTemplates();
         setLocalTemplates(data);
-        setTemplates(data); // Lift state up
+        setTemplates(data);
       } catch (err: any) {
         setError(err.message || 'No se pudieron cargar las plantillas.');
       } finally {
@@ -172,7 +170,7 @@ function Step2_SelectSchedule({
               payload: value as 'existing' | 'new',
             })
           }
-          disabled={isEditMode} // Disable changing between new/existing
+          disabled={isEditMode}
         >
           <div className='flex items-center space-x-2'>
             <RadioGroupItem value='existing' id='existing' />
@@ -272,8 +270,6 @@ function Step2_SelectSchedule({
                 </div>
               </CardContent>
             </Card>
-
-            {/* SECCIÓN DE TURNOS ELIMINADA TEMPORALMENTE PARA CORREGIR BUILD */}
           </div>
         )}
       </CardContent>
@@ -303,7 +299,7 @@ function Step3_SetDates({
       try {
         const data = await getScheduleTypes();
         setLocalScheduleTypes(data);
-        setScheduleTypes(data); // Lift state up
+        setScheduleTypes(data);
       } catch (err: any) {
         setError(err.message || 'No se pudieron cargar los tipos de horario.');
       } finally {
@@ -455,7 +451,6 @@ function Step4_Summary({
         Resumen de la Asignación
       </h3>
       <div className='border rounded-lg p-6 space-y-5 bg-zinc-900/30'>
-        {/* Horario */}
         <div className='flex justify-between items-start'>
           <span className='text-muted-foreground'>Horario:</span>
           <div className='text-right font-semibold'>
@@ -472,7 +467,6 @@ function Step4_Summary({
           </div>
         </div>
 
-        {/* Fechas */}
         <div className='flex justify-between items-center'>
           <span className='text-muted-foreground'>Fecha de Inicio:</span>
           <span className='font-semibold'>
@@ -490,7 +484,6 @@ function Step4_Summary({
           </span>
         </div>
 
-        {/* Tipo de Horario */}
         <div className='flex justify-between items-center'>
           <span className='text-muted-foreground'>Tipo de Horario:</span>
           <span className='font-semibold'>
@@ -542,7 +535,7 @@ export default function ScheduleAssignmentEditPage() {
           selectedScheduleTypeId: data.tipoHorarioId,
           assignmentStartDate: parseISO(data.fechaInicio),
           assignmentEndDate: data.fechaFin ? parseISO(data.fechaFin) : null,
-          scheduleSelectionType: 'existing', // In edit mode, we always start with an existing one
+          scheduleSelectionType: 'existing',
           step: 'selectSchedule',
         };
         dispatch({ type: 'SET_STATE', payload });
@@ -569,9 +562,7 @@ export default function ScheduleAssignmentEditPage() {
   ];
 
   const currentStepNumber = React.useMemo(() => {
-    // Find the index of the current step based on its ID
     const stepIndex = WIZARD_STEPS.findIndex((s) => s.id === state.step);
-    // Add 1 to make it a 1-based index for the stepper component
     return stepIndex + 1;
   }, [state.step]);
 
@@ -587,8 +578,6 @@ export default function ScheduleAssignmentEditPage() {
         : null;
       let horarioId = state.selectedTemplateId;
 
-      // In edit mode, creating a new template is disabled.
-      // If this logic were to be enabled, it would go here.
       if (state.scheduleSelectionType === 'new') {
         throw new Error(
           'No se puede crear una nueva plantilla en modo de edición.'
@@ -599,7 +588,6 @@ export default function ScheduleAssignmentEditPage() {
         throw new Error('No se ha seleccionado un horario.');
       }
 
-      // Update the assignment
       await updateHorarioAsignado(id, {
         empleadoId: state.selectedEmployee!.id,
         horarioId: horarioId!,
