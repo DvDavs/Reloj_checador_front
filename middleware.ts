@@ -6,22 +6,23 @@ export function middleware(request: NextRequest) {
   const authToken = request.cookies.get('authToken')?.value;
   const { pathname } = request.nextUrl;
 
-  // La página de login es la única ruta pública para un usuario no autenticado
-  const isPublicPath = pathname === '/login';
+  const isLoginPage = pathname.startsWith('/login');
+  const publicPaths = ['/login', '/reloj-checador', '/lanzador'];
+  const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
-  // Si el usuario no tiene token y no está en la página de login,
+  // Si el usuario TIENE token y trata de ir a la página de login,
+  // redirígelo al dashboard principal.
+  if (authToken && isLoginPage) {
+    return NextResponse.redirect(new URL('/empleados', request.url));
+  }
+
+  // Si el usuario NO tiene token y NO está en una ruta pública,
   // redirígelo a la página de login.
   if (!authToken && !isPublicPath) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Si el usuario TIENE token y trata de ir a la página de login,
-  // redirígelo al dashboard principal para evitar que inicie sesión de nuevo.
-  if (authToken && isPublicPath) {
-    return NextResponse.redirect(new URL('/empleados', request.url));
-  }
-
-  // Si ninguna de las condiciones anteriores se cumple, permite que la solicitud continúe.
+  // En cualquier otro caso, permite que la solicitud continúe.
   return NextResponse.next();
 }
 

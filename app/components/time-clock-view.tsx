@@ -24,9 +24,18 @@ import {
   CalendarX,
   ShieldAlert,
   Loader2,
+  Maximize,
+  Minimize,
+  RefreshCw,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   formatTime,
   getUserFriendlyMessage,
@@ -44,6 +53,7 @@ import type {
   JornadaEstadoDto,
   EstatusJornada,
 } from '../lib/types/timeClockTypes';
+import { Button } from '@/components/ui/button';
 
 /**
  * TurnoItem Component
@@ -557,9 +567,11 @@ const getTimeBoxColor = (
 export default function TimeClock({
   selectedReader,
   sessionId,
+  instanceId,
 }: {
   selectedReader: string;
   sessionId: string;
+  instanceId: string;
 }) {
   // ==== HOOKS / STATE ====
   // Estado relacionado con estado y resultado de escaneo
@@ -608,6 +620,39 @@ export default function TimeClock({
 
   // Nuevo estado para controlar qué turno está expandido
   const [expandedTurnoId, setExpandedTurnoId] = useState<number | null>(null);
+
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // Handlers for fullscreen and reload
+  const handleReload = () => {
+    window.location.reload();
+  };
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(
+          `Error attempting to enable full-screen mode: ${err.message} (${err.name})`
+        );
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    };
+  }, []);
 
   // API Base URL para las peticiones
   const API_BASE_URL =
@@ -901,6 +946,7 @@ export default function TimeClock({
   const { isConnected } = useStompTimeClock({
     initialReaderName: selectedReader,
     initialSessionId: sessionId,
+    instanceId: instanceId,
     onChecadorEvent: handleChecadorEventCallback,
     onConnectionError: handleConnectionError, // <-- Usa la función memoizada
     onReadyStateChange: handleReadyStateChange, // <-- Usa la función memoizada
@@ -1492,7 +1538,7 @@ export default function TimeClock({
           </div>
 
           {/* Controles de configuración - deshabilitar en modo real */}
-          <div className='flex gap-3'>
+          <div className='flex items-center gap-3'>
             <div className='flex items-center space-x-2 bg-zinc-800 p-2 rounded-lg'>
               <Switch
                 id='sound-toggle'
@@ -1501,7 +1547,7 @@ export default function TimeClock({
               />
               <label
                 htmlFor='sound-toggle'
-                className='text-sm text-zinc-400 flex items-center gap-1'
+                className='text-sm text-zinc-400 flex items-center gap-1 cursor-pointer'
               >
                 {soundEnabled ? (
                   <Volume2 className='h-4 w-4' />
@@ -1511,6 +1557,50 @@ export default function TimeClock({
                 Sonido
               </label>
             </div>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant='outline'
+                    size='icon'
+                    onClick={toggleFullScreen}
+                    className='bg-zinc-800 border-zinc-700 hover:bg-zinc-700'
+                  >
+                    {isFullScreen ? (
+                      <Minimize className='h-4 w-4' />
+                    ) : (
+                      <Maximize className='h-4 w-4' />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {isFullScreen
+                      ? 'Salir de pantalla completa'
+                      : 'Pantalla completa'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant='outline'
+                    size='icon'
+                    onClick={handleReload}
+                    className='bg-zinc-800 border-zinc-700 hover:bg-zinc-700'
+                  >
+                    <RefreshCw className='h-4 w-4' />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Recargar página</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             {/* Si estamos conectados, mostrar el nombre del lector */}
             {isConnected && (

@@ -13,9 +13,10 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Fingerprint } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -102,6 +103,14 @@ export default function LoginPage() {
             </Button>
           </form>
         </CardContent>
+        <CardFooter className='flex justify-center'>
+          <Link href='/lanzador'>
+            <Button variant='ghost' className='text-zinc-400 hover:text-white'>
+              <Fingerprint className='mr-2 h-4 w-4' />
+              Lanzar Reloj Checador
+            </Button>
+          </Link>
+        </CardFooter>
       </Card>
     </div>
   );

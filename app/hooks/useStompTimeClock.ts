@@ -12,6 +12,7 @@ import type {
 interface UseStompTimeClockProps {
   initialReaderName: string;
   initialSessionId: string;
+  instanceId: string;
   onChecadorEvent: (
     event: BackendChecadorEvent | FullAttendanceStateEvent
   ) => void;
@@ -23,6 +24,7 @@ interface UseStompTimeClockProps {
 const useStompTimeClock = ({
   initialReaderName,
   initialSessionId,
+  instanceId,
   onChecadorEvent,
   onConnectionError,
   onReadyStateChange,
@@ -32,8 +34,10 @@ const useStompTimeClock = ({
   const stompClientRef = useRef<Client | null>(null);
 
   useEffect(() => {
-    if (!initialReaderName || !initialSessionId) {
-      onConnectionError('Falta el nombre del lector o el ID de sesión.');
+    if (!initialReaderName || !initialSessionId || !instanceId) {
+      onConnectionError(
+        'Falta el nombre del lector, el ID de sesión o el instanceId.'
+      );
       return;
     }
 
@@ -42,6 +46,8 @@ const useStompTimeClock = ({
       connectHeaders: {
         'X-Browser-Session-ID': initialSessionId,
       },
+      heartbeatIncoming: 10000, // Espera un ping del servidor cada 10s
+      heartbeatOutgoing: 10000, // Envía un ping al servidor cada 10s
       reconnectDelay: 5000,
       onConnect: async () => {
         console.log('Conectado a WebSocket.');
@@ -49,24 +55,33 @@ const useStompTimeClock = ({
         onConnectionError(null);
 
         try {
-          // Reservar e iniciar el checador después de conectar
+          // Reservar e iniciar el checador después de conectar usando instanceId
           await apiClient.post(
-            `${apiBaseUrl}/api/v1/multi-fingerprint/reserve/${encodeURIComponent(initialReaderName)}`,
-            null,
-            { params: { sessionId: initialSessionId } }
+            `${apiBaseUrl}/api/v1/multi-fingerprint/reserve`,
+            {
+              readerId: initialReaderName,
+              instanceId: instanceId,
+            }
           );
-          console.log(`Lector ${initialReaderName} reservado.`);
+          console.log(
+            `Lector ${initialReaderName} reservado para instanceId ${instanceId}.`
+          );
 
           await apiClient.post(
-            `${apiBaseUrl}/api/v1/multi-fingerprint/checador/start/${encodeURIComponent(initialReaderName)}`,
-            null,
-            { params: { sessionId: initialSessionId } }
+            `${apiBaseUrl}/api/v1/multi-fingerprint/start-clock-mode`,
+            {
+              readerId: initialReaderName,
+              instanceId: instanceId,
+            }
           );
-          console.log(`Checador iniciado para ${initialReaderName}.`);
+          console.log(
+            `Checador iniciado para ${initialReaderName} con instanceId ${instanceId}.`
+          );
 
           onReadyStateChange(true);
 
-          const topic = `/topic/checador/${encodeURIComponent(initialReaderName)}`;
+          // Suscripción a tópico dinámico basado en instanceId
+          const topic = `/topic/fingerprint-events/${instanceId}`;
           client.subscribe(topic, (message) => {
             try {
               onChecadorEvent(JSON.parse(message.body));
@@ -102,9 +117,13 @@ const useStompTimeClock = ({
     stompClientRef.current = client;
 
     const releaseOnUnload = () => {
-      const url = `${apiBaseUrl}/api/v1/multi-fingerprint/release/${encodeURIComponent(initialReaderName)}?sessionId=${initialSessionId}`;
-      navigator.sendBeacon(url);
-      console.log(`Beacon enviado para liberar lector: ${initialReaderName}`);
+      const url = `${apiBaseUrl}/api/v1/multi-fingerprint/release`;
+      // Usar un Blob para asegurar que el Content-Type sea application/json
+      const data = new Blob([JSON.stringify({ instanceId: instanceId })], {
+        type: 'application/json',
+      });
+      navigator.sendBeacon(url, data);
+      console.log(`Beacon enviado para liberar instanceId: ${instanceId}`);
     };
 
     window.addEventListener('beforeunload', releaseOnUnload);
@@ -113,32 +132,37 @@ const useStompTimeClock = ({
       console.log('useStompTimeClock: Limpiando hook...');
       window.removeEventListener('beforeunload', releaseOnUnload);
 
-      const stopAndReleaseReader = async () => {
-        try {
-          await apiClient.post(
-            `${apiBaseUrl}/api/v1/multi-fingerprint/release/${encodeURIComponent(initialReaderName)}`,
-            null,
-            { params: { sessionId: initialSessionId } }
-          );
-          console.log(`Lector ${initialReaderName} liberado explícitamente.`);
-        } catch (error) {
-          console.warn(
-            'Advertencia al liberar el lector durante la limpieza:',
-            error
-          );
-        }
-      };
+      if (stompClientRef.current) {
+        const client = stompClientRef.current;
+        stompClientRef.current = null; // Evitar múltiples llamadas
 
-      stopAndReleaseReader().finally(() => {
-        if (stompClientRef.current?.active) {
-          stompClientRef.current.deactivate();
-          console.log('Cliente STOMP desactivado.');
-        }
-      });
+        const stopAndReleaseReader = async () => {
+          try {
+            await apiClient.post(
+              `${apiBaseUrl}/api/v1/multi-fingerprint/release`,
+              { instanceId: instanceId }
+            );
+            console.log(`InstanceId ${instanceId} liberado explícitamente.`);
+          } catch (error) {
+            console.warn(
+              'Advertencia al liberar el instanceId durante la limpieza:',
+              error
+            );
+          }
+        };
+
+        stopAndReleaseReader().finally(() => {
+          if (client.active) {
+            client.deactivate();
+            console.log('Cliente STOMP desactivado.');
+          }
+        });
+      }
     };
   }, [
     initialReaderName,
     initialSessionId,
+    instanceId,
     apiBaseUrl,
     onChecadorEvent,
     onConnectionError,
