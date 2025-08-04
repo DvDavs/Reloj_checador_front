@@ -6,6 +6,7 @@ import {
   HorarioAsignadoCreateDto,
 } from '@/app/horarios/asignados/registrar/types';
 import { AxiosError } from 'axios';
+import { adaptHorarioTemplates } from '@/lib/adapters/horario-adapter';
 
 export interface DepartamentoDto {
   clave: string;
@@ -39,7 +40,8 @@ export const getDepartamentos = async (): Promise<DepartamentoDto[]> => {
 export const getHorarioTemplates = async (): Promise<HorarioTemplateDTO[]> => {
   try {
     const response = await apiClient.get('/api/horarios');
-    return response.data;
+    // Adaptar los datos del backend al formato del frontend
+    return adaptHorarioTemplates(response.data);
   } catch (error) {
     throw new Error(getApiErrorMessage(error));
   }

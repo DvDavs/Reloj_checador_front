@@ -63,6 +63,7 @@ import { NewScheduleTemplateForm } from './components/NewScheduleTemplateForm';
 import { FilePlus2, List, Briefcase, Star, Clock4 } from 'lucide-react';
 import { CompletionStep } from './components/CompletionStep';
 import { WizardStepper } from '@/app/components/shared/wizard-stepper';
+import SchedulePreview from '@/app/components/shared/SchedulePreview';
 
 const wizardReducer = (
   state: WizardState,
@@ -238,24 +239,47 @@ function Step2_SelectSchedule({
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : (
-              <Select
-                value={state.selectedTemplateId?.toString()}
-                onValueChange={handleTemplateSelectChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='Seleccione una plantilla...' />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem
-                      key={template.id}
-                      value={template.id.toString()}
-                    >
-                      {template.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className='space-y-4'>
+                <Select
+                  value={state.selectedTemplateId?.toString()}
+                  onValueChange={handleTemplateSelectChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='Seleccione una plantilla...' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem
+                        key={template.id}
+                        value={template.id.toString()}
+                      >
+                        {template.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Schedule Preview */}
+                {state.selectedTemplateId && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {(() => {
+                      const selectedTemplate = templates.find(
+                        (t) => t.id === state.selectedTemplateId
+                      );
+                      return selectedTemplate ? (
+                        <SchedulePreview
+                          template={selectedTemplate}
+                          className='border-2 border-primary/20'
+                        />
+                      ) : null;
+                    })()}
+                  </motion.div>
+                )}
+              </div>
             )}
           </motion.div>
         )}
