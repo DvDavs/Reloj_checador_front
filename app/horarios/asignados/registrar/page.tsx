@@ -64,6 +64,7 @@ import { FilePlus2, List, Briefcase, Star, Clock4 } from 'lucide-react';
 import { CompletionStep } from './components/CompletionStep';
 import { WizardStepper } from '@/app/components/shared/wizard-stepper';
 import SchedulePreview from '@/app/components/shared/SchedulePreview';
+import { ErrorWithLinks } from '@/app/components/shared/error-with-links';
 
 const wizardReducer = (
   state: WizardState,
@@ -74,7 +75,15 @@ const wizardReducer = (
       return { ...state, step: action.payload };
 
     case 'SELECT_EMPLOYEE':
-      return { ...state, selectedEmployee: action.payload };
+      return {
+        ...state,
+        selectedEmployee: action.payload,
+        // Reset new schedule name when employee changes to trigger RFC preset
+        newScheduleData: {
+          ...state.newScheduleData,
+          nombre: '',
+        },
+      };
 
     case 'SET_SCHEDULE_SELECTION_TYPE':
       return {
@@ -295,6 +304,7 @@ function Step2_SelectSchedule({
             <NewScheduleTemplateForm
               scheduleData={state.newScheduleData}
               onDataChange={handleNewScheduleDataChange}
+              selectedEmployee={state.selectedEmployee}
             />
           </motion.div>
         )}
@@ -824,11 +834,22 @@ export default function ScheduleAssignmentWizardPage() {
       </div>
 
       {state.error && (
-        <Alert variant='destructive' className='mb-4 max-w-4xl mx-auto'>
-          <AlertCircle className='h-4 w-4' />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
+        <>
+          {state.error.includes(
+            'se solapa con las siguientes asignaciones activas'
+          ) ? (
+            <ErrorWithLinks
+              message={state.error}
+              className='mb-4 max-w-4xl mx-auto'
+            />
+          ) : (
+            <Alert variant='destructive' className='mb-4 max-w-4xl mx-auto'>
+              <AlertCircle className='h-4 w-4' />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{state.error}</AlertDescription>
+            </Alert>
+          )}
+        </>
       )}
 
       <div className='max-w-4xl mx-auto'>
