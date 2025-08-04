@@ -110,9 +110,6 @@ export default function EmpleadosPage() {
 
   const mapEmployeeToDisplay = useCallback(
     (emp: EmpleadoDto): EmployeeDisplayData => {
-      // --- CORRECCIÓN DE LÓGICA AQUÍ ---
-      // Muestra el nombre del departamento. Si no existe, muestra 'N/A'.
-      // Ya no usa 'nombramiento' como fallback en esta columna.
       const departamentoDisplay = emp.departamentoNombre || 'N/A';
 
       const estado = emp.estatusId === 1 ? 'Activo' : 'Inactivo';

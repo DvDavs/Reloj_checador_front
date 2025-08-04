@@ -109,13 +109,12 @@ export default function EditarEmpleadoPage() {
   };
 
   const handleSelectChange = (name: keyof EmpleadoFormData, value: string) => {
-    // --- CORRECCIÓN AQUÍ: Guardar "" en lugar de null para nombramientos ---
     const isNombramientoField =
       name === 'nombramiento' || name === 'tipoNombramientoSecundario';
     let finalValue: string | null = value;
 
     if (value === NONE_VALUE_SELECT) {
-      finalValue = isNombramientoField ? '' : null; // Nombramientos se van como "", deptos como null (o también "" si se prefiere)
+      finalValue = isNombramientoField ? '' : null;
     }
 
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
@@ -135,7 +134,6 @@ export default function EditarEmpleadoPage() {
         ? parseInt(formData.departamento, 10)
         : null,
       academia: formData.academia ? parseInt(formData.academia, 10) : null,
-      // Los nombramientos ya están como "" o un valor, que el backend manejará
     };
 
     const originalPayloadComparable = {
@@ -148,7 +146,6 @@ export default function EditarEmpleadoPage() {
         : null,
     };
 
-    // Compara el payload a enviar con los datos originales (también convertidos)
     const hasChanges =
       JSON.stringify(payload) !== JSON.stringify(originalPayloadComparable);
 

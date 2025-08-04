@@ -80,7 +80,6 @@ export default function RegistrarEmpleadoPage() {
   };
 
   const handleSelectChange = (name: keyof typeof formData, value: string) => {
-    // --- CORRECCIÓN AQUÍ: Guardar "" en lugar de null ---
     const finalValue = value === NONE_VALUE_SELECT ? '' : value;
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
     setError(null);
@@ -96,7 +95,7 @@ export default function RegistrarEmpleadoPage() {
         ? parseInt(formData.departamento, 10)
         : null,
       academia: formData.academia ? parseInt(formData.academia, 10) : null,
-      nombramiento: formData.nombramiento || null, // Asegurar que se envíe null si está vacío
+      nombramiento: formData.nombramiento || null,
       tipoNombramientoSecundario: formData.tipoNombramientoSecundario || null,
     };
     if (

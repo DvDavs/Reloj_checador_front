@@ -363,7 +363,6 @@ export function EmployeeDetailsModal({
         </DialogContent>
       </Dialog>
 
-      {/* Diálogos de acción y confirmación */}
       <AlertDialog open={showFingerActions} onOpenChange={setShowFingerActions}>
         <AlertDialogContent className='bg-zinc-900 border-zinc-800 text-white'>
           <AlertDialogHeader>

@@ -14,7 +14,6 @@ import { apiClient } from '@/lib/apiClient';
 import SockJS from 'sockjs-client';
 import { Client, type IMessage, type StompSubscription } from '@stomp/stompjs';
 
-// Imports UI Shadcn
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -46,7 +45,6 @@ import {
   CommandList,
 } from '@/components/ui/command';
 
-// Iconos
 import {
   ArrowLeft,
   ArrowRight,
@@ -60,23 +58,15 @@ import {
   Search,
 } from 'lucide-react';
 
-// Animaciones
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Librería local (ejemplo) para obtener sessionId de navegador
 import { getBrowserSessionId } from '@/lib/sessionId';
 
-// Import the new HandSelector component
 import { HandSelector, fingerIndexToName } from './components/hand-selector';
 import { WizardStepper } from '@/app/components/shared/wizard-stepper';
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
 import { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
 
-//
-// --------------------- Tipos y Constantes ---------------------
-//
-
-// Tipos para lectores
 type ScannerStatus =
   | 'online'
   | 'offline'
@@ -90,21 +80,18 @@ interface FingerprintScanner {
   status: ScannerStatus;
 }
 
-// Respuesta de enrolamiento
 interface EnrollmentResponse {
   complete: boolean;
   remaining?: number;
   template?: string;
 }
 
-// Info de huella ya registrada en el backend
 interface HuellaInfo {
   id: number;
   nombreDedo: string | null;
   uuid?: string;
 }
 
-// Estado de la captura (proceso)
 type CaptureStepState =
   | 'idle'
   | 'initializing'
@@ -121,16 +108,11 @@ type CaptureStepState =
   | 'save_failed'
   | 'error';
 
-//
-// Constantes
-//
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
-// A cuántas "capturas" se deben realizar para registrar la huella
 const ENROLLMENT_STEPS_NEEDED = 4;
 
-// Mapeos dedo <-> índice
 const fingerNameToIndex: Record<string, number> = {
   'PULGAR DERECHO': 1,
   'ÍNDICE DERECHO': 2,
@@ -152,45 +134,29 @@ function AsignarHuellaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  //
-  // -------- Estados generales y Stepper --------
-  //
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [browserSessionId, setBrowserSessionId] = useState('');
 
-  //
-  // -------- Empleado --------
-  //
   const [selectedEmployee, setSelectedEmployee] =
     useState<EmpleadoSimpleDTO | null>(null);
 
-  // Para el combobox de empleados:
   const [employeeSearchValue, setEmployeeSearchValue] = useState('');
   const [employeesFound, setEmployeesFound] = useState<EmpleadoSimpleDTO[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [openEmployeePopover, setOpenEmployeePopover] = useState(false);
 
-  //
-  // -------- Lectores de huella --------
-  //
   const [availableReaders, setAvailableReaders] = useState<
     FingerprintScanner[]
   >([]);
   const [selectedScanner, setSelectedScanner] = useState<string | null>(null);
 
-  //
-  // -------- Dedo seleccionado y huellas existentes --------
-  //
   const [selectedFinger, setSelectedFinger] = useState<number | null>(null);
   const [existingHuellas, setExistingHuellas] = useState<HuellaInfo[]>([]);
   const [registeredThisSessionIndices, setRegisteredThisSessionIndices] =
     useState<number[]>([]);
 
-  //
-  // -------- Proceso de captura / enrolamiento --------
-  //
   const [captureState, setCaptureState] = useState<CaptureStepState>('idle');
   const [captureProgress, setCaptureProgress] = useState(0);
   const [captureFeedbackMsg, setCaptureFeedbackMsg] = useState<string>('');
@@ -203,25 +169,17 @@ function AsignarHuellaContent() {
     null
   );
 
-  // Para mostrar la imagen en vivo de la huella
   const [lastCapturedImage, setLastCapturedImage] = useState<string | null>(
     null
   );
 
-  // Para STOMP/WebSocket
   const stompClient = useRef<Client | null>(null);
   const imageSubscription = useRef<StompSubscription | null>(null);
   const isUnmounting = useRef(false);
   const currentEnrollmentAttemptId = useRef<string | null>(null);
 
-  //
-  // --------------------- Funciones de API ---------------------
-  //
-
-  // Buscar empleados por texto
   const searchEmployees = useCallback(async (query: string) => {
     if (query.trim().length < 2 && query.trim().length !== 0) {
-      // No buscar si es muy corto, pero sí si está vacío
       setEmployeesFound([]);
       return;
     }
@@ -232,7 +190,7 @@ function AsignarHuellaContent() {
     try {
       const endpoint = query.trim()
         ? `${API_BASE_URL}/api/empleados?search=${encodeURIComponent(query)}`
-        : `${API_BASE_URL}/api/empleados`; // Endpoint para obtener todos
+        : `${API_BASE_URL}/api/empleados`;
 
       const response = await apiClient.get(endpoint);
 
@@ -283,11 +241,6 @@ function AsignarHuellaContent() {
     }
   }, []);
 
-  //
-  // --------------------- Funciones ---------------------
-  //
-
-  // Carga huellas existentes
   const fetchExistingHuellas = useCallback(async (empId: number) => {
     setIsLoading(true);
     try {
@@ -304,7 +257,6 @@ function AsignarHuellaContent() {
     }
   }, []);
 
-  // Resetea el proceso de captura (pero no cambia de lector ni libera)
   const resetCaptureProcess = useCallback(
     (preserveFingerSelection = false) => {
       console.log('[DEBUG] resetCaptureProcess called:', {
@@ -320,7 +272,6 @@ function AsignarHuellaContent() {
         timestamp: new Date().toISOString(),
       });
 
-      // Validate current state before reset
       if (captureState !== 'idle' && captureState !== 'error') {
         console.log(
           '[DEBUG] State validation: Resetting non-idle capture state:',
@@ -369,19 +320,16 @@ function AsignarHuellaContent() {
     ]
   );
 
-  // Carga lista de lectores (y su estado)
   const fetchAvailableReaders = useCallback(async () => {
     if (!browserSessionId) return;
     setIsLoading(true);
     setGeneralError(null);
     try {
-      // Llamada que obtiene TODOS los lectores (incluyendo reservados)
       const allReadersResponse = await apiClient.get<string[]>(
         `${API_BASE_URL}/api/v1/multi-fingerprint/auto-select`
       );
       const allReaderNames = allReadersResponse.data || [];
 
-      // Llamada que obtiene solamente los disponibles
       const availableResponse = await apiClient.get<string[]>(
         `${API_BASE_URL}/api/v1/multi-fingerprint/readers`
       );
@@ -402,7 +350,6 @@ function AsignarHuellaContent() {
 
       setAvailableReaders(readersWithStatus);
 
-      // Validar lector actual si cambió el estado
       const stillValid = readersWithStatus.some(
         (r) =>
           r.name === currentSelected &&
@@ -427,7 +374,6 @@ function AsignarHuellaContent() {
     }
   }, [browserSessionId, selectedScanner]);
 
-  // Reservar un lector
   const reserveReaderApiCall = useCallback(
     async (readerName: string, sessionId: string): Promise<boolean> => {
       try {
@@ -457,7 +403,6 @@ function AsignarHuellaContent() {
     [fetchAvailableReaders]
   );
 
-  // Liberar un lector
   const releaseReaderApiCall = useCallback(
     async (readerName: string, sessionId: string) => {
       try {
@@ -479,7 +424,6 @@ function AsignarHuellaContent() {
         }
       } catch (error) {
         console.warn(`No se pudo liberar lector ${readerName}:`, error);
-        // Forzamos a asumirlo liberado
         setAvailableReaders((prev) =>
           prev.map((r) =>
             r.name === readerName ? { ...r, status: 'online' } : r
@@ -493,7 +437,6 @@ function AsignarHuellaContent() {
     [selectedScanner]
   );
 
-  // Al cambiar el lector en el Select
   const handleSelectReaderChange = (newReaderName: string) => {
     if (isLoading || newReaderName === selectedScanner) return;
     const prev = selectedScanner;
@@ -506,13 +449,11 @@ function AsignarHuellaContent() {
     }
     setSelectedScanner(newReaderName);
     resetCaptureProcess();
-    // Liberamos el anterior
     if (prev && browserSessionId) {
       releaseReaderApiCall(prev, browserSessionId);
     }
   };
 
-  // Seleccionar dedo (resetear proceso de captura anterior)
   const handleFingerSelectChange = useCallback(
     (fingerIndex: number | null) => {
       console.log('[DEBUG] handleFingerSelectChange called:', {
@@ -522,8 +463,6 @@ function AsignarHuellaContent() {
         timestamp: new Date().toISOString(),
       });
 
-      // Always reset capture state when finger selection changes
-      // This ensures proper cleanup of any previous capture attempts
       resetCaptureProcess();
       setSelectedFinger(fingerIndex);
       setCaptureError(null);
@@ -568,11 +507,6 @@ function AsignarHuellaContent() {
     ]
   );
 
-  //
-  // --------------------- Lógica de enrolamiento/captura ---------------------
-  //
-
-  // Iniciar el proceso
   const initiateEnrollmentProcess = useCallback(async () => {
     if (
       !selectedScanner ||
@@ -592,7 +526,6 @@ function AsignarHuellaContent() {
 
     const ok = await reserveReaderApiCall(selectedScanner, browserSessionId);
     if (currentEnrollmentAttemptId.current !== attemptId || !ok) {
-      // Cancelado u obsoleto
       setIsLoading(false);
       if (captureState === ('reserving' as CaptureStepState))
         setCaptureState('idle');
@@ -610,7 +543,6 @@ function AsignarHuellaContent() {
       const enrollId = resp.data.sessionId;
       if (!enrollId) throw new Error('El backend no devolvió sessionId.');
       if (currentEnrollmentAttemptId.current !== attemptId) {
-        // obsoleto
         releaseReaderApiCall(selectedScanner, browserSessionId);
         setIsLoading(false);
         setCaptureState('idle');
@@ -640,7 +572,6 @@ function AsignarHuellaContent() {
     releaseReaderApiCall,
   ]);
 
-  // Guardar huella en backend
   const saveFingerprint = useCallback(
     async (templateBase64: string) => {
       if (!selectedEmployee || selectedFinger === null) return;
@@ -677,7 +608,6 @@ function AsignarHuellaContent() {
           setFinalTemplateBase64(null);
           setEnrollmentSessionId(null);
           currentEnrollmentAttemptId.current = null;
-          // Pasamos al step 5 después de un breve delay
           setTimeout(() => {
             if (captureState === 'save_success') {
               setCurrentStep(5);
@@ -708,7 +638,6 @@ function AsignarHuellaContent() {
     ]
   );
 
-  // Capturar un paso
   const handleCapture = useCallback(async () => {
     if (
       captureState !== 'ready_to_capture' ||
@@ -737,7 +666,6 @@ function AsignarHuellaContent() {
       );
       const data = response.data;
       if (currentEnrollmentAttemptId.current !== attemptId) {
-        // obsoleto
         setIsLoading(false);
         return;
       }
@@ -745,7 +673,6 @@ function AsignarHuellaContent() {
       setCaptureProgress(nextProgress);
 
       if (data.complete && data.template) {
-        // completado
         setCaptureState('enroll_complete');
         setCaptureFeedbackMsg('¡Captura completa! Guardando huella...');
         setFinalTemplateBase64(data.template);
@@ -823,16 +750,12 @@ function AsignarHuellaContent() {
     saveFingerprint,
   ]);
 
-  // Reintentar guardado
   const handleRetrySave = () => {
     if (captureState === 'save_failed' && finalTemplateBase64) {
       saveFingerprint(finalTemplateBase64);
     }
   };
 
-  //
-  // --------------------- WebSocket para Imágenes en Vivo ---------------------
-  //
   const connectWebSocketForImages = useCallback(() => {
     if (!selectedScanner || !browserSessionId || stompClient.current?.active) {
       return;
@@ -908,11 +831,6 @@ function AsignarHuellaContent() {
     setLastCapturedImage(null);
   }, []);
 
-  //
-  // --------------------- UseEffects ---------------------
-  //
-
-  // 1) Al montar, obtener sessionID e intentar ver si tenemos "id" y "nombre" por searchParams
   useEffect(() => {
     isUnmounting.current = false;
     const sid = getBrowserSessionId();
@@ -926,16 +844,13 @@ function AsignarHuellaContent() {
     }
 
     if (empIdStr && empName && validId) {
-      // Ya viene un empleado por URL
       setSelectedEmployee({
         id: Number.parseInt(empIdStr, 10),
         nombreCompleto: empName,
       });
       setCurrentStep(2);
-      // Cargar huellas existentes
       fetchExistingHuellas(Number.parseInt(empIdStr, 10));
     } else {
-      // Mostramos Step 1 (buscar/seleccionar) si no hay data en URL
       fetchInitialEmployees();
       setCurrentStep(1);
     }
@@ -946,8 +861,6 @@ function AsignarHuellaContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2) Si (ya) tenemos un empleado seleccionado, cargar sus huellas
-  //    Se hace al montar cuando viene ID en URL, o al elegir en combobox
   useEffect(() => {
     if (selectedEmployee) {
       const numericId = selectedEmployee.id;
@@ -955,14 +868,12 @@ function AsignarHuellaContent() {
     }
   }, [selectedEmployee, fetchExistingHuellas]);
 
-  // 3) Cargar lectores cuando estemos en Step >= 2
   useEffect(() => {
     if (currentStep >= 2 && browserSessionId) {
       fetchAvailableReaders();
     }
   }, [currentStep, browserSessionId, fetchAvailableReaders]);
 
-  // 4) Conectar WebSocket para imágenes cuando tengamos un lector
   useEffect(() => {
     if (selectedScanner && browserSessionId) {
       connectWebSocketForImages();
@@ -972,7 +883,6 @@ function AsignarHuellaContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedScanner, browserSessionId]);
 
-  // 5) Iniciar el proceso de enrolamiento al llegar a Step 4
   useEffect(() => {
     console.log('[DEBUG] Enrollment useEffect triggered:', {
       currentStep,
@@ -1032,10 +942,6 @@ function AsignarHuellaContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, selectedScanner, selectedFinger, captureState]);
 
-  //
-  // --------------------- Navegación de Pasos ---------------------
-  //
-
   const goToNextStep = () => {
     console.log('[DEBUG] goToNextStep called:', {
       currentStep,
@@ -1048,7 +954,6 @@ function AsignarHuellaContent() {
 
     setGeneralError(null);
 
-    // Validaciones
     if (currentStep === 1) {
       if (!selectedEmployee) {
         console.log('[DEBUG] Step 1 validation failed: No employee selected');
@@ -1089,7 +994,6 @@ function AsignarHuellaContent() {
         captureState !== 'enroll_complete' &&
         captureState !== 'save_failed'
       ) {
-        // No terminó
         console.log('[DEBUG] Step 4 validation failed: Capture not complete', {
           captureState,
           requiredStates: ['save_success', 'enroll_complete', 'save_failed'],
@@ -1099,8 +1003,6 @@ function AsignarHuellaContent() {
         );
         return;
       }
-      // Si fue "save_success" -> ok
-      // Si fue "save_failed" -> quizás permitir forzar?
       console.log(
         '[DEBUG] Step 4 → 5: Capture complete, proceeding to success'
       );
@@ -1130,12 +1032,10 @@ function AsignarHuellaContent() {
     const newStep = currentStep - 1;
 
     if (currentStep === 2) {
-      // Volver a Step1 no libera lector porque no hay lector en step1
       console.log('[DEBUG] Step 2 → 1: Going back to employee selection');
     }
 
     if (currentStep === 3) {
-      // Quitar dedo
       console.log(
         '[DEBUG] Step 3 → 2: Clearing finger selection and resetting capture'
       );
@@ -1144,13 +1044,11 @@ function AsignarHuellaContent() {
     }
 
     if (currentStep === 4) {
-      // Cancelar la captura y resetear completamente.
-      // Volver al paso 2 (selección de lector).
       console.log(
         '[DEBUG] Step 4 → 2: Releasing scanner and going back to reader selection'
       );
 
-      resetCaptureProcess(false); // false = no preservar seleccion de dedo
+      resetCaptureProcess(false);
       setCaptureError(null);
       setCaptureFeedbackMsg('');
       setSelectedFinger(null); // Limpiar dedo seleccionado
@@ -1160,20 +1058,18 @@ function AsignarHuellaContent() {
         releaseReaderApiCall(selectedScanner, browserSessionId);
       }
 
-      // Establecer el paso directamente a 2 y salir
       setCurrentStep(2);
-      return; // Salir para evitar que se ejecute la lógica de abajo
+      return;
     }
 
     if (currentStep === 5) {
-      // Ir a step 2 para registrar otro dedo o cambiar lector
       console.log(
         '[DEBUG] Step 5 → 2: Going back to reader selection for another registration'
       );
       setCurrentStep(2);
       resetCaptureProcess();
       setSelectedFinger(null);
-      return; // Return early para no ejecutar setCurrentStep(newStep)
+      return;
     }
 
     console.log('[DEBUG] Setting step from', currentStep, 'to', newStep);
@@ -1181,7 +1077,6 @@ function AsignarHuellaContent() {
   };
 
   const handleFinish = () => {
-    // Liberar lector (si está en "reserved_this")
     if (selectedScanner && browserSessionId) {
       releaseReaderApiCall(selectedScanner, browserSessionId);
     }
@@ -1194,14 +1089,7 @@ function AsignarHuellaContent() {
     setSelectedFinger(null);
   };
 
-  //
-  // --------------------- Render UI por Paso (Diseño V2) ---------------------
-  //
-
   const renderStepContent = () => {
-    //
-    // ---- Paso 1: Selección de Empleado (combobox) ----
-    //
     if (currentStep === 1) {
       return (
         <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>
@@ -1259,9 +1147,6 @@ function AsignarHuellaContent() {
       );
     }
 
-    //
-    // ---- Paso 2: Selección de Lector ----
-    //
     if (currentStep === 2) {
       return (
         <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>
@@ -1358,9 +1243,6 @@ function AsignarHuellaContent() {
       );
     }
 
-    //
-    // ---- Paso 3: Selección de Dedo ----
-    //
     if (currentStep === 3) {
       return (
         <Card className='max-w-4xl mx-auto bg-zinc-900 border-zinc-800'>
@@ -1437,9 +1319,6 @@ function AsignarHuellaContent() {
       );
     }
 
-    //
-    // ---- Paso 4: Captura de Huella ----
-    //
     if (currentStep === 4) {
       return (
         <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
@@ -1469,7 +1348,6 @@ function AsignarHuellaContent() {
                   </div>
                 </div>
 
-                {/* Progreso de las capturas */}
                 <div>
                   <h3 className='text-lg font-medium mb-3'>Progreso</h3>
                   <div className='flex justify-between items-center gap-2'>
@@ -1498,7 +1376,6 @@ function AsignarHuellaContent() {
                   </div>
                 </div>
 
-                {/* Mensajes de feedback - Más prominente */}
                 <div className='min-h-[4rem] p-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-2 border-blue-500/30 rounded-lg text-center flex items-center justify-center'>
                   {captureError ? (
                     <div className='flex items-center gap-2'>
@@ -1575,9 +1452,7 @@ function AsignarHuellaContent() {
               <CardDescription>Lector: {selectedScanner}</CardDescription>
             </CardHeader>
             <CardContent className='flex flex-col items-center justify-center py-8'>
-              {/* Visualización de la huella */}
               <div className='relative mb-6 flex h-64 w-64 items-center justify-center'>
-                {/* Base de huella - siempre visible */}
                 <svg
                   className='absolute h-56 w-56'
                   viewBox='0 0 100 100'
@@ -1609,7 +1484,6 @@ function AsignarHuellaContent() {
                   </g>
                 </svg>
 
-                {/* Estado Idle - círculo pulsante */}
                 {(captureState === 'idle' ||
                   captureState === 'ready_to_capture') && (
                   <>
@@ -1641,7 +1515,6 @@ function AsignarHuellaContent() {
                   </>
                 )}
 
-                {/* Estado de escaneo */}
                 {captureState === 'capturing' && (
                   <>
                     <motion.div
@@ -1674,7 +1547,6 @@ function AsignarHuellaContent() {
                   </>
                 )}
 
-                {/* Estado de éxito */}
                 {(captureState === 'capture_success' ||
                   captureState === 'save_success' ||
                   captureState === 'enroll_complete') && (
@@ -1692,7 +1564,6 @@ function AsignarHuellaContent() {
                   </motion.div>
                 )}
 
-                {/* Estado de fallo */}
                 {(captureState === 'capture_failed' ||
                   captureState === 'save_failed' ||
                   captureState === 'error') && (
@@ -1710,7 +1581,6 @@ function AsignarHuellaContent() {
                   </motion.div>
                 )}
 
-                {/* Mostrar imagen capturada si está disponible */}
                 {lastCapturedImage && (
                   <motion.div
                     className='absolute inset-0 flex items-center justify-center'
@@ -1747,7 +1617,6 @@ function AsignarHuellaContent() {
                 </p>
               </div>
 
-              {/* Botones según el estado */}
               {captureState === 'save_success' ||
               captureState === 'enroll_complete' ? (
                 <div className='flex flex-col gap-3 items-center'>
@@ -1800,9 +1669,6 @@ function AsignarHuellaContent() {
       );
     }
 
-    //
-    // ---- Paso 5: Confirmación / Éxito ----
-    //
     if (currentStep === 5) {
       return (
         <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>

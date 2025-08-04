@@ -10,10 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getDepartamentos, DepartamentoDto } from '@/lib/api/schedule-api'; // Asumimos que esto existe
+import { getDepartamentos, DepartamentoDto } from '@/lib/api/schedule-api';
 import { Loader2 } from 'lucide-react';
 
-// La interfaz ahora usa `string | null` para depto y academia, ya que la clave se manejará como string en el estado.
 interface EmployeeFormData {
   primerNombre?: string | null;
   segundoNombre?: string | null;
@@ -23,8 +22,8 @@ interface EmployeeFormData {
   curp?: string | null;
   tarjeta?: number | null;
   nombramiento?: string | null;
-  departamento?: string | null; // La clave se manejará como string en el estado del form
-  academia?: string | null; // La clave se manejará como string en el estado del form
+  departamento?: string | null;
+  academia?: string | null;
   tipoNombramientoSecundario?: string | null;
 }
 
@@ -56,7 +55,7 @@ export function EmployeeForm({
       try {
         setIsLoadingCatalog(true);
         setCatalogError(null);
-        const data = await getDepartamentos(); // Llama a la API para obtener el catálogo
+        const data = await getDepartamentos();
         setDepartamentoOptions(data);
       } catch (error) {
         console.error('Error al cargar el catálogo de departamentos:', error);
@@ -71,7 +70,6 @@ export function EmployeeForm({
 
   return (
     <div className='space-y-6'>
-      {/* Nombres y Apellidos (sin cambios) */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='primerNombre'>
@@ -123,7 +121,6 @@ export function EmployeeForm({
         </div>
       </div>
 
-      {/* RFC, CURP y Tarjeta (sin cambios) */}
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='rfc'>
@@ -171,7 +168,6 @@ export function EmployeeForm({
         </div>
       </div>
 
-      {/* Nombramientos (sin cambios) */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='nombramiento'>Nombramiento</Label>
@@ -217,7 +213,6 @@ export function EmployeeForm({
         </div>
       </div>
 
-      {/* Departamentos / Academias (CORREGIDO) */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='departamento'>Departamento</Label>
