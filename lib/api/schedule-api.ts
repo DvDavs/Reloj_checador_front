@@ -6,10 +6,22 @@ import {
   HorarioAsignadoCreateDto,
 } from '@/app/horarios/asignados/registrar/types';
 import { AxiosError } from 'axios';
+import { adaptHorarioTemplates } from '@/lib/adapters/horario-adapter';
 
 export interface DepartamentoDto {
   clave: string;
   nombre: string;
+}
+
+export interface EmpleadoDto {
+  id: number;
+  nombreCompleto: string;
+  rfc: string;
+  numeroEmpleado: string;
+  departamento?: {
+    clave: string;
+    nombre: string;
+  };
 }
 
 export const getApiErrorMessage = (error: unknown): string => {
@@ -39,7 +51,8 @@ export const getDepartamentos = async (): Promise<DepartamentoDto[]> => {
 export const getHorarioTemplates = async (): Promise<HorarioTemplateDTO[]> => {
   try {
     const response = await apiClient.get('/api/horarios');
-    return response.data;
+    // Adaptar los datos del backend al formato del frontend
+    return adaptHorarioTemplates(response.data);
   } catch (error) {
     throw new Error(getApiErrorMessage(error));
   }
@@ -98,6 +111,19 @@ export const updateHorarioAsignado = async (
     const response = await apiClient.put(
       `/api/horarios-asignados/${id}`,
       assignmentData
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error));
+  }
+};
+
+export const getEmpleadosAsignados = async (
+  horarioId: number
+): Promise<EmpleadoDto[]> => {
+  try {
+    const response = await apiClient.get(
+      `/api/horarios/${horarioId}/empleados`
     );
     return response.data;
   } catch (error) {

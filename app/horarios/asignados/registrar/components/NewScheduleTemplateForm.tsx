@@ -10,12 +10,13 @@ import InteractiveWeeklySchedule, {
   WeeklySchedule,
   DayOfWeek,
 } from '@/app/components/shared/WeeklyScheduleGrid';
-import { NewScheduleData } from '../types';
+import { NewScheduleData, EmpleadoSimpleDTO } from '../types';
 import { AlertCircle, Clock, ClipboardCheck } from 'lucide-react';
 
 interface NewScheduleTemplateFormProps {
   scheduleData: NewScheduleData;
   onDataChange: (data: Partial<NewScheduleData>) => void;
+  selectedEmployee?: EmpleadoSimpleDTO | null;
 }
 
 const detallesToWeeklySchedule = (detalles: any[]): WeeklySchedule => {
@@ -58,6 +59,7 @@ const weeklyScheduleToDetalles = (schedule: WeeklySchedule): any[] => {
 export function NewScheduleTemplateForm({
   scheduleData,
   onDataChange,
+  selectedEmployee,
 }: NewScheduleTemplateFormProps) {
   const isNameValid = scheduleData.nombre.trim().length > 0;
   const hasDetails = scheduleData.detalles.length > 0;
@@ -65,6 +67,20 @@ export function NewScheduleTemplateForm({
   const [weeklySchedule, setWeeklySchedule] = React.useState<WeeklySchedule>(
     detallesToWeeklySchedule(scheduleData.detalles)
   );
+
+  // Preset the schedule name with employee's RFC when component mounts or employee changes
+  React.useEffect(() => {
+    if (selectedEmployee?.rfc) {
+      // Only preset if the field is empty or contains a previous RFC preset format
+      const currentName = scheduleData.nombre.trim();
+      const isEmptyOrPreset =
+        currentName === '' || /^[A-Z0-9]+ - (\s*)$/.test(currentName);
+
+      if (isEmptyOrPreset) {
+        onDataChange({ nombre: `${selectedEmployee.rfc} - ` });
+      }
+    }
+  }, [selectedEmployee?.rfc, scheduleData.nombre, onDataChange]);
 
   React.useEffect(() => {
     setWeeklySchedule(detallesToWeeklySchedule(scheduleData.detalles));
@@ -110,7 +126,11 @@ export function NewScheduleTemplateForm({
             </div>
             <Input
               id='templateName'
-              placeholder='Ej: Turno de Fin de Semana'
+              placeholder={
+                selectedEmployee?.rfc
+                  ? `Se preseteará con: ${selectedEmployee.rfc} - `
+                  : 'Ej: Turno de Fin de Semana'
+              }
               value={scheduleData.nombre}
               onChange={(e) => onDataChange({ nombre: e.target.value })}
               className={
@@ -119,6 +139,12 @@ export function NewScheduleTemplateForm({
                   : ''
               }
             />
+            {selectedEmployee?.rfc && (
+              <p className='text-xs text-muted-foreground mt-1'>
+                💡 Se presetea automáticamente con el RFC del empleado para
+                evitar nombres duplicados. Puedes editarlo libremente.
+              </p>
+            )}
           </div>
           <div className='space-y-2'>
             <Label htmlFor='templateDesc' className='text-sm font-medium'>

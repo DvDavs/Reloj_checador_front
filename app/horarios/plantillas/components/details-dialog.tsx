@@ -9,12 +9,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { HorarioDto, detallesToWeeklySchedule } from '../types';
+import { HorarioDto } from '../types';
 import { LoadingState } from '@/app/components/shared/loading-state';
 import { ErrorState } from '@/app/components/shared/error-state';
-import { ScheduleDisplay } from './schedule-display';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import SchedulePreview from '@/app/components/shared/SchedulePreview';
+import { adaptHorarioTemplate } from '@/lib/adapters/horario-adapter';
+import { Calendar, User, Clock, Tag } from 'lucide-react';
 
 interface DetailsDialogProps {
   isOpen: boolean;
@@ -65,9 +67,9 @@ export function DetailsDialog({
     }
   }, [isOpen, templateId]);
 
-  const schedule = useMemo(() => {
-    if (!template) return {};
-    return detallesToWeeklySchedule(template.detalles);
+  const adaptedTemplate = useMemo(() => {
+    if (!template) return null;
+    return adaptHorarioTemplate(template as any);
   }, [template]);
 
   const renderContent = () => {
@@ -84,28 +86,97 @@ export function DetailsDialog({
       );
     }
 
-    if (template) {
+    if (template && adaptedTemplate) {
       return (
-        <div className='w-full'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
-            <div>
-              <p className='text-sm font-medium text-muted-foreground'>
-                Descripción
-              </p>
-              <p>{template.descripcion || 'N/A'}</p>
+        <div className='space-y-6'>
+          {/* Header Information */}
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+            <div className='space-y-4'>
+              <h3 className='text-lg font-semibold flex items-center gap-2'>
+                <Tag className='h-5 w-5 text-primary' />
+                Información General
+              </h3>
+              <div className='space-y-3'>
+                <div>
+                  <p className='text-sm font-medium text-muted-foreground'>
+                    ID
+                  </p>
+                  <p className='font-mono'>{template.id}</p>
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-muted-foreground'>
+                    Estado
+                  </p>
+                  <Badge variant={template.activo ? 'default' : 'secondary'}>
+                    {template.activo ? 'Activo' : 'Inactivo'}
+                  </Badge>
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-muted-foreground'>
+                    Tipo
+                  </p>
+                  <Badge
+                    variant={template.esHorarioJefe ? 'outline' : 'secondary'}
+                  >
+                    {template.esHorarioJefe
+                      ? 'Horario Jefe'
+                      : 'Horario Regular'}
+                  </Badge>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className='text-sm font-medium text-muted-foreground'>
-                Tipo de Horario
-              </p>
-              <Badge variant={template.esHorarioJefe ? 'outline' : 'secondary'}>
-                {template.esHorarioJefe ? 'Jefe' : 'Regular'}
-              </Badge>
+
+            <div className='space-y-4'>
+              <h3 className='text-lg font-semibold flex items-center gap-2'>
+                <Clock className='h-5 w-5 text-primary' />
+                Estadísticas
+              </h3>
+              <div className='space-y-3'>
+                <div>
+                  <p className='text-sm font-medium text-muted-foreground'>
+                    Días laborales
+                  </p>
+                  <p className='text-lg font-semibold'>
+                    {new Set(template.detalles.map((d) => d.diaSemana)).size}{' '}
+                    días
+                  </p>
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-muted-foreground'>
+                    Total turnos
+                  </p>
+                  <p className='text-lg font-semibold'>
+                    {template.detalles.length} turnos
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className='space-y-4'>
+              <h3 className='text-lg font-semibold flex items-center gap-2'>
+                <User className='h-5 w-5 text-primary' />
+                Descripción
+              </h3>
+              <div className='p-3 bg-muted/50 rounded-md'>
+                <p className='text-sm'>
+                  {template.descripcion || 'Sin descripción disponible'}
+                </p>
+              </div>
             </div>
           </div>
+
           <Separator />
-          <div className='mt-4'>
-            <ScheduleDisplay schedule={schedule} />
+
+          {/* Schedule Preview */}
+          <div className='space-y-4'>
+            <h3 className='text-lg font-semibold flex items-center gap-2'>
+              <Calendar className='h-5 w-5 text-primary' />
+              Vista Previa del Horario
+            </h3>
+            <SchedulePreview
+              template={adaptedTemplate}
+              className='border-2 border-primary/20'
+            />
           </div>
         </div>
       );
@@ -116,23 +187,20 @@ export function DetailsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-4xl'>
+      <DialogContent className='sm:max-w-6xl max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
-          <DialogTitle>
-            {template
-              ? `Detalles de: ${template.nombre}`
-              : 'Detalles de la Plantilla'}
+          <DialogTitle className='text-2xl font-bold flex items-center gap-2'>
+            <Calendar className='h-6 w-6' />
+            {template ? `${template.nombre}` : 'Detalles de la Plantilla'}
           </DialogTitle>
           <DialogDescription>
             {template
-              ? `ID: ${template.id} - Estado: ${template.activo ? 'Activo' : 'Inactivo'}`
+              ? `Plantilla de horario - ID: ${template.id}`
               : 'Cargando información de la plantilla...'}
           </DialogDescription>
         </DialogHeader>
         <Separator />
-        <div className='py-4 min-h-[200px] flex items-center justify-center'>
-          {renderContent()}
-        </div>
+        <div className='py-4'>{renderContent()}</div>
       </DialogContent>
     </Dialog>
   );

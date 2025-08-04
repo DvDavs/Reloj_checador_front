@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { HorarioAsignadoDto } from './types';
@@ -35,6 +35,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function HorariosAsignadosPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   // Data state
@@ -99,6 +100,23 @@ export default function HorariosAsignadosPage() {
   useEffect(() => {
     fetchHorariosAsignados();
   }, [fetchHorariosAsignados]);
+
+  // Handle highlight parameter to auto-open details modal
+  useEffect(() => {
+    const highlightId = searchParams.get('highlight');
+    if (highlightId && allHorarios.length > 0 && !isLoading) {
+      const targetItem = allHorarios.find(
+        (item) => item.id.toString() === highlightId
+      );
+      if (targetItem) {
+        handleViewDetails(targetItem);
+        // Clean up the URL parameter after opening the modal
+        const url = new URL(window.location.href);
+        url.searchParams.delete('highlight');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [searchParams, allHorarios, isLoading]);
 
   const handleViewDetails = (item: HorarioAsignadoDto) => {
     setSelectedItem(item);

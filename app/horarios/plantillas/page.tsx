@@ -28,6 +28,7 @@ import { PaginationWrapper } from '@/app/components/shared/pagination-wrapper';
 import { useDebounce } from '@/app/hooks/use-debounce';
 import { DeleteConfirmationDialog } from './components/delete-confirmation-dialog';
 import { DetailsDialog } from './components/details-dialog';
+import { EmpleadosAsignadosCell } from './components/empleados-asignados-cell';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
@@ -219,6 +220,7 @@ export default function HorariosPlantillasPage() {
                     >
                       Tipo Horario
                     </SortableHeader>
+                    <TableHead>Empleados Asignados</TableHead>
                     <TableHead className='text-right'>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -239,6 +241,9 @@ export default function HorariosPlantillasPage() {
                           ) : (
                             <Badge variant='secondary'>Regular</Badge>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <EmpleadosAsignadosCell horarioId={item.id} />
                         </TableCell>
                         <TableCell className='text-right'>
                           <div className='flex justify-end items-center gap-1'>
@@ -275,7 +280,7 @@ export default function HorariosPlantillasPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className='text-center h-24'>
+                      <TableCell colSpan={6} className='text-center h-24'>
                         No se encontraron plantillas de horarios.
                       </TableCell>
                     </TableRow>

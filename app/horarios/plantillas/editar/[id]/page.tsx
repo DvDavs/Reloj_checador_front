@@ -10,6 +10,7 @@ import { TemplateForm } from '../../components/template-form';
 import { PageHeader } from '@/app/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { EmpleadosWarningAlert } from '../../components/empleados-warning-alert';
 import { useToast } from '@/components/ui/use-toast';
 import { getApiErrorMessage } from '@/lib/api/schedule-api';
 
@@ -124,6 +125,11 @@ export default function EditarPlantillaPage() {
           <ErrorState message={error} />
         </div>
       )}
+
+      <EmpleadosWarningAlert
+        horarioId={parseInt(templateId)}
+        className='mb-6'
+      />
 
       <TemplateForm
         initialData={initialData}

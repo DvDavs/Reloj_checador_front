@@ -63,6 +63,8 @@ import { NewScheduleTemplateForm } from './components/NewScheduleTemplateForm';
 import { FilePlus2, List, Briefcase, Star, Clock4 } from 'lucide-react';
 import { CompletionStep } from './components/CompletionStep';
 import { WizardStepper } from '@/app/components/shared/wizard-stepper';
+import SchedulePreview from '@/app/components/shared/SchedulePreview';
+import { ErrorWithLinks } from '@/app/components/shared/error-with-links';
 
 const wizardReducer = (
   state: WizardState,
@@ -73,7 +75,15 @@ const wizardReducer = (
       return { ...state, step: action.payload };
 
     case 'SELECT_EMPLOYEE':
-      return { ...state, selectedEmployee: action.payload };
+      return {
+        ...state,
+        selectedEmployee: action.payload,
+        // Reset new schedule name when employee changes to trigger RFC preset
+        newScheduleData: {
+          ...state.newScheduleData,
+          nombre: '',
+        },
+      };
 
     case 'SET_SCHEDULE_SELECTION_TYPE':
       return {
@@ -238,24 +248,47 @@ function Step2_SelectSchedule({
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : (
-              <Select
-                value={state.selectedTemplateId?.toString()}
-                onValueChange={handleTemplateSelectChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='Seleccione una plantilla...' />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem
-                      key={template.id}
-                      value={template.id.toString()}
-                    >
-                      {template.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className='space-y-4'>
+                <Select
+                  value={state.selectedTemplateId?.toString()}
+                  onValueChange={handleTemplateSelectChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='Seleccione una plantilla...' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem
+                        key={template.id}
+                        value={template.id.toString()}
+                      >
+                        {template.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Schedule Preview */}
+                {state.selectedTemplateId && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {(() => {
+                      const selectedTemplate = templates.find(
+                        (t) => t.id === state.selectedTemplateId
+                      );
+                      return selectedTemplate ? (
+                        <SchedulePreview
+                          template={selectedTemplate}
+                          className='border-2 border-primary/20'
+                        />
+                      ) : null;
+                    })()}
+                  </motion.div>
+                )}
+              </div>
             )}
           </motion.div>
         )}
@@ -271,6 +304,7 @@ function Step2_SelectSchedule({
             <NewScheduleTemplateForm
               scheduleData={state.newScheduleData}
               onDataChange={handleNewScheduleDataChange}
+              selectedEmployee={state.selectedEmployee}
             />
           </motion.div>
         )}
@@ -800,11 +834,22 @@ export default function ScheduleAssignmentWizardPage() {
       </div>
 
       {state.error && (
-        <Alert variant='destructive' className='mb-4 max-w-4xl mx-auto'>
-          <AlertCircle className='h-4 w-4' />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
+        <>
+          {state.error.includes(
+            'se solapa con las siguientes asignaciones activas'
+          ) ? (
+            <ErrorWithLinks
+              message={state.error}
+              className='mb-4 max-w-4xl mx-auto'
+            />
+          ) : (
+            <Alert variant='destructive' className='mb-4 max-w-4xl mx-auto'>
+              <AlertCircle className='h-4 w-4' />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{state.error}</AlertDescription>
+            </Alert>
+          )}
+        </>
       )}
 
       <div className='max-w-4xl mx-auto'>

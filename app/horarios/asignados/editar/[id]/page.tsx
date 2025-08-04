@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -56,6 +56,23 @@ import Link from 'next/link';
 import { LoadingState } from '@/app/components/shared/loading-state';
 import { WizardStepper } from '@/app/components/shared/wizard-stepper';
 import { notFound } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { VisualOptionCard } from '@/app/components/shared/visual-option-card';
+import { NewScheduleTemplateForm } from '../../registrar/components/NewScheduleTemplateForm';
+import {
+  FilePlus2,
+  List,
+  Briefcase,
+  Star,
+  Clock4,
+  User,
+  Users,
+  CalendarDays,
+  ClipboardCheck,
+} from 'lucide-react';
+import { CompletionStep } from '../../registrar/components/CompletionStep';
+import SchedulePreview from '@/app/components/shared/SchedulePreview';
+import { ErrorWithLinks } from '@/app/components/shared/error-with-links';
 
 const wizardReducer = (
   state: WizardState,
@@ -139,7 +156,7 @@ function Step2_SelectSchedule({
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchTemplates = async () => {
       setIsLoading(true);
       setError(null);
@@ -154,126 +171,137 @@ function Step2_SelectSchedule({
       }
     };
     fetchTemplates();
-  }, [setTemplates]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSelectionTypeChange = React.useCallback(
+    (value: string) => {
+      dispatch({
+        type: 'SET_SCHEDULE_SELECTION_TYPE',
+        payload: value as 'existing' | 'new',
+      });
+    },
+    [dispatch]
+  );
+
+  const handleTemplateSelectChange = React.useCallback(
+    (value: string) => {
+      dispatch({ type: 'SELECT_EXISTING_TEMPLATE', payload: parseInt(value) });
+    },
+    [dispatch]
+  );
+
+  const handleNewScheduleDataChange = React.useCallback(
+    (data: Partial<Omit<HorarioTemplateDTO, 'id'>>) => {
+      dispatch({ type: 'UPDATE_NEW_SCHEDULE_DATA', payload: data });
+    },
+    [dispatch]
+  );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Elige una Opción</CardTitle>
-      </CardHeader>
-      <CardContent className='space-y-6'>
-        <RadioGroup
-          value={state.scheduleSelectionType ?? ''}
-          onValueChange={(value) =>
-            dispatch({
-              type: 'SET_SCHEDULE_SELECTION_TYPE',
-              payload: value as 'existing' | 'new',
-            })
-          }
+    <div className='space-y-6'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+        <VisualOptionCard
+          icon={<List className='h-8 w-8' />}
+          title='Plantilla Existente'
+          description='Usar un horario predefinido.'
+          isSelected={state.scheduleSelectionType === 'existing'}
+          onClick={() => handleSelectionTypeChange('existing')}
+          disabled={isEditMode && state.scheduleSelectionType !== 'existing'}
+        />
+        <VisualOptionCard
+          icon={<FilePlus2 className='h-8 w-8' />}
+          title='Nueva Plantilla'
+          description='Crear un horario personalizado.'
+          isSelected={state.scheduleSelectionType === 'new'}
+          onClick={() => handleSelectionTypeChange('new')}
           disabled={isEditMode}
-        >
-          <div className='flex items-center space-x-2'>
-            <RadioGroupItem value='existing' id='existing' />
-            <Label htmlFor='existing'>Seleccionar plantilla existente</Label>
-          </div>
-          <div className='flex items-center space-x-2'>
-            <RadioGroupItem value='new' id='new' />
-            <Label htmlFor='new'>Crear nueva plantilla</Label>
-          </div>
-        </RadioGroup>
+        />
+      </div>
 
+      <AnimatePresence>
         {state.scheduleSelectionType === 'existing' && (
-          <div className='pl-6 pt-4 border-l'>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className='pl-2 pt-4 overflow-hidden'
+          >
             {isLoading ? (
               <div className='flex items-center gap-2 text-muted-foreground'>
                 <Loader2 className='h-4 w-4 animate-spin' /> Cargando
                 plantillas...
               </div>
             ) : error ? (
-              <p className='text-sm text-destructive'>{error}</p>
+              <Alert variant='destructive'>
+                <AlertCircle className='h-4 w-4' />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             ) : (
-              <Select
-                value={state.selectedTemplateId?.toString()}
-                onValueChange={(value) =>
-                  dispatch({
-                    type: 'SELECT_EXISTING_TEMPLATE',
-                    payload: parseInt(value),
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='Seleccione una plantilla...' />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem
-                      key={template.id}
-                      value={template.id.toString()}
-                    >
-                      {template.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className='space-y-4'>
+                <Select
+                  value={state.selectedTemplateId?.toString()}
+                  onValueChange={handleTemplateSelectChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='Seleccione una plantilla...' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem
+                        key={template.id}
+                        value={template.id.toString()}
+                      >
+                        {template.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Schedule Preview */}
+                {state.selectedTemplateId && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {(() => {
+                      const selectedTemplate = templates.find(
+                        (t) => t.id === state.selectedTemplateId
+                      );
+                      return selectedTemplate ? (
+                        <SchedulePreview
+                          template={selectedTemplate}
+                          className='border-2 border-primary/20'
+                        />
+                      ) : null;
+                    })()}
+                  </motion.div>
+                )}
+              </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {state.scheduleSelectionType === 'new' && (
-          <div className='pl-6 pt-4 space-y-8'>
-            <Card>
-              <CardHeader>
-                <CardTitle>Datos de la Plantilla</CardTitle>
-                <CardDescription>
-                  Ajusta el nombre, la descripción y el tipo de horario.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <div className='space-y-2'>
-                  <Label htmlFor='templateName'>Nombre</Label>
-                  <Input
-                    id='templateName'
-                    value={state.newScheduleData.nombre}
-                    onChange={(e) =>
-                      dispatch({
-                        type: 'UPDATE_NEW_SCHEDULE_DATA',
-                        payload: { nombre: e.target.value },
-                      })
-                    }
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='templateDesc'>Descripción</Label>
-                  <Input
-                    id='templateDesc'
-                    value={state.newScheduleData.descripcion}
-                    onChange={(e) =>
-                      dispatch({
-                        type: 'UPDATE_NEW_SCHEDULE_DATA',
-                        payload: { descripcion: e.target.value },
-                      })
-                    }
-                  />
-                </div>
-                <div className='flex items-center space-x-2'>
-                  <Checkbox
-                    id='isJefe'
-                    checked={state.newScheduleData.esHorarioJefe}
-                    onCheckedChange={(checked) =>
-                      dispatch({
-                        type: 'UPDATE_NEW_SCHEDULE_DATA',
-                        payload: { esHorarioJefe: !!checked },
-                      })
-                    }
-                  />
-                  <Label htmlFor='isJefe'>Es un horario para Jefes</Label>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className='pl-2 pt-4 overflow-hidden'
+          >
+            <NewScheduleTemplateForm
+              scheduleData={state.newScheduleData}
+              onDataChange={handleNewScheduleDataChange}
+              selectedEmployee={state.selectedEmployee}
+            />
+          </motion.div>
         )}
-      </CardContent>
-    </Card>
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -292,7 +320,7 @@ function Step3_SetDates({
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchTypes = async () => {
       setIsLoading(true);
       setError(null);
@@ -323,109 +351,110 @@ function Step3_SetDates({
   };
 
   return (
-    <Card className='max-w-2xl mx-auto'>
-      <CardHeader>
-        <CardTitle>Define las Fechas y el Tipo</CardTitle>
-      </CardHeader>
-      <CardContent className='space-y-6'>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-          <div className='space-y-2'>
-            <Label>Fecha de Inicio</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant='outline'
-                  className='w-full justify-start text-left font-normal'
-                >
-                  <CalendarIcon className='mr-2 h-4 w-4' />
-                  {state.assignmentStartDate ? (
-                    format(state.assignmentStartDate, 'PPP')
-                  ) : (
-                    <span>Seleccione fecha</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className='w-auto p-0'>
-                <Calendar
-                  mode='single'
-                  selected={state.assignmentStartDate ?? undefined}
-                  onSelect={(date) => handleDateChange('startDate', date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className='space-y-2'>
-            <Label>Fecha de Fin (Opcional)</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant='outline'
-                  className='w-full justify-start text-left font-normal'
-                >
-                  <CalendarIcon className='mr-2 h-4 w-4' />
-                  {state.assignmentEndDate ? (
-                    format(state.assignmentEndDate, 'PPP')
-                  ) : (
-                    <span>Seleccione fecha</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className='w-auto p-0'>
-                <Calendar
-                  mode='single'
-                  selected={state.assignmentEndDate ?? undefined}
-                  onSelect={(date) => handleDateChange('endDate', date)}
-                  disabled={{
-                    before: state.assignmentStartDate ?? new Date(0),
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-        {state.assignmentStartDate &&
-          state.assignmentEndDate &&
-          state.assignmentEndDate < state.assignmentStartDate && (
-            <p className='text-sm text-destructive'>
-              La fecha de fin debe ser posterior a la fecha de inicio.
-            </p>
-          )}
-
+    <div className='space-y-6'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
         <div className='space-y-2'>
-          <Label>Tipo de Horario</Label>
-          {isLoading ? (
-            <div className='flex items-center gap-2 text-muted-foreground'>
-              <Loader2 className='h-4 w-4 animate-spin' /> Cargando tipos...
-            </div>
-          ) : error ? (
-            <p className='text-sm text-destructive'>{error}</p>
-          ) : (
-            <Select
-              value={state.selectedScheduleTypeId?.toString()}
-              onValueChange={(value) =>
-                dispatch({
-                  type: 'SELECT_SCHEDULE_TYPE',
-                  payload: parseInt(value),
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder='Seleccione un tipo...' />
-              </SelectTrigger>
-              <SelectContent>
-                {scheduleTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id.toString()}>
-                    {type.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <Label>Fecha de Inicio</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant='outline'
+                className='w-full justify-start text-left font-normal'
+              >
+                <CalendarIcon className='mr-2 h-4 w-4' />
+                {state.assignmentStartDate ? (
+                  format(state.assignmentStartDate, 'PPP')
+                ) : (
+                  <span>Seleccione fecha</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className='w-auto p-0'>
+              <Calendar
+                mode='single'
+                selected={state.assignmentStartDate ?? undefined}
+                onSelect={(date) => handleDateChange('startDate', date)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
-      </CardContent>
-    </Card>
+        <div className='space-y-2'>
+          <Label>Fecha de Fin (Opcional)</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant='outline'
+                className='w-full justify-start text-left font-normal'
+              >
+                <CalendarIcon className='mr-2 h-4 w-4' />
+                {state.assignmentEndDate ? (
+                  format(state.assignmentEndDate, 'PPP')
+                ) : (
+                  <span>Seleccione fecha</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className='w-auto p-0'>
+              <Calendar
+                mode='single'
+                selected={state.assignmentEndDate ?? undefined}
+                onSelect={(date) => handleDateChange('endDate', date)}
+                disabled={{ before: state.assignmentStartDate ?? new Date(0) }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+      {state.assignmentStartDate &&
+        state.assignmentEndDate &&
+        state.assignmentEndDate < state.assignmentStartDate && (
+          <p className='text-sm text-destructive'>
+            La fecha de fin debe ser posterior a la fecha de inicio.
+          </p>
+        )}
+
+      <div className='space-y-2'>
+        <Label>Tipo de Horario</Label>
+        {isLoading ? (
+          <div className='flex items-center gap-2 text-muted-foreground'>
+            <Loader2 className='h-4 w-4 animate-spin' /> Cargando tipos...
+          </div>
+        ) : error ? (
+          <Alert variant='destructive'>
+            <AlertCircle className='h-4 w-4' />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : (
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 pt-2'>
+            {scheduleTypes.map((type) => {
+              const getIcon = (name: string) => {
+                if (name.toLowerCase().includes('jefe'))
+                  return <Briefcase className='h-8 w-8' />;
+                if (name.toLowerCase().includes('especial'))
+                  return <Star className='h-8 w-8' />;
+                return <Clock4 className='h-8 w-8' />;
+              };
+
+              return (
+                <VisualOptionCard
+                  key={type.id}
+                  icon={getIcon(type.nombre)}
+                  title={type.nombre}
+                  description={type.descripcion || ''}
+                  isSelected={state.selectedScheduleTypeId === type.id}
+                  onClick={() =>
+                    dispatch({ type: 'SELECT_SCHEDULE_TYPE', payload: type.id })
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -446,56 +475,84 @@ function Step4_Summary({
   };
 
   return (
-    <div className='max-w-2xl mx-auto'>
-      <h3 className='text-xl font-bold text-center mb-6'>
-        Resumen de la Asignación
-      </h3>
-      <div className='border rounded-lg p-6 space-y-5 bg-zinc-900/30'>
-        <div className='flex justify-between items-start'>
-          <span className='text-muted-foreground'>Horario:</span>
-          <div className='text-right font-semibold'>
+    <div className='space-y-6'>
+      <Card>
+        <CardHeader className='flex flex-row items-center space-x-4'>
+          <User className='w-8 h-8 text-primary' />
+          <div>
+            <CardTitle>Empleado</CardTitle>
+            <p className='text-muted-foreground'>
+              Empleado que recibirá el horario.
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className='text-xl font-semibold'>
+            {state.selectedEmployee?.nombreCompleto}
+          </p>
+          <div className='text-sm text-muted-foreground'>
+            {state.selectedEmployee?.rfc && (
+              <span>RFC: {state.selectedEmployee.rfc}</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className='grid md:grid-cols-2 gap-6'>
+        <Card>
+          <CardHeader className='flex flex-row items-center space-x-4'>
+            <ClipboardCheck className='w-8 h-8 text-primary' />
+            <div>
+              <CardTitle>Horario Seleccionado</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className='space-y-2'>
             {state.scheduleSelectionType === 'existing' ? (
-              <span>{getTemplateName(state.selectedTemplateId)}</span>
+              <div>
+                <p className='font-semibold'>
+                  {getTemplateName(state.selectedTemplateId)}
+                </p>
+                <p className='text-sm text-muted-foreground'>
+                  Plantilla existente
+                </p>
+              </div>
             ) : (
               <div>
-                <span>{state.newScheduleData.nombre} (Nueva Plantilla)</span>
-                <p className='text-xs text-muted-foreground'>
-                  {state.newScheduleData.detalles.length} turnos definidos
+                <p className='font-semibold'>{state.newScheduleData.nombre}</p>
+                <p className='text-sm text-muted-foreground'>
+                  Nueva plantilla con {state.newScheduleData.detalles.length}{' '}
+                  turnos
                 </p>
               </div>
             )}
-          </div>
-        </div>
-
-        <div className='flex justify-between items-center'>
-          <span className='text-muted-foreground'>Fecha de Inicio:</span>
-          <span className='font-semibold'>
-            {state.assignmentStartDate
-              ? format(state.assignmentStartDate, 'PPP', { locale: es })
-              : 'N/A'}
-          </span>
-        </div>
-        <div className='flex justify-between items-center'>
-          <span className='text-muted-foreground'>Fecha de Fin:</span>
-          <span className='font-semibold'>
-            {state.assignmentEndDate
-              ? format(state.assignmentEndDate, 'PPP', { locale: es })
-              : 'Indefinida'}
-          </span>
-        </div>
-
-        <div className='flex justify-between items-center'>
-          <span className='text-muted-foreground'>Tipo de Horario:</span>
-          <span className='font-semibold'>
-            {getScheduleTypeName(state.selectedScheduleTypeId)}
-          </span>
-        </div>
-        <div className='flex justify-between items-center pt-4 border-t border-zinc-700'>
-          <span className='text-muted-foreground font-semibold'>Empleado:</span>
-          <span className='font-bold text-lg'>
-            {state.selectedEmployee?.nombreCompleto}
-          </span>
-        </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className='flex flex-row items-center space-x-4'>
+            <CalendarDays className='w-8 h-8 text-primary' />
+            <div>
+              <CardTitle>Período de Asignación</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className='space-y-2'>
+            <div>
+              <p className='font-semibold'>
+                {state.assignmentStartDate
+                  ? format(state.assignmentStartDate, 'PPP', { locale: es })
+                  : 'N/A'}
+              </p>
+              <p className='text-sm text-muted-foreground'>Fecha de Inicio</p>
+            </div>
+            <div>
+              <p className='font-semibold'>
+                {state.assignmentEndDate
+                  ? format(state.assignmentEndDate, 'PPP', { locale: es })
+                  : 'Indefinida'}
+              </p>
+              <p className='text-sm text-muted-foreground'>Fecha de Fin</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -555,15 +612,35 @@ export default function ScheduleAssignmentEditPage() {
   }, [id, router, toast]);
 
   const WIZARD_STEPS = [
-    { label: 'Empleado', id: 'selectEmployee' },
-    { label: 'Horario', id: 'selectSchedule' },
-    { label: 'Fechas', id: 'setDates' },
-    { label: 'Resumen', id: 'summary' },
+    {
+      label: 'Empleado (Bloqueado)',
+      id: 'selectEmployee',
+      description: 'El empleado no puede ser cambiado en modo edición.',
+    },
+    {
+      label: 'Horario',
+      id: 'selectSchedule',
+      description: 'Modifica la plantilla de horario asignada.',
+    },
+    {
+      label: 'Fechas',
+      id: 'setDates',
+      description: 'Ajusta las fechas y el tipo de horario.',
+    },
+    {
+      label: 'Resumen',
+      id: 'summary',
+      description: 'Revisa los cambios antes de guardar.',
+    },
   ];
 
-  const currentStepNumber = React.useMemo(() => {
+  const currentStepConfig = React.useMemo(() => {
     const stepIndex = WIZARD_STEPS.findIndex((s) => s.id === state.step);
-    return stepIndex + 1;
+    return {
+      ...WIZARD_STEPS[stepIndex],
+      number: stepIndex + 1,
+      title: `Paso ${stepIndex + 1}: ${WIZARD_STEPS[stepIndex].label}`,
+    };
   }, [state.step]);
 
   const handleSave = async () => {
@@ -665,8 +742,40 @@ export default function ScheduleAssignmentEditPage() {
     return <LoadingState message='Cargando datos de la asignación...' />;
   }
 
+  const renderStepContent = () => {
+    switch (state.step) {
+      case 'selectSchedule':
+        return (
+          <Step2_SelectSchedule
+            state={state}
+            dispatch={dispatch}
+            setTemplates={setTemplates}
+            isEditMode={true}
+          />
+        );
+      case 'setDates':
+        return (
+          <Step3_SetDates
+            state={state}
+            dispatch={dispatch}
+            setScheduleTypes={setScheduleTypes}
+          />
+        );
+      case 'summary':
+        return (
+          <Step4_Summary
+            state={state}
+            templates={templates}
+            scheduleTypes={scheduleTypes}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className='p-4 sm:p-6 lg:p-8 space-y-6'>
+    <main className='p-6 md:p-8'>
       <BreadcrumbNav
         items={[
           { label: 'Horarios Asignados', href: '/horarios/asignados' },
@@ -674,100 +783,115 @@ export default function ScheduleAssignmentEditPage() {
         ]}
         backHref='/horarios/asignados'
       />
-      <div className='flex items-center justify-between'>
-        <h1 className='text-2xl font-bold'>Editar Asignación de Horario</h1>
-        <Link href='/horarios/asignados'>
-          <Button variant='outline'>Cancelar</Button>
-        </Link>
-      </div>
 
-      <div className='my-6'>
-        <WizardStepper steps={WIZARD_STEPS} currentStep={currentStepNumber} />
+      <h1 className='text-3xl font-bold tracking-tight mt-4'>
+        Editar Asignación de Horario
+      </h1>
+
+      <div className='my-8'>
+        <WizardStepper
+          steps={WIZARD_STEPS}
+          currentStep={currentStepConfig.number}
+        />
       </div>
 
       {state.error && (
-        <Alert variant='destructive' className='mb-4 max-w-4xl mx-auto'>
-          <AlertCircle className='h-4 w-4' />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
+        <>
+          {state.error.includes(
+            'se solapa con las siguientes asignaciones activas'
+          ) ? (
+            <ErrorWithLinks
+              message={state.error}
+              className='mb-4 max-w-4xl mx-auto'
+            />
+          ) : (
+            <Alert variant='destructive' className='mb-4 max-w-4xl mx-auto'>
+              <AlertCircle className='h-4 w-4' />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{state.error}</AlertDescription>
+            </Alert>
+          )}
+        </>
       )}
 
       <div className='max-w-4xl mx-auto'>
-        <Card>
+        <Card className='bg-zinc-900 border-zinc-800'>
           <CardHeader>
-            <CardTitle className='text-xl'>
-              {WIZARD_STEPS.find((s) => s.id === state.step)?.label}
-            </CardTitle>
+            <CardTitle>{currentStepConfig.title}</CardTitle>
+            <p className='text-muted-foreground pt-1'>
+              {currentStepConfig.description}
+            </p>
           </CardHeader>
           <CardContent className='min-h-[350px] p-6'>
-            {state.step === 'selectSchedule' && (
-              <Step2_SelectSchedule
-                state={state}
-                dispatch={dispatch}
-                setTemplates={setTemplates}
-                isEditMode={true}
-              />
-            )}
-            {state.step === 'setDates' && (
-              <Step3_SetDates
-                state={state}
-                dispatch={dispatch}
-                setScheduleTypes={setScheduleTypes}
-              />
-            )}
-            {state.step === 'summary' && (
-              <Step4_Summary
-                state={state}
-                templates={templates}
-                scheduleTypes={scheduleTypes}
-              />
-            )}
+            {renderStepContent()}
           </CardContent>
-          <CardFooter className='flex justify-between'>
-            <Button
-              variant='outline'
-              onClick={handleBack}
-              disabled={state.step === 'selectEmployee'}
-            >
-              Atrás
-            </Button>
-            <Button
-              onClick={handleNext}
-              disabled={
-                (state.step === 'selectSchedule' &&
-                  !(
-                    (state.scheduleSelectionType === 'existing' &&
-                      state.selectedTemplateId !== null) ||
-                    (state.scheduleSelectionType === 'new' &&
-                      state.newScheduleData.nombre.trim() !== '' &&
-                      state.newScheduleData.detalles.length > 0)
-                  )) ||
-                (state.step === 'setDates' &&
-                  !(
-                    state.assignmentStartDate &&
-                    state.selectedScheduleTypeId &&
-                    (!state.assignmentEndDate ||
-                      state.assignmentEndDate >= state.assignmentStartDate)
-                  ))
-              }
-            >
-              {state.step === 'summary' ? (
-                state.isSubmitting ? (
-                  <>
-                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                    Guardando...
-                  </>
-                ) : (
-                  'Guardar Asignación'
-                )
-              ) : (
-                'Siguiente'
+          <CardFooter className='flex justify-between items-center bg-zinc-900/50 p-4 rounded-b-lg border-t border-zinc-800'>
+            <div className='flex-grow'>
+              {state.selectedEmployee && (
+                <div className='flex items-center gap-3'>
+                  <div className='flex-shrink-0 h-10 w-10 bg-zinc-800 rounded-full flex items-center justify-center'>
+                    <User className='h-5 w-5 text-blue-400' />
+                  </div>
+                  <div>
+                    <p className='font-semibold text-sm text-white'>
+                      {state.selectedEmployee.nombreCompleto}
+                    </p>
+                    <p className='text-xs text-zinc-400'>
+                      ID: {state.selectedEmployee.id}
+                    </p>
+                  </div>
+                </div>
               )}
-            </Button>
+            </div>
+            <div className='flex gap-4'>
+              <Button
+                variant='outline'
+                onClick={handleBack}
+                className='flex items-center gap-2'
+                disabled={state.step === 'selectSchedule'}
+              >
+                <ArrowLeft className='h-4 w-4' />
+                Atrás
+              </Button>
+              <Button
+                onClick={handleNext}
+                disabled={
+                  (state.step === 'selectSchedule' &&
+                    !(
+                      (state.scheduleSelectionType === 'existing' &&
+                        state.selectedTemplateId !== null) ||
+                      (state.scheduleSelectionType === 'new' &&
+                        state.newScheduleData.nombre.trim() !== '' &&
+                        state.newScheduleData.detalles.length > 0)
+                    )) ||
+                  (state.step === 'setDates' &&
+                    !(
+                      state.assignmentStartDate &&
+                      state.selectedScheduleTypeId &&
+                      (!state.assignmentEndDate ||
+                        state.assignmentEndDate >= state.assignmentStartDate)
+                    ))
+                }
+                className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700'
+              >
+                {state.step === 'summary' ? (
+                  state.isSubmitting ? (
+                    <>
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                      Guardando...
+                    </>
+                  ) : (
+                    'Guardar Cambios'
+                  )
+                ) : (
+                  'Siguiente'
+                )}
+                {state.step !== 'summary' && <ArrowRight className='h-4 w-4' />}
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </div>
-    </div>
+    </main>
   );
 }
