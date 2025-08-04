@@ -8,12 +8,15 @@ import {
 export interface HorarioDto {
   id: number;
   nombre: string;
+  descripcion: string;
+  esHorarioJefe: boolean;
+  activo: boolean;
   detalles: DetalleHorarioDto[];
 }
 
 export interface DetalleHorarioDto {
   id: number;
-  diaSemana: number; // Domingo=1, Lunes=2, ..., Sábado=7
+  diaSemana: number;
   horaEntrada: string;
   horaSalida: string;
   turno: number;
@@ -22,6 +25,8 @@ export interface DetalleHorarioDto {
 export interface HorarioTemplate {
   id: number;
   nombre: string;
+  descripcion: string;
+  esHorarioJefe: boolean;
   activo: boolean;
 }
 

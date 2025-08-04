@@ -14,6 +14,7 @@ import { LoadingState } from '@/app/components/shared/loading-state';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { ScheduleDisplay } from './schedule-display';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 interface DetailsDialogProps {
   isOpen: boolean;
@@ -58,7 +59,6 @@ export function DetailsDialog({
     if (isOpen && templateId) {
       fetchTemplateDetails(templateId);
     } else {
-      // Reset state when modal is closed or no ID is provided
       setTemplate(null);
       setError(null);
       setIsLoading(false);
@@ -85,15 +85,38 @@ export function DetailsDialog({
     }
 
     if (template) {
-      return <ScheduleDisplay schedule={schedule} />;
+      return (
+        <div className='w-full'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+            <div>
+              <p className='text-sm font-medium text-muted-foreground'>
+                Descripción
+              </p>
+              <p>{template.descripcion || 'N/A'}</p>
+            </div>
+            <div>
+              <p className='text-sm font-medium text-muted-foreground'>
+                Tipo de Horario
+              </p>
+              <Badge variant={template.esHorarioJefe ? 'outline' : 'secondary'}>
+                {template.esHorarioJefe ? 'Jefe' : 'Regular'}
+              </Badge>
+            </div>
+          </div>
+          <Separator />
+          <div className='mt-4'>
+            <ScheduleDisplay schedule={schedule} />
+          </div>
+        </div>
+      );
     }
 
-    return null; // Should not happen if logic is correct
+    return null;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-2xl'>
+      <DialogContent className='sm:max-w-4xl'>
         <DialogHeader>
           <DialogTitle>
             {template
@@ -102,7 +125,7 @@ export function DetailsDialog({
           </DialogTitle>
           <DialogDescription>
             {template
-              ? `ID: ${template.id}`
+              ? `ID: ${template.id} - Estado: ${template.activo ? 'Activo' : 'Inactivo'}`
               : 'Cargando información de la plantilla...'}
           </DialogDescription>
         </DialogHeader>
