@@ -27,18 +27,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<{ roles: Set<string> } | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const storedToken = Cookies.get('authToken');
-    const storedRoles = localStorage.getItem('userRoles');
-    if (storedToken && storedRoles) {
-      setToken(storedToken);
-      setUser({ roles: new Set(JSON.parse(storedRoles)) });
-      apiClient.defaults.headers.common['Authorization'] =
-        `Bearer ${storedToken}`;
-    }
-    setIsLoading(false);
+    setMounted(true);
+
+    const initializeAuth = async () => {
+      try {
+        // Solo acceder a localStorage/cookies después de montar
+        if (typeof window !== 'undefined') {
+          const storedToken = Cookies.get('authToken');
+          const storedRoles = localStorage.getItem('userRoles');
+
+          if (storedToken && storedRoles) {
+            setToken(storedToken);
+            setUser({ roles: new Set(JSON.parse(storedRoles)) });
+            apiClient.defaults.headers.common['Authorization'] =
+              `Bearer ${storedToken}`;
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        // Si hay error, limpiar datos corruptos
+        if (typeof window !== 'undefined') {
+          Cookies.remove('authToken');
+          localStorage.removeItem('userRoles');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Timeout de seguridad para evitar carga infinita
+    const timeoutId = setTimeout(() => {
+      console.warn('Auth initialization timeout, forcing completion');
+      setIsLoading(false);
+    }, 2000); // 2 segundos máximo
+
+    initializeAuth().finally(() => {
+      clearTimeout(timeoutId);
+    });
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const login = async (credentials: LoginRequest) => {

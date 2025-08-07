@@ -55,6 +55,7 @@ export type EmpleadoDto = {
   estatusNombre?: string | null; // Añadido para consistencia con backend Empleado entity
 
   nombreCompleto: string; // Campo calculado en el backend
+  permiteChecarConPin?: boolean; // Indica si el empleado puede usar PIN para checar
   // Los campos `correoInstitucional`, `departamentoAcademicoId`, `departamentoAdministrativoId`,
   // `tipoNombramientoPrincipal` (si se usaba como campo separado) son eliminados.
 };

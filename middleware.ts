@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
   // Si el usuario TIENE token y trata de ir a la página de login,
   // redirígelo al dashboard principal.
   if (authToken && isLoginPage) {
-    return NextResponse.redirect(new URL('/empleados', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // Si el usuario NO tiene token y NO está en una ruta pública,

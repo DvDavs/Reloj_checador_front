@@ -31,6 +31,7 @@ interface EmpleadoApiData {
   departamento?: number | null;
   academia?: number | null;
   tipoNombramientoSecundario?: string | null;
+  permiteChecarConPin?: boolean;
 }
 
 interface EmpleadoFormData {
@@ -45,6 +46,7 @@ interface EmpleadoFormData {
   departamento?: string | null;
   academia?: string | null;
   tipoNombramientoSecundario?: string | null;
+  permiteChecarConPin?: boolean;
 }
 
 const API_BASE_URL =
@@ -121,6 +123,11 @@ export default function EditarEmpleadoPage() {
     setError(null);
   };
 
+  const handleSwitchChange = (name: keyof EmpleadoFormData, value: boolean) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employeeId) return;
@@ -134,6 +141,7 @@ export default function EditarEmpleadoPage() {
         ? parseInt(formData.departamento, 10)
         : null,
       academia: formData.academia ? parseInt(formData.academia, 10) : null,
+      permiteChecarConPin: formData.permiteChecarConPin || false,
     };
 
     const originalPayloadComparable = {
@@ -144,6 +152,7 @@ export default function EditarEmpleadoPage() {
       academia: originalData.academia
         ? parseInt(originalData.academia, 10)
         : null,
+      permiteChecarConPin: originalData.permiteChecarConPin || false,
     };
 
     const hasChanges =
@@ -190,7 +199,7 @@ export default function EditarEmpleadoPage() {
   }
 
   return (
-    <div className='p-6 md:p-8'>
+    <div className='p-6 md:p-8 pb-12'>
       <BreadcrumbNav
         items={[
           { label: 'Empleados', href: '/empleados' },
@@ -217,6 +226,7 @@ export default function EditarEmpleadoPage() {
               formData={formData}
               onChange={handleChange}
               onSelectChange={handleSelectChange}
+              onSwitchChange={handleSwitchChange}
               isSubmitting={isSubmitting}
               noneValue={NONE_VALUE_SELECT}
             />
