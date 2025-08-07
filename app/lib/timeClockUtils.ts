@@ -42,13 +42,15 @@ export const getUserFriendlyMessage = (
     case '402':
       return 'Sin horario asignado';
     case '403':
-      return 'Recurso no encontrado';
+      return 'Empleado no encontrado';
     case '404':
       return 'Regla no aplicable';
     case '405':
       return 'Conflicto de reglas';
     case '406':
       return 'Salida no registrada - Sin entrada';
+    case '407':
+      return 'No tienes permiso para checar con número de tarjeta';
 
     // Código especial para FR - se guarda pero se muestra como error
     case 'FR':
@@ -58,7 +60,7 @@ export const getUserFriendlyMessage = (
     case '500':
       return 'Error de lector';
     case '501':
-      return 'Error del sistema';
+      return 'Error de autenticación del dispositivo';
     case '502':
       return 'Error de base de datos';
     case '503':

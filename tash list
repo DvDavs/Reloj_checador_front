@@ -1,0 +1,408 @@
+[33mcommit 0ba7af34e0b014b0f8012a6c6aaed5ebe44e4427[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/pinpad-checkin-timeclock-integration[m[33m, [m[1;31morigin/feature/review-possible-changes[m[33m, [m[1;31morigin/feature/auth-routing-refactor[m[33m, [m[1;32mfeature/review-possible-changes[m[33m, [m[1;32mfeature/auth-routing-refactor[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Mon Aug 4 03:57:21 2025 -0600
+
+    feat: add Lanzador page and update middleware for new public path
+    
+    This commit introduces the Lanzador page, which allows users to select fingerprint scanners for the Reloj Checador. It includes functionality for fetching available scanners, handling user interactions, and displaying relevant messages. Additionally, the middleware is updated to include the new Lanzador page in the list of public paths, ensuring proper access control for unauthenticated users.
+
+[33mcommit 296c9bd601687388ed26df49149e01c74711d862[m[33m ([m[1;32mfeature/timeclock-fullscreen-reload-session[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Mon Aug 4 03:52:59 2025 -0600
+
+    refactor: update middleware and routing logic for authentication handling
+    
+    This commit refines the authentication middleware by enhancing the public path checks and redirect logic. It introduces a list of public paths and simplifies the conditions for redirecting users based on their authentication status. Additionally, it updates the AuthContext to redirect users to the root path after login instead of the empleados page. The ScheduleAssignmentWizardPage component is also modified to streamline the creation of new schedule templates, ensuring better state management and error handling.
+
+[33mcommit 52fc4657bf2a49c1c9d8f412b3b196f5025d4af5[m[33m ([m[1;31morigin/feature/timeclock-fullscreen-reload-session[m[33m, [m[1;32mfeature/schedule-preview-error-links-employee-assignment[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Mon Aug 4 02:30:45 2025 -0600
+
+    feat: enhance TimeClock component with fullscreen and reload functionality
+    
+    This commit introduces fullscreen and reload features to the TimeClock component, improving user interaction. It adds buttons for toggling fullscreen mode and reloading the page, complete with tooltips for better usability. Additionally, the useStompTimeClock hook is updated to include an instanceId for improved session management, ensuring a more robust connection handling. The package.json and package-lock.json files are also updated to include new dependencies for uuid and its types.
+
+[33mcommit 68ae8eefd1f2b1a9b1c68cfc3eda393711a0a6c5[m[33m ([m[1;31morigin/feature/schedule-preview-error-links-employee-assignment[m[33m, [m[1;32mrefactor/weekly-schedule-templates[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Mon Aug 4 01:16:54 2025 -0600
+
+    feat: add EmpleadosAsignadosCell and EmpleadosWarningAlert components for employee assignment management
+    
+    This commit introduces the EmpleadosAsignadosCell component, which displays assigned employees for each schedule, enhancing visibility into employee assignments. Additionally, the EmpleadosWarningAlert component is added to alert users about the impact of changes on assigned employees, providing a clear warning when editing templates. These components improve the user experience by ensuring that users are informed about employee assignments and potential consequences of their actions.
+
+[33mcommit 722901e231cc7b0e110821a10be6afe0fa9dc8e2[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Mon Aug 4 01:08:58 2025 -0600
+
+    feat: introduce ErrorWithLinks component for enhanced error messaging
+    
+    This commit adds the ErrorWithLinks component, which improves error handling by parsing error messages for specific ID patterns and rendering them as clickable links. This allows users to quickly access relevant details related to scheduling conflicts. Additionally, the component is integrated into existing pages to replace standard error alerts when applicable, enhancing the user experience in managing schedule assignments.
+
+[33mcommit 758acb2dac378fcec6bcfc03b898351a520133ac[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Mon Aug 4 00:43:59 2025 -0600
+
+    feat: add SchedulePreview component for displaying weekly schedule details
+    
+    This commit introduces the SchedulePreview component, which presents a visual representation of weekly schedules, including shift details grouped by day. It enhances the user interface by providing a clear overview of working days and shifts, improving the overall user experience in managing schedules. Additionally, it integrates with existing components to ensure seamless data handling and display.
+
+[33mcommit c561fd24e9acbd05fdead0fdfcee7e0623e1ec26[m[33m ([m[1;31morigin/refactor/weekly-schedule-templates[m[33m, [m[1;32mrefactor/employee-form-api-integration[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sun Aug 3 23:36:36 2025 -0600
+
+    refactor: update weekly schedule grid and hand selector components for improved clarity and functionality
+    
+    This commit modifies the WeeklyScheduleGrid component to set the default granularity to '60min', enhancing user experience. Additionally, it cleans up the HandSelector component by removing unnecessary comments and improving the structure for better readability. The changes contribute to a more maintainable codebase and streamline the user interface for managing schedules and hand selections.
+
+[33mcommit 06498615d0b2b0a1630753a0210a3ad63608b606[m[33m ([m[1;31morigin/refactor/employee-form-api-integration[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sun Aug 3 20:37:31 2025 -0600
+
+    refactor: clean up employee form and related components for improved clarity and consistency
+    
+    This commit refines the EmployeeForm component by removing unnecessary comments and enhancing the structure for better readability. It updates the handling of department and academy fields to maintain consistency in data types. Additionally, it simplifies the logic for displaying employee details and improves error handling in API interactions, contributing to better maintainability across the employee management components.
+
+[33mcommit 52415db8f8a3782c802ded97667e2599b356e201[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sun Aug 3 20:23:15 2025 -0600
+
+    refactor: streamline employee management components for improved readability and consistency
+    
+    This commit refines the employee management components by consolidating code for better readability and maintaining consistent formatting. It simplifies the logic for displaying employee details and enhances error handling in API interactions. Additionally, it updates the handling of form data to ensure clarity in state management and improves the overall structure of the components, contributing to better maintainability.
+
+[33mcommit 8b69793cf4b36c06b547656326710ea6cb68da16[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sun Aug 3 20:11:51 2025 -0600
+
+    refactor: enhance employee form and related components for improved data handling and API integration
+    
+    This commit refactors the EmployeeForm component to support string-based identifiers for departments and academies, improving flexibility in data handling. It introduces asynchronous loading of department options from the API, enhancing user experience with loading indicators and error handling. Additionally, the employee management pages have been updated to reflect these changes, ensuring consistency in data types and improving overall maintainability. The logic for displaying employee details has also been refined for better clarity.
+
+[33mcommit a92f4fd04614e271dcf51a0e6e39f9b7699ee3df[m[33m ([m[1;31morigin/feature/employees-data[m[33m, [m[1;32mfeature/horaorio-edit-fixed-bugs[m[33m, [m[1;32mfeature/employees-data[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sun Aug 3 16:10:58 2025 -0600
+
+    refactor: update employee form and related components for improved data handling
+    
+    This commit refactors the EmployeeForm component to accept more flexible data types, allowing for null or undefined values. It introduces new fields such as 'tarjeta', 'nombramiento', 'departamento', and 'academia' to the form data structure. Additionally, the employee management pages have been updated to utilize the new EmployeeForm, streamlining the registration and editing processes. The use of the apiClient has been standardized across components, enhancing consistency in API interactions.
+
+[33mcommit 607a1ce3628c8385dde79160b73daa5c9fa714d1[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sun Aug 3 12:56:50 2025 -0600
+
+    refactor: improve warning messages in delete confirmation dialog for clarity
+    
+    This commit updates the warning messages in the DeleteConfirmationDialog component to enhance clarity. The phrasing has been adjusted to better communicate the implications of deactivating a template and to specify that the action is not reversible. Additionally, a comment has been removed from the weekly schedule transformation logic to streamline the code.
+
+[33mcommit 5f9b2b4ad7fabff250aeac7c4518a8e9cef02964[m[33m ([m[1;31morigin/feature/horaorio-edit-fixed-bugs[m[33m, [m[1;32mfeature/fixed-timeclock-bug-not-read-more-of-one-fingerprint[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sun Aug 3 10:12:22 2025 -0600
+
+    refactor: update weekly schedule transformation logic for improved data consistency
+    
+    This commit refines the `weeklyScheduleToDetalles` function to ensure it returns an object that aligns with the backend DTO expectations. The transformation now includes sorting day slots by entry time and assigning unique shift numbers per day. Additionally, comments have been added for clarity, enhancing the overall readability and maintainability of the code.
+
+[33mcommit d0671296d5d575883dbc22b11eaa18acdd113784[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sun Aug 3 09:05:35 2025 -0600
+
+    refactor: update day of the week mapping and comments for clarity in schedule handling
+    
+    This commit refines the day of the week mapping in the scheduling logic, adjusting the order to start with Domingo (Sunday) and updating comments for better understanding. The changes enhance code readability and maintainability, ensuring that the mapping aligns with the intended representation of days in the application.
+
+[33mcommit 99b0c173e46b0ea7bf29060b9b1c0b7734400ff8[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sat Aug 2 19:47:32 2025 -0600
+
+    refactor: update user-friendly messages in timeClockUtils for clarity and consistency
+    
+    This commit refines the user-friendly messages returned by the getUserFriendlyMessage function in timeClockUtils. Several messages have been updated for improved clarity, including changes to success, information, and error codes. New messages for additional codes have been added, enhancing the overall user experience and ensuring consistency across the application.
+
+[33mcommit f7cb328de2f8c70f5894ab24f5249cc987a04c35[m[33m ([m[1;31morigin/feature/fixed-timeclock-bug-not-read-more-of-one-fingerprint[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sat Aug 2 14:14:41 2025 -0600
+
+    refactor: optimize state management in TimeClock component with useRef and useCallback
+    
+    This commit refactors the TimeClock component to utilize useRef for storing mutable values, such as nextRecommendedAction and activeSessionId, reducing unnecessary re-renders. Additionally, it introduces memoized callback functions for handling STOMP connection events, improving performance and code clarity. The overall structure of the component is enhanced for better maintainability and efficiency.
+
+[33mcommit 824ea51ea5bab87a40927d660fe2d0c08c3a1659[m[33m ([m[1;31morigin/feature/refactor-table-and-minimous-changes[m[33m, [m[1;32mfeature/refactor-table-and-minimous-changes[m[33m, [m[1;32mfeature/auth-implementation[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri Aug 1 15:25:25 2025 -0600
+
+    refactor: replace local table state management with useTableState hook for improved data handling
+    
+    This commit refactors the HorariosAsignadosPage component to utilize a custom useTableState hook for managing table state, including pagination, sorting, and searching. The previous local state management has been removed, streamlining the data fetching process and enhancing code maintainability. Additionally, API calls are simplified to fetch all horarios directly, improving performance and reducing complexity.
+
+[33mcommit 4829dcc512eddd2f3bf15847e270ef2a0ee88ba3[m[33m ([m[1;31morigin/feature/auth-implementation[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri Aug 1 12:30:42 2025 -0600
+
+    feat: enhance sidebar with user authentication and logout functionality
+    
+    This commit introduces a logout button in the sidebar for authenticated users, improving user experience by allowing easy session termination. It integrates the useAuth hook to manage authentication state and conditionally renders user information and the logout button based on the user's authentication status. Additionally, it refactors the sidebar component to enhance its structure and usability. The AuthContext is updated to configure interceptors for handling token expiration, ensuring a seamless user experience across the application.
+
+[33mcommit 354c450d93b9f05c7b6c711f021be0449c8daa6d[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Thu Jul 31 21:18:14 2025 -0600
+
+    Refactor API calls to use centralized apiClient; implement authentication middleware and login page
+    
+    - Replaced axios calls with apiClient in employee management, attendance hooks, and schedule management components.
+    - Created a new apiClient for consistent API interaction.
+    - Added a login page for user authentication with error handling.
+    - Implemented middleware to protect routes and manage authentication state.
+    - Updated layout to include AuthProvider for context management.
+
+[33mcommit 4100b0bec9475f807ae754075545f66a64a54318[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Thu Jul 31 19:04:17 2025 -0600
+
+    feat: add session monitoring and enhance admin dashboard functionality
+    
+    This commit introduces a new SessionMonitoringPage component for tracking active sessions of readers, including features for releasing sessions and refreshing the list of reserved readers. Additionally, the AdminDashboard component is updated to improve the session launch process with better state management and user feedback. The sidebar and command palette are also enhanced to include new navigation items for monitoring sessions, improving overall usability and accessibility within the admin interface. ESLint and Prettier configurations are updated to ensure code quality across the project
+    Fix ESLint configuration for v9 compatibility
+
+[33mcommit a03cca252db74222c96d129c99c59b3b0db4351a[m[33m ([m[1;31morigin/feature/ESLint-and-TS-configurations[m[33m, [m[1;32mfeature/ESLint-and-TS-configurations[m[33m, [m[1;32maut[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Tue Jul 29 17:27:03 2025 -0600
+
+    feat: add ESLint, Prettier, and Husky configurations for code quality enforcement
+    
+    This commit introduces configuration files for ESLint and Prettier to enforce coding standards and formatting across the project. Additionally, a Husky pre-commit hook is added to run linting and formatting checks before commits, ensuring code quality. A .geminiignore file is also included to exclude unnecessary files from version control. Furthermore, a project guide (GEMINI.md) is added to provide an overview of the project structure and key technologies used.
+
+[33mcommit db3e7094edbff5f65f5a46557d259ee2ec90278f[m[33m ([m[1;32mfeature/shared-components-and-docs[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Tue Jul 29 13:01:24 2025 -0600
+
+    feat: add weekly schedule management features and UI enhancements
+    
+    This commit introduces a comprehensive set of features for managing weekly schedules, including the addition of a new ScheduleEditor component that allows users to edit and copy schedules across days. The WeeklyScheduleGrid component is implemented for better visualization of schedules, and a new CopySchedulePopover is added for enhanced user interaction. Additionally, error handling is improved in various components, and new utility functions are introduced for transforming schedule data. The overall structure of the scheduling components is refined for better maintainability and usability.
+
+[33mcommit afdfd8153573b0f9499483f27cfda74b6409c260[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Wed Jul 23 16:28:42 2025 -0600
+
+    feat: enhance employee scheduling with new features and improved error handling
+    
+    This commit introduces several enhancements to the employee scheduling process, including the addition of a new "Asignar Horario" submenu item in the sidebar for better navigation. The EmployeeSearch component is updated to allow showing all employees when opened, improving usability. Additionally, error handling in API calls is refined with a new utility function to extract meaningful error messages, enhancing the user experience during scheduling operations. The overall structure of the scheduling components is also improved for better maintainability.
+
+[33mcommit b1ebd6dca390f12e2f21e3ca6ccf144f056f0161[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Wed Jul 23 12:56:08 2025 -0600
+
+    refactor: replace EnhancedStepIndicator with WizardStepper for improved step navigation
+    
+    This commit removes the EnhancedStepIndicator component and integrates the new WizardStepper component across multiple pages, enhancing the user experience for step navigation in the scheduling process. The WizardStepper provides a cleaner and more consistent interface for displaying the current step and its status, streamlining the overall workflow in the application.
+
+[33mcommit 91718eee250d0d06d508c056f42ce28d83afa237[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Wed Jul 23 12:12:21 2025 -0600
+
+    feat: add employee search and scheduling components with debounce functionality
+    
+    This commit introduces several new components, including EmployeeSearch, ScheduleEditorModal, and ScheduleGridEditor, to enhance the employee scheduling experience. The EmployeeSearch component utilizes the use-debounce hook for improved search performance. Additionally, it integrates new utility functions for managing schedule templates and assignments, streamlining the scheduling process. The overall structure of the scheduling feature is refined to improve usability and maintainability.
+
+[33mcommit b274e65378d2473032e983487bce4ef49d07ca5a[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Tue Jul 22 17:10:19 2025 -0600
+
+    feat: add shared components and view development documentation
+    
+    This commit introduces a comprehensive set of shared components, including PageHeader, SearchInput, LoadingState, ErrorState, BreadcrumbNav, DataTable, and EmployeeForm, to enhance the UI consistency across the application. Additionally, it adds detailed documentation for component reference and view development guidelines, providing developers with standards and examples for creating consistent views. The sidebar is also updated to include new navigation items for "Horarios" and its submenus, improving the overall navigation experience.
+
+[33mcommit 44e461781e0a86d50c83865499e26845fbcc6773[m[33m ([m[1;32mfeature/ui-improvements-command-palette[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Thu Jul 17 13:03:10 2025 -0600
+
+    feat: enhance project structure and add new components
+    
+    This commit introduces several improvements to the project, including the addition of a Command Palette component for enhanced navigation and user interaction. It also refines the Sidebar component to support dynamic navigation items and integrates a Tooltip component for better user guidance. Additionally, new styles for sidebar and global CSS are added to improve the overall UI. The package dependencies are updated to include Zustand for state management and testing libraries for improved development experience.
+
+[33mcommit b005d764778014475aea5cf0bd84cd8c9d258b10[m
+Merge: cd334e0 f49a707
+Author: David García Martínez <19161275@itoaxaca.edu.mx>
+Date:   Wed Jun 11 12:54:55 2025 -0600
+
+    Merge pull request #6 from DvDavs/feature/enhance-TimeClock-component-with-improved-visual-indicators-and-status-handling
+    
+    Feature/enhance time clock component with improved visual indicators and status handling
+
+[33mcommit f49a70730d9634d39ec88398f7118a5a592e15bc[m[33m ([m[1;31morigin/feature/enhance-TimeClock-component-with-improved-visual-indicators-and-status-handling[m[33m, [m[1;32mfeature/enhance-TimeClock-component-with-improved-visual-indicators-and-status-handling[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Wed Jun 11 12:53:18 2025 -0600
+
+    feat(time-clock): enhance TimeClock component with improved visual indicators and status handling
+    
+    This commit introduces several enhancements to the TimeClock component, including the addition of a new attendance status "RETARDO_SIN_SALIDA" for better tracking of attendance states. The component's visual indicators have been refined to provide clearer feedback on the status of each shift, including improved animations and responsive design. Additionally, the code has been updated to include detailed documentation for key functions and components, enhancing maintainability and clarity.
+
+[33mcommit cd334e01614a9e9f8543e63f0fe01b2e700615fc[m
+Merge: eb6fc82 4b63de2
+Author: David García Martínez <19161275@itoaxaca.edu.mx>
+Date:   Thu Jun 5 13:13:01 2025 -0600
+
+    Merge pull request #5 from DvDavs/feature/time-clock-funtional-implementation
+    
+    Feature/time clock funtional implementation
+
+[33mcommit a9cb4cca3eef5bab3cb29f89bf3fd0a4a60ef832[m[33m ([m[1;32mrefactor/time-clock-modularization[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Sun May 25 22:39:11 2025 -0600
+
+    feat(time-clock): enhance attendance management and UI components
+    
+    This commit introduces several improvements to the TimeClock component, including the addition of a new attendance status "INTERINATO" in the employee editing page. It enhances the handling of attendance states by defining a new type for jornada statuses, improving clarity and maintainability. The UI has been refined to better reflect the current state of attendance, including visual indicators for completed and pending sessions. Additionally, the code has been cleaned up to remove unused imports and streamline the overall structure.
+
+[33mcommit 7776f582007de1b12dd7b0e01248ada74566cca0[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Wed May 14 12:48:11 2025 -0600
+
+    refactor(time-clock): simplify state management and remove unused variables
+    
+    This commit refines the TimeClock component by removing unused state variables and types, such as minutiaePoints and minutiaeLines, which were previously intended for visual feedback during scanning. It also streamlines the handling of scan states by eliminating background states, enhancing clarity in the code. Additionally, the logic for displaying success and failure messages has been simplified, improving overall readability and maintainability.
+
+[33mcommit 7cf129a79f980b2aa1e80e0f2fb1db84ff7c7d68[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Wed May 14 07:45:40 2025 -0600
+
+    refactor(time-clock): remove unused types and improve status handling
+    
+    This commit removes the unused WorkSession and SessionStatus types from the timeClockTypes file, streamlining the codebase. It enhances the TimeClock component by refining the handling of attendance statuses and integrating a new custom message for when all work sessions are completed. Additionally, it improves error handling in the useEmployeeAttendanceData hook, ensuring more informative feedback during data fetching processes.
+
+[33mcommit f7949fd2a7f4f54d157382f2ae1c2fb56a5a1505[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Tue May 13 19:14:32 2025 -0600
+
+    feat(time-clock): enhance event handling and state management for attendance updates
+    
+    This commit improves the TimeClock component by integrating handling for FullAttendanceStateEvent alongside BackendChecadorEvent. It updates the state management to reflect real-time attendance data, ensuring accurate display of employee information and session statuses. Additionally, it refines the logic for processing events from the STOMP connection, enhancing user feedback during attendance checks.
+
+[33mcommit 9467a7c63e769bbe4f99c810fa795d39d4c17fda[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Mon May 12 18:52:07 2025 -0600
+
+    feat(time-clock): integrate STOMP and employee attendance data management
+    
+    This commit introduces a new hook for managing STOMP connections and employee attendance data in the TimeClock component. It enhances the component's state management by incorporating real-time updates from the backend, improving user feedback during check-in and check-out processes. Additionally, it refines the handling of scan results and integrates new utility functions for better data handling.
+
+[33mcommit 1711817770b48b3f3005430631cb34fb4c3dd2f2[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri May 9 15:06:37 2025 -0600
+
+    Fase 1: Extracted utility functions and types for time-clock
+
+[33mcommit 4641faa6233e66ced0b79cac27e890b859ae0df6[m[33m ([m[1;31morigin/refactor/time-clock-modularization[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri May 9 14:01:48 2025 -0600
+
+    Modutarization
+
+[33mcommit 4d73f68dca8f096e0a78ddad734d335c58b88c5c[m[33m ([m[1;32mfeature/time-clock-backend-status-handling[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Thu May 8 19:59:14 2025 -0600
+
+    feat(time-clock): enhance backend integration with status codes and user-friendly messages
+    
+    This commit introduces new state management for backend response codes in the TimeClock component. It adds functions to map status codes to user-friendly messages and visual styles, improving user feedback during check-in and check-out processes. Additionally, it cleans up unused code and refines the handling of scan results.
+
+[33mcommit 4b63de2b31a6caa8a754e72e4ef1ba1a3ba8640b[m[33m ([m[1;31morigin/feature/time-clock-funtional-implementation[m[33m, [m[1;32mfeature/time-clock-funtional-implementation[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Wed May 7 14:32:39 2025 -0600
+
+    Cosumo de endpoints
+
+[33mcommit 6b5f60a5fb31d192a3a6c1db8eee5cc2c6eb6170[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Tue May 6 00:18:45 2025 -0600
+
+    refactor: clean up commented code and improve structure in various components
+    
+    This commit removes unnecessary commented-out code in the Home, AdminDashboard, TimeClock, and RelojChecador components, enhancing readability and maintainability. Additionally, it introduces a session reader reservation feature in the TimeClock component to streamline the check-in process.
+
+[33mcommit d41f505ee36d150c7764c49834480f425af4e646[m[33m ([m[1;31morigin/feature/hand-selector[m[33m, [m[1;32mfeature/hand-selector[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 11 09:21:49 2025 -0600
+
+    feat(hand-selector): add interactive hand selector component for fingerprint assignment
+    
+    This commit introduces a new interactive hand selector component that allows users to visually select fingers for fingerprint registration. The component includes hover and selection states, color-coded feedback for different finger statuses, and improved SVG hand graphics for better user experience.
+
+[33mcommit eb6fc8275765b50503024426a47238e226bff1c3[m
+Merge: e0938b7 f302a21
+Author: David García Martínez <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 03:33:19 2025 -0600
+
+    Merge pull request #4 from DvDavs/feature/employees-implementation
+    
+    Remove commented-out code in Sidebar component for improved readability
+
+[33mcommit f302a210de0aab9fcd8c9d93c6ec38af436152c5[m[33m ([m[1;31morigin/feature/employees-implementation[m[33m, [m[1;32mfeature/employees-implementation[m[33m)[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 03:32:10 2025 -0600
+
+    Remove commented-out code in Sidebar component for improved readability
+
+[33mcommit e0938b7deb2c8170aaac4c5f0ee7baad6b4d90d9[m
+Merge: 258bdfa 0056458
+Author: David García Martínez <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 03:21:30 2025 -0600
+
+    Merge pull request #3 from DvDavs/feature/employees-implementation
+    
+    Update animation duration and fix capture attempts display in Asignar…
+
+[33mcommit 005645879ec9ef7ac4fa8570c9ddf6bc36ee0e2e[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 03:19:17 2025 -0600
+
+    Update animation duration and fix capture attempts display in AsignarHuellaContent
+
+[33mcommit 258bdfa37db0a55d6dc8192218b0da63f461e4cb[m
+Merge: d4c9904 c1217f7
+Author: David García Martínez <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 02:38:00 2025 -0600
+
+    Merge pull request #2 from DvDavs:feature/employees-implementation
+    
+    Fix redirect URL and clean up commented code
+
+[33mcommit c1217f79eaa6b8a887f75508ff44b5e2a2e511dc[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 02:37:22 2025 -0600
+
+    Remove commented-out code in EmpleadosPage for improved readability
+
+[33mcommit 3ade4741466c45946bc8f1020824789a90d24358[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 02:17:37 2025 -0600
+
+    Remove commented-out code in Home component for improved readability
+
+[33mcommit 71058e619c8d2631f26123b43ffeb9d2150b67fa[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 02:17:15 2025 -0600
+
+    Fix redirect URL in RegistrarEmpleadoPage: correct template string syntax for employee ID and name
+
+[33mcommit d4c9904f180d9ca192897769bd643c02ca9a4026[m
+Merge: f91d7e2 2d8bc46
+Author: David García Martínez <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 01:40:13 2025 -0600
+
+    Merge pull request #1 from DvDavs/feature/employees-implementation
+    
+    Refactor Sidebar component: clean up commented code and improve reada…
+
+[33mcommit 2d8bc4612b76965caa985c4f88b405732ab8c730[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Fri Apr 4 01:39:06 2025 -0600
+
+    Refactor Sidebar component: clean up commented code and improve readability
+
+[33mcommit f91d7e2dcb0e16e0790c8150f2d4311fe5f10c66[m
+Author: DvDavs <19161275@itoaxaca.edu.mx>
+Date:   Thu Apr 3 11:25:16 2025 -0600
+
+    First Commit
+    
+    Add loading components, utility functions, and UI elements; configure PostCSS and TypeScript

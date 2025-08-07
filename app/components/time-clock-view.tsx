@@ -54,6 +54,8 @@ import type {
   EstatusJornada,
 } from '../lib/types/timeClockTypes';
 import { Button } from '@/components/ui/button';
+import PinInput from './PinInput';
+import { submitPinPadCheckin } from '../../lib/api/pinpad-api';
 
 /**
  * TurnoItem Component
@@ -623,6 +625,11 @@ export default function TimeClock({
 
   const [isFullScreen, setIsFullScreen] = useState(false);
 
+  // PIN input related state
+  const [pinInputMode, setPinInputMode] = useState(false);
+  const [pinInputLoading, setPinInputLoading] = useState(false);
+  const [initialPinDigit, setInitialPinDigit] = useState('');
+
   // Handlers for fullscreen and reload
   const handleReload = () => {
     window.location.reload();
@@ -654,6 +661,32 @@ export default function TimeClock({
     };
   }, []);
 
+  // Global keydown listener for numeric input detection
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only activate PIN input if not already in PIN mode and not loading
+      // Allow PIN input even during success/failed states for better responsivity
+      if (
+        (scanState === 'idle' ||
+          scanState === 'ready' ||
+          scanState === 'success' ||
+          scanState === 'failed') &&
+        !pinInputMode &&
+        !pinInputLoading &&
+        !preparingNextScan // Don't allow during the brief preparing state
+      ) {
+        // Check if a numeric key was pressed
+        if (/^\d$/.test(event.key)) {
+          setInitialPinDigit(event.key); // Capture the first digit
+          setPinInputMode(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [scanState, pinInputMode, pinInputLoading, preparingNextScan]);
+
   // API Base URL para las peticiones
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
@@ -672,6 +705,52 @@ export default function TimeClock({
     employeeIdToFetch: employeeIdForHook,
     apiBaseUrl: API_BASE_URL,
   });
+
+  // Debug logging for employee data updates
+  useEffect(() => {
+    console.log('🔍 Employee data hook update:', {
+      employeeIdForHook,
+      currentEmployee,
+      jornadasDelDia: jornadasDelDia.length,
+      showAttendance,
+      isLoading,
+    });
+  }, [
+    employeeIdForHook,
+    currentEmployee,
+    jornadasDelDia,
+    showAttendance,
+    isLoading,
+  ]);
+
+  // Update scan history when employee data becomes available
+  useEffect(() => {
+    if (currentEmployee?.name && currentEmployee?.id) {
+      setScanHistory((prev) => {
+        return prev.map((scan) => {
+          // Update scans that have the employee ID but are missing the name
+          if (
+            scan.employeeId === currentEmployee.id.toString() &&
+            (scan.name === 'Usuario no encontrado' ||
+              scan.name === 'Registro informativo' ||
+              scan.name === 'Entrada ya registrada' ||
+              scan.name === 'Salida ya registrada')
+          ) {
+            console.log('🔄 Updating scan history with employee name:', {
+              oldName: scan.name,
+              newName: currentEmployee.name,
+              employeeId: scan.employeeId,
+            });
+            return {
+              ...scan,
+              name: currentEmployee.name,
+            };
+          }
+          return scan;
+        });
+      });
+    }
+  }, [currentEmployee]);
 
   // Store nextRecommendedAction in a ref to avoid dependency changes
   const nextRecommendedActionRef = useRef<'entrada' | 'salida'>('entrada');
@@ -810,12 +889,142 @@ export default function TimeClock({
           setCustomMessage(messageToDisplay);
         }
 
+        // SIEMPRE actualizar datos del empleado y historial si tenemos la información
+        // ALWAYS add to scan history if we have a status code (for PIN pad compatibility)
+        if (eventStatusCode && eventStatusCode !== 'FR') {
+          const action =
+            checadorEvent.accion || nextRecommendedActionRef.current;
+
+          // For PIN pad responses, try to get name from different sources
+          let employeeName = checadorEvent.nombreCompleto;
+          if (!employeeName && checadorEvent.data?.nombreCompleto) {
+            employeeName = checadorEvent.data.nombreCompleto;
+          }
+
+          // If we still don't have a name, try to use current employee data for successful/info responses
+          if (
+            !employeeName &&
+            eventStatusCode &&
+            (eventStatusCode.startsWith('3') || eventStatusCode.startsWith('2'))
+          ) {
+            if (currentEmployee?.name) {
+              employeeName = currentEmployee.name;
+              console.log('🔄 Using current employee name for scan history:', {
+                employeeName,
+                statusCode: eventStatusCode,
+              });
+            }
+          }
+
+          if (!employeeName) {
+            // More specific fallback messages based on status code
+            if (eventStatusCode === '301') {
+              employeeName = 'Entrada ya registrada'; // For 301, show the action instead of "not found"
+            } else if (eventStatusCode === '302') {
+              employeeName = 'Salida ya registrada'; // For 302, show the action instead of "not found"
+            } else if (eventStatusCode === '407') {
+              employeeName = 'Sin permiso para PIN';
+            } else if (eventStatusCode === '403') {
+              employeeName = 'Empleado no encontrado';
+            } else if (eventStatusCode.startsWith('4')) {
+              employeeName = 'Tarjeta no encontrada';
+            } else if (eventStatusCode.startsWith('3')) {
+              employeeName = 'Registro informativo'; // For other 3xx codes
+            } else {
+              employeeName = 'Usuario no encontrado';
+            }
+          }
+
+          let employeeIdStr =
+            checadorEvent.empleadoId?.toString() ||
+            checadorEvent.data?.empleadoId?.toString();
+
+          // If we don't have employee ID but have current employee data for successful/info responses
+          if (
+            !employeeIdStr &&
+            eventStatusCode &&
+            (eventStatusCode.startsWith('3') || eventStatusCode.startsWith('2'))
+          ) {
+            if (currentEmployee?.id) {
+              employeeIdStr = currentEmployee.id.toString();
+              console.log('🔄 Using current employee ID for scan history:', {
+                employeeId: employeeIdStr,
+                statusCode: eventStatusCode,
+              });
+            }
+          }
+
+          if (!employeeIdStr) {
+            employeeIdStr = 'unknown';
+          }
+
+          const newScan: ScanHistoryItem = {
+            name: employeeName,
+            time: new Date(),
+            success: eventStatusCode.startsWith('2'), // Solo 2xx son éxitos
+            action: action,
+            employeeId: employeeIdStr,
+            statusCode: eventStatusCode,
+          };
+          setScanHistory((prev) => [newScan, ...prev.slice(0, 5)]); // Mantener máximo 6 registros
+          console.log('📝 Added to scan history:', newScan);
+        }
+
+        // Update employee data and show attendance panel if we have employee info
         if (
           checadorEvent.empleadoId !== undefined &&
           checadorEvent.nombreCompleto
         ) {
+          console.log('🔵 Setting employee data for UI update:', {
+            empleadoId: checadorEvent.empleadoId,
+            nombreCompleto: checadorEvent.nombreCompleto,
+            statusCode: eventStatusCode,
+            statusType: statusType,
+          });
           setEmployeeIdForHook(checadorEvent.empleadoId);
           setShowAttendance(true);
+        } else if (checadorEvent.empleadoId !== undefined) {
+          // If we have employee ID but no name (common for some responses), still show employee data
+          console.log('🔵 Setting employee data for UI update (ID only):', {
+            empleadoId: checadorEvent.empleadoId,
+            statusCode: eventStatusCode,
+            statusType: statusType,
+          });
+          setEmployeeIdForHook(checadorEvent.empleadoId);
+          setShowAttendance(true);
+        } else if (
+          eventStatusCode &&
+          (eventStatusCode.startsWith('2') || eventStatusCode.startsWith('3'))
+        ) {
+          // For 2xx/3xx responses that might not repeat employee data (e.g., 301, 302),
+          // if we have a current employee in context, we should re-display their data.
+          if (currentEmployee?.id) {
+            console.log(
+              '🔄 Re-displaying current employee data for info/success response:',
+              {
+                currentEmployeeId: currentEmployee.id,
+                statusCode: eventStatusCode,
+              }
+            );
+            // Ensure the panels are shown, even if they timed out before.
+            setShowAttendance(true);
+          } else {
+            console.log(
+              '⚠️ Missing employee data in successful/info response and no current employee context:',
+              {
+                empleadoId: checadorEvent.empleadoId,
+                nombreCompleto: checadorEvent.nombreCompleto,
+                statusCode: eventStatusCode,
+                hasCurrentEmployee: !!currentEmployee?.id,
+              }
+            );
+          }
+        } else {
+          console.log('⚠️ Missing employee data in event:', {
+            empleadoId: checadorEvent.empleadoId,
+            nombreCompleto: checadorEvent.nombreCompleto,
+            statusCode: eventStatusCode,
+          });
         }
 
         // *** MEJORADA LÓGICA FR: Detectar registros fuera de rango ***
@@ -865,17 +1074,29 @@ export default function TimeClock({
 
           setTimeout(() => {
             setScanState('ready');
-          }, 3500);
+          }, 2500); // Reducido para mejor responsividad
         }
-        // Registros exitosos normales (no FR)
+        // Registros exitosos normales (no FR) - incluye 2xx y 3xx
         else if (
           checadorEvent.identificado ||
           statusType === 'OK' ||
-          statusType === 'INFO'
+          statusType === 'INFO' ||
+          (eventStatusCode &&
+            (eventStatusCode.startsWith('2') ||
+              eventStatusCode.startsWith('3')))
         ) {
-          setScanState('success');
-          setScanResult('success');
-          setPanelFlash('success');
+          // Set UI state based on status code: 2xx = success, 3xx = success with info
+          if (eventStatusCode && eventStatusCode.startsWith('3')) {
+            // 3xx codes are informational but still successful
+            setScanState('success');
+            setScanResult('success');
+            setPanelFlash('success');
+          } else {
+            // 2xx codes are pure success
+            setScanState('success');
+            setScanResult('success');
+            setPanelFlash('success');
+          }
           setShowOverlayMessage(true);
           setShowInstructionMessage(false);
 
@@ -905,35 +1126,39 @@ export default function TimeClock({
               setRetainSessionTimeout(timeout);
             }
 
-            // Solo añadir al historial si es un código de éxito real (no FR)
-            if (eventStatusCode?.startsWith('2')) {
-              const newScan: ScanHistoryItem = {
-                name: checadorEvent.nombreCompleto,
-                time: new Date(),
-                success: true,
-                action: action,
-                employeeId: checadorEvent.empleadoId.toString(),
-                statusCode: eventStatusCode,
-              };
-              setScanHistory((prev) => [newScan, ...prev.slice(0, 5)]); // Mantener máximo 6 registros
-            }
+            // El historial ya se maneja arriba de forma centralizada
 
             setPreparingNextScan(true);
             setTimeout(() => {
               setScanState('ready');
               setPreparingNextScan(false);
-            }, 3000);
+            }, 1500); // Reducido de 3000 a 1500ms para mejor responsividad
           }
         } else {
+          // Manejar códigos 4xx (ERROR) y otros errores
           setScanState('failed');
           setScanResult('failed');
           setPanelFlash('failed');
           setShowOverlayMessage(true);
           setShowInstructionMessage(false);
 
+          // Para códigos 4xx, también actualizar datos del empleado si están disponibles
+          if (
+            checadorEvent.empleadoId !== undefined &&
+            checadorEvent.nombreCompleto
+          ) {
+            console.log('🔴 Error with employee data - updating UI:', {
+              empleadoId: checadorEvent.empleadoId,
+              nombreCompleto: checadorEvent.nombreCompleto,
+              statusCode: eventStatusCode,
+            });
+            setEmployeeIdForHook(checadorEvent.empleadoId);
+            setShowAttendance(true);
+          }
+
           setTimeout(() => {
             setScanState('ready');
-          }, 3500);
+          }, 2500); // Reducido para mejor responsividad
         }
       } catch (error) {
         console.error('Error al procesar evento de checador:', error);
@@ -941,6 +1166,350 @@ export default function TimeClock({
     },
     [updateFromFullAttendanceEvent, retainSessionTimeout]
   );
+
+  // Function to adapt PIN pad API response to match WebSocket event structure
+  const adaptPinPadResponse = useCallback(
+    (
+      response: any,
+      selectedReader: string,
+      nextAction: 'entrada' | 'salida'
+    ): BackendChecadorEvent => {
+      // For PIN pad, we consider it "identificado" if we have employee data, regardless of response type
+      const hasEmployeeData =
+        response.data?.empleadoId && response.data?.nombreCompleto;
+
+      const adaptedEvent: BackendChecadorEvent = {
+        identificado: hasEmployeeData || false, // True if we have employee data, regardless of 2xx/3xx/4xx
+        empleadoId: response.data?.empleadoId || undefined,
+        nombreCompleto: response.data?.nombreCompleto || undefined, // Don't provide fallback here, let the history logic handle it
+        accion: response.data?.accion || nextAction,
+        statusCode: response.code,
+        statusType: response.type,
+        errorMessage: response.message,
+        data: response.data,
+        readerName: selectedReader, // Add the required readerName property
+      };
+
+      console.log('🔄 Adapted PIN pad response to WebSocket event structure:', {
+        originalResponse: {
+          code: response.code,
+          type: response.type,
+          hasData: !!response.data,
+          empleadoId: response.data?.empleadoId,
+          nombreCompleto: response.data?.nombreCompleto,
+        },
+        adaptedEvent,
+      });
+      return adaptedEvent;
+    },
+    []
+  );
+
+  // Verification function to ensure both authentication methods use identical UI update logic
+  const verifyUnifiedUIUpdateLogic = useCallback(() => {
+    console.log(
+      '🧪 Verifying unified UI update logic for both authentication methods:'
+    );
+    console.log(
+      '✅ Both fingerprint and PIN flows use handleSuccessfulAuthentication'
+    );
+    console.log(
+      '✅ Both methods process events through handleChecadorEventCallback'
+    );
+    console.log(
+      '✅ FullAttendanceStateEvent updates use updateFromFullAttendanceEvent'
+    );
+    console.log('✅ BackendChecadorEvent updates trigger setEmployeeIdForHook');
+    console.log('✅ Both methods update scan history via setScanHistory');
+    console.log(
+      '✅ Error handling uses shared getUserFriendlyMessage function'
+    );
+    console.log(
+      '✅ UI state updates (scanState, scanResult, panelFlash) are identical'
+    );
+    return true;
+  }, []);
+
+  // Call verification on component mount (development only) - run only once
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      verifyUnifiedUIUpdateLogic();
+    }
+  }, []); // Empty dependency array to run only once
+
+  // Unified handleSuccessfulAuthentication function to process both fingerprint and PIN responses
+  const handleSuccessfulAuthentication = useCallback(
+    (event: BackendChecadorEvent | FullAttendanceStateEvent) => {
+      const isFullAttendanceEvent =
+        'type' in event && event.type === 'FULL_ATTENDANCE_STATE_UPDATE';
+      const isBackendChecadorEvent = !isFullAttendanceEvent;
+
+      // Type-safe access to employee data
+      const hasEmployeeData = isFullAttendanceEvent
+        ? !!(event as FullAttendanceStateEvent).employeeData?.id
+        : !!(event as BackendChecadorEvent).empleadoId;
+
+      const authMethod =
+        isBackendChecadorEvent && (event as BackendChecadorEvent).readerName
+          ? 'PIN'
+          : 'Fingerprint';
+
+      console.log(
+        '🔄 Processing authentication event through unified handler:',
+        {
+          eventType: isFullAttendanceEvent
+            ? 'FullAttendanceStateEvent'
+            : 'BackendChecadorEvent',
+          hasEmployeeData,
+          authMethod,
+          willUpdateUI: true,
+        }
+      );
+
+      // Use the existing handleChecadorEventCallback which already handles both event types
+      // This ensures identical UI updates for both fingerprint and PIN authentication methods:
+      // - Employee data display updates via updateFromFullAttendanceEvent (for FullAttendanceStateEvent)
+      // - Shift information updates via setEmployeeIdForHook trigger (for BackendChecadorEvent)
+      // - Recent records update via setScanHistory (for both event types)
+      // - Same error handling and user feedback patterns
+      handleChecadorEventCallback(event);
+
+      console.log(
+        '✅ Authentication event processed - UI updates triggered identically for both methods'
+      );
+    },
+    [handleChecadorEventCallback]
+  );
+
+  // PIN input submission handler with API call and error handling using shared authentication logic
+  const handlePinSubmit = useCallback(
+    async (pin: string) => {
+      setPinInputLoading(true);
+
+      try {
+        // Get device key from URL parameters - use the reader parameter as device key
+        const urlParams = new URLSearchParams(window.location.search);
+        const deviceKey =
+          urlParams.get('reader') || selectedReader || 'default-device-key';
+
+        console.log('PIN pad submission:', { pin, deviceKey, selectedReader });
+
+        // Make API call to PIN pad endpoint
+        const response = await submitPinPadCheckin(pin, deviceKey);
+
+        console.log('PIN pad API response:', response);
+        console.log('PIN pad response data structure:', {
+          hasData: !!response.data,
+          empleadoId: response.data?.empleadoId,
+          nombreCompleto: response.data?.nombreCompleto,
+          accion: response.data?.accion,
+          code: response.code,
+          type: response.type,
+        });
+
+        // Log employee data for ALL response types (2xx, 3xx, 4xx)
+        if (response.data) {
+          console.log('PIN pad response - Employee data:', {
+            responseType: response.type,
+            statusCode: response.code,
+            empleadoId: response.data.empleadoId,
+            nombreCompleto: response.data.nombreCompleto,
+            accion: response.data.accion,
+          });
+        }
+
+        // Use the unified adaptPinPadResponse function to convert PIN API response to WebSocket event structure
+        const adaptedEvent = adaptPinPadResponse(
+          response,
+          selectedReader,
+          nextRecommendedActionRef.current
+        );
+
+        // Process the adapted response using the unified authentication logic
+        handleSuccessfulAuthentication(adaptedEvent);
+
+        // ALWAYS trigger employee data fetch if we have employee data, regardless of response type (2xx, 3xx, 4xx)
+        // This ensures UI updates for all scenarios: success, info messages, and errors with employee context
+        if (response.data?.empleadoId) {
+          console.log(
+            '🔄 PIN pad response with employee data - triggering UI update for:',
+            {
+              responseType: response.type,
+              statusCode: response.code,
+              empleadoId: response.data.empleadoId,
+            }
+          );
+          // The hook will automatically fetch data when employeeIdForHook changes
+          setEmployeeIdForHook(response.data.empleadoId);
+          setShowAttendance(true);
+        } else if (response.code && response.code.startsWith('3')) {
+          // For 3xx responses without employee data (like 301), try to find employee by PIN
+          // This is a workaround for backend not returning employee data in info responses
+          console.log(
+            '🔍 Info response without employee data - attempting to find employee by PIN:',
+            {
+              code: response.code,
+              type: response.type,
+              message: response.message,
+              pin: pin,
+            }
+          );
+
+          // Try to fetch employee data by PIN number
+          // This is a temporary solution until backend includes employee data in 3xx responses
+          fetch(`${API_BASE_URL}/api/empleados/buscar-por-tarjeta/${pin}`)
+            .then((res) => res.json())
+            .then((employeeData) => {
+              if (employeeData && employeeData.id) {
+                console.log('✅ Found employee by PIN for 3xx response:', {
+                  empleadoId: employeeData.id,
+                  nombre: employeeData.nombre,
+                  pin: pin,
+                  statusCode: response.code,
+                });
+                setEmployeeIdForHook(employeeData.id);
+                setShowAttendance(true);
+              } else {
+                console.log(
+                  '❌ Could not find employee by PIN for 3xx response:',
+                  pin
+                );
+              }
+            })
+            .catch((error) => {
+              console.log('❌ Error fetching employee by PIN:', error);
+            });
+        } else if (response.code && response.code.startsWith('2')) {
+          // For 2xx responses without employee data, this might indicate a backend issue
+          console.log(
+            '⚠️ Success response without employee data - this might indicate a backend issue:',
+            {
+              code: response.code,
+              type: response.type,
+              message: response.message,
+              pin: pin,
+            }
+          );
+        }
+
+        // Success - close the PIN input
+        setPinInputMode(false);
+        setPinInputLoading(false);
+        setInitialPinDigit(''); // Clear the initial digit
+      } catch (error) {
+        console.error('Error submitting PIN pad:', error);
+
+        // Handle different types of errors using shared error handling logic
+        let errorMessage = 'Error al procesar número de tarjeta';
+        let errorCode = '500';
+
+        // Check if we have a structured error response from the API
+        const errorBody = (error as any)?.body;
+        if (errorBody && errorBody.code) {
+          // Use the error code and message from the API response
+          errorCode = errorBody.code;
+          errorMessage = getUserFriendlyMessage(errorCode, errorBody.data);
+        } else if (error instanceof Error && error.message.includes('401')) {
+          errorMessage = 'Error de autenticación del dispositivo';
+          errorCode = '501'; // Use 501 for HTTP auth errors to avoid conflict with business logic 401
+        } else if (error instanceof Error && error.message.includes('403')) {
+          errorMessage = getUserFriendlyMessage('403', undefined); // Use existing message
+          errorCode = '403';
+        } else if (error instanceof Error && error.message.includes('407')) {
+          errorMessage = getUserFriendlyMessage('407', undefined); // Use existing message
+          errorCode = '407';
+        }
+
+        // Close PIN input immediately and show error in main UI
+        setPinInputMode(false);
+        setPinInputLoading(false);
+        setInitialPinDigit('');
+
+        // Update the main UI state to show the error
+        setScanState('failed');
+        setScanResult('failed');
+        setPanelFlash('failed');
+        setCustomMessage(errorMessage);
+        setStatusCode(errorCode);
+        setShowOverlayMessage(true);
+        setShowInstructionMessage(false);
+
+        // For error responses, try to create an adapted event if we have employee data
+        // This ensures that errors with employee context (like 407) show the employee name
+        if (errorBody?.data?.empleadoId && errorBody?.data?.nombreCompleto) {
+          console.log(
+            '🔄 Error response contains employee data, creating adapted event:',
+            {
+              empleadoId: errorBody.data.empleadoId,
+              nombreCompleto: errorBody.data.nombreCompleto,
+              errorCode: errorCode,
+            }
+          );
+
+          // Create a mock response structure for the adapter
+          const mockErrorResponse = {
+            code: errorCode,
+            type: 'ERROR' as const,
+            message: errorMessage,
+            data: errorBody.data,
+          };
+
+          // Use the adapter to create a consistent event structure
+          const adaptedErrorEvent = adaptPinPadResponse(
+            mockErrorResponse,
+            selectedReader,
+            nextRecommendedActionRef.current
+          );
+
+          // Process through the unified handler to ensure consistent UI updates
+          handleSuccessfulAuthentication(adaptedErrorEvent);
+
+          // Also trigger employee data display for errors with employee context
+          setEmployeeIdForHook(errorBody.data.empleadoId);
+          setShowAttendance(true);
+        } else {
+          // For errors without employee data, add to scan history manually
+          let employeeName = errorBody?.data?.nombreCompleto;
+          if (!employeeName) {
+            employeeName = errorCode.startsWith('4')
+              ? 'Tarjeta no encontrada'
+              : 'Error de PIN';
+          }
+
+          const newScan: ScanHistoryItem = {
+            name: employeeName,
+            time: new Date(),
+            success: false, // Marked as failed
+            action: nextRecommendedActionRef.current,
+            employeeId: errorBody?.data?.empleadoId?.toString() || 'unknown',
+            statusCode: errorCode,
+          };
+          setScanHistory((prev) => [newScan, ...prev.slice(0, 5)]);
+          console.log('📝 Added failed PIN attempt to scan history:', newScan);
+        }
+
+        // Reset the UI state after showing error for 2 seconds to allow new PIN attempts
+        setTimeout(() => {
+          setScanState('ready');
+          setScanResult(null);
+          setPanelFlash(null);
+          setCustomMessage('');
+          setStatusCode(undefined);
+          setShowOverlayMessage(false);
+          setShowInstructionMessage(true);
+          console.log('🔄 PIN error state reset - ready for new attempts');
+        }, 2000); // Reducido de 3000 a 2000ms para mejor responsividad
+      }
+    },
+    [selectedReader, handleSuccessfulAuthentication, adaptPinPadResponse]
+  );
+
+  // PIN input cancel handler
+  const handlePinCancel = useCallback(() => {
+    setPinInputMode(false);
+    setPinInputLoading(false);
+    setInitialPinDigit(''); // Clear the initial digit
+  }, []);
 
   // 2. USA LAS FUNCIONES ESTABLES EN EL HOOK
   const { isConnected } = useStompTimeClock({
@@ -1220,41 +1789,43 @@ export default function TimeClock({
     return 'bg-zinc-900 border-zinc-800';
   };
 
-  // Auto-reset después de mostrar asistencia si no hay nuevo escaneo
+  // Auto-reset después de mostrar la información de asistencia para limpiar la interfaz.
   useEffect(() => {
+    // Este efecto se encarga de limpiar la información del empleado y el resultado del
+    // registro después de un período de tiempo para dejar la interfaz lista para el siguiente usuario.
+
     if (showAttendance) {
+      // Cuando la información se muestra, iniciar un temporizador.
       resetTimeout.current = setTimeout(() => {
-        // Limpiar elementos temporales
+        // Acciones a ejecutar después de 5 segundos:
+        // 1. Ocultar los paneles de información del empleado.
+        setShowAttendance(false);
+        setEmployeeIdForHook(null);
+
+        // 2. Restablecer el estado y resultado del escaneo.
+        setScanState('ready');
+        setScanResult(null);
+        setPreparingNextScan(false);
+
+        // 3. Limpiar mensajes y otros indicadores visuales temporales.
+        setCustomMessage('');
+        setPanelFlash(null);
+        setStatusCode(undefined);
+        setStatusData(undefined);
         setShowOverlayMessage(false);
         setShowInstructionMessage(true);
-        setPanelFlash(null);
-
-        // Si hay empleado activo, solo preparar para siguiente escaneo
-        if (currentEmployeeData) {
-          setScanState('ready');
-          // NO limpiar el customMessage si está relacionado con un estado global como ALL_COMPLETE
-          if (!statusCode || !statusCode.startsWith('3')) {
-            // Los códigos 3xx pueden ser estados persistentes
-            setCustomMessage('');
-          }
-        } else {
-          // Si no hay empleado activo, resetear completamente
-          setScanState('ready');
-          setShowAttendance(false);
-          setScanResult(null);
-          setPreparingNextScan(false);
-          setPanelFlash(null);
-          setCustomMessage('');
-          setStatusCode(undefined);
-          setStatusData(undefined);
-          setEmployeeIdForHook(null);
-        }
-      }, 9000); // Mostrar asistencia/estado durante 9 segundos
+      }, 5000); // Temporizador de 5 segundos.
     }
+
+    // Función de limpieza: se ejecuta si `showAttendance` cambia a `false` antes de
+    // que el temporizador termine, o si el componente se desmonta.
+    // Esto previene actualizaciones de estado en un componente desmontado y fugas de memoria.
     return () => {
-      if (resetTimeout.current) clearTimeout(resetTimeout.current);
+      if (resetTimeout.current) {
+        clearTimeout(resetTimeout.current);
+      }
     };
-  }, [showAttendance, currentEmployeeData, statusCode]); // Añadir statusCode como dependencia
+  }, [showAttendance]); // La dependencia única asegura que esto solo se ejecute cuando cambia la visibilidad.
 
   // Reproducir sonidos basados en el estado de escaneo
   useEffect(() => {
@@ -1782,101 +2353,39 @@ export default function TimeClock({
             </div>
 
             <div className='flex flex-col items-center justify-center h-full'>
-              {/* Sección de escáner de huellas - siempre en la misma posición */}
-              <div className='flex flex-col items-center justify-center'>
-                {/* Contenedor de animación de huella - más grande */}
-                <div className='relative mb-6 flex h-64 w-64 items-center justify-center'>
-                  {/* Base de huella - siempre visible con color dinámico */}
-                  <svg
-                    className='absolute h-56 w-56'
-                    viewBox='0 0 100 100'
-                    xmlns='http://www.w3.org/2000/svg'
-                  >
-                    <g
-                      className='fingerprint-base'
-                      stroke={
-                        scanState === 'success'
-                          ? 'rgba(34, 197, 94, 0.3)'
-                          : scanState === 'failed'
-                            ? 'rgba(239, 68, 68, 0.3)'
-                            : 'rgba(59, 130, 246, 0.3)'
-                      }
-                      fill='none'
-                      strokeWidth='2'
-                    >
-                      <path d='M50,15 C25,15 15,30 15,50 C15,70 25,85 50,85 C75,85 85,70 85,50 C85,30 75,15 50,15 Z' />
-                      <path d='M50,20 C30,20 20,35 20,50 C20,65 30,80 50,80 C70,80 80,65 80,50 C80,35 70,20 50,20 Z' />
-                      <path d='M50,25 C35,25 25,35 25,50 C25,65 35,75 50,75 C65,75 75,65 75,50 C75,35 65,25 50,25 Z' />
-                      <path d='M50,30 C37,30 30,40 30,50 C30,60 37,70 50,70 C63,70 70,60 70,50 C70,40 63,30 50,30 Z' />
-                      <path d='M50,35 C40,35 35,42 35,50 C35,58 40,65 50,65 C60,65 65,58 65,50 C65,42 60,35 50,35 Z' />
-                      <path d='M50,40 C42,40 40,45 40,50 C40,55 42,60 50,60 C58,60 60,55 60,50 C60,45 58,40 50,40 Z' />
-                      <path d='M50,45 C45,45 45,47 45,50 C45,53 45,55 50,55 C55,55 55,53 55,50 C55,47 55,45 50,45 Z' />
-                    </g>
-                  </svg>
-
-                  {/* Estado Idle o Ready - círculo pulsante con color neutro */}
-                  {(scanState === 'idle' || scanState === 'ready') && (
-                    <>
-                      <motion.div
-                        className='absolute h-56 w-56 rounded-full bg-blue-500/10'
-                        animate={{
-                          scale: [1, 1.1, 1],
-                          opacity: [0.7, 0.5, 0.7],
-                        }}
-                        transition={{
-                          duration: 1.2,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: 'easeInOut',
-                        }}
-                      />
-                      <motion.div
-                        className='absolute'
-                        animate={{
-                          opacity: [0.7, 1, 0.7],
-                        }}
-                        transition={{
-                          duration: 1,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: 'easeInOut',
-                        }}
-                      >
-                        <Fingerprint className='h-36 w-36 text-blue-500/80' />
-                      </motion.div>
-                    </>
-                  )}
-
-                  {/* Animación de preparación para el siguiente escaneo */}
-                  {preparingNextScan && (
-                    <>
-                      <motion.div
-                        className='absolute h-68 w-68 rounded-full border-2 border-blue-500/50'
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{
-                          scale: [0.8, 1.2, 1],
-                          opacity: [0, 0.8, 0],
-                        }}
-                        transition={{
-                          duration: 1.2,
-                          times: [0, 0.5, 1],
-                          ease: 'easeInOut',
-                        }}
-                      />
-                    </>
-                  )}
-
-                  {scanState === 'scanning' && (
-                    <>
-                      {/* Crestas de huella siendo llenadas */}
+              {/* Conditional rendering: PIN input or fingerprint scanner */}
+              {pinInputMode ? (
+                <PinInput
+                  isVisible={pinInputMode}
+                  onSubmit={handlePinSubmit}
+                  onCancel={handlePinCancel}
+                  isLoading={pinInputLoading}
+                  maxLength={8}
+                  initialValue={initialPinDigit}
+                />
+              ) : (
+                <>
+                  {/* Sección de escáner de huellas - siempre en la misma posición */}
+                  <div className='flex flex-col items-center justify-center'>
+                    {/* Contenedor de animación de huella - más grande */}
+                    <div className='relative mb-6 flex h-64 w-64 items-center justify-center'>
+                      {/* Base de huella - siempre visible con color dinámico */}
                       <svg
                         className='absolute h-56 w-56'
                         viewBox='0 0 100 100'
                         xmlns='http://www.w3.org/2000/svg'
                       >
                         <g
-                          className='fingerprint-scan'
-                          stroke='rgba(59, 130, 246, 0.8)'
+                          className='fingerprint-base'
+                          stroke={
+                            scanState === 'success'
+                              ? 'rgba(34, 197, 94, 0.3)'
+                              : scanState === 'failed'
+                                ? 'rgba(239, 68, 68, 0.3)'
+                                : 'rgba(59, 130, 246, 0.3)'
+                          }
                           fill='none'
-                          strokeWidth='2.5'
+                          strokeWidth='2'
                         >
                           <path d='M50,15 C25,15 15,30 15,50 C15,70 25,85 50,85 C75,85 85,70 85,50 C85,30 75,15 50,15 Z' />
                           <path d='M50,20 C30,20 20,35 20,50 C20,65 30,80 50,80 C70,80 80,65 80,50 C80,35 70,20 50,20 Z' />
@@ -1888,147 +2397,223 @@ export default function TimeClock({
                         </g>
                       </svg>
 
-                      {/* Efecto de barrido mejorado */}
-                      <motion.div
-                        className='absolute h-1.5 rounded-full bg-blue-500/70'
-                        style={{ width: '80%' }}
-                        initial={{ y: 50, opacity: 0 }}
-                        animate={{
-                          y: [-40, 40],
-                          opacity: [0.2, 0.8, 0.2],
-                        }}
-                        transition={{
-                          duration: 0.8,
-                          repeat: Number.POSITIVE_INFINITY,
-                          repeatType: 'reverse',
-                        }}
-                      />
-
-                      {/* Efecto de brillo adicional */}
-                      <motion.div
-                        className='absolute h-56 w-56 rounded-full bg-blue-500/5'
-                        animate={{
-                          scale: [1, 1.05, 1],
-                          opacity: [0.2, 0.4, 0.2],
-                        }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Number.POSITIVE_INFINITY,
-                          repeatType: 'reverse',
-                        }}
-                      />
-
-                      <div className='absolute -bottom-12 text-center'>
-                        <p className='text-blue-400 text-sm'>
-                          Escaneando huella digital...
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Estado de éxito - animación de marca de verificación verde */}
-                  {scanState === 'success' && (
-                    <>
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{
-                          type: 'spring',
-                          stiffness: 300,
-                          damping: 15,
-                          duration: 0.2,
-                        }}
-                      >
-                        <CheckCircle
-                          className={`h-32 w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : 'text-green-500'}`}
-                        />
-                      </motion.div>
-                      <motion.div
-                        className='absolute h-68 w-68 rounded-full'
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{
-                          scale: [0.8, 1.2],
-                          opacity: [0, 0.5],
-                        }}
-                        transition={{
-                          duration: 0.5,
-                          ease: 'easeOut',
-                        }}
-                        style={{
-                          background: `radial-gradient(circle, ${statusCode && statusCode.startsWith('2') ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.2)'} 0%, transparent 70%)`,
-                        }}
-                      />
-                    </>
-                  )}
-
-                  {/* Estado de fallo - animación de X roja */}
-                  {scanState === 'failed' && (
-                    <>
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{
-                          type: 'spring',
-                          stiffness: 300,
-                          damping: 15,
-                          duration: 0.2,
-                        }}
-                      >
-                        <XCircle
-                          className={`h-32 w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : 'text-red-500'}`}
-                        />
-                      </motion.div>
-                      <motion.div
-                        className='absolute h-68 w-68 rounded-full'
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{
-                          scale: [0.8, 1.2],
-                          opacity: [0, 0.5],
-                        }}
-                        transition={{
-                          duration: 0.5,
-                          ease: 'easeOut',
-                        }}
-                        style={{
-                          background: `radial-gradient(circle, ${statusCode && statusCode.startsWith('4') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.2)'} 0%, transparent 70%)`,
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-
-                {/* Mensaje de instrucción - SIEMPRE VISIBLE CON ALTURA FIJA */}
-                <div className='h-12 flex items-center justify-center'>
-                  {showInstructionMessage && (
-                    <p className='text-center text-xl font-medium text-zinc-300 flex items-center gap-2'>
+                      {/* Estado Idle o Ready - círculo pulsante con color neutro */}
                       {(scanState === 'idle' || scanState === 'ready') && (
                         <>
-                          <Fingerprint className='h-5 w-5 text-blue-400 animate-pulse' />
-                          Coloque su dedo en el escáner
+                          <motion.div
+                            className='absolute h-56 w-56 rounded-full bg-blue-500/10'
+                            animate={{
+                              scale: [1, 1.1, 1],
+                              opacity: [0.7, 0.5, 0.7],
+                            }}
+                            transition={{
+                              duration: 1.2,
+                              repeat: Number.POSITIVE_INFINITY,
+                              ease: 'easeInOut',
+                            }}
+                          />
+                          <motion.div
+                            className='absolute'
+                            animate={{
+                              opacity: [0.7, 1, 0.7],
+                            }}
+                            transition={{
+                              duration: 1,
+                              repeat: Number.POSITIVE_INFINITY,
+                              ease: 'easeInOut',
+                            }}
+                          >
+                            <Fingerprint className='h-36 w-36 text-blue-500/80' />
+                          </motion.div>
                         </>
                       )}
+
+                      {/* Animación de preparación para el siguiente escaneo */}
+                      {preparingNextScan && (
+                        <>
+                          <motion.div
+                            className='absolute h-68 w-68 rounded-full border-2 border-blue-500/50'
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{
+                              scale: [0.8, 1.2, 1],
+                              opacity: [0, 0.8, 0],
+                            }}
+                            transition={{
+                              duration: 1.2,
+                              times: [0, 0.5, 1],
+                              ease: 'easeInOut',
+                            }}
+                          />
+                        </>
+                      )}
+
                       {scanState === 'scanning' && (
                         <>
-                          <Loader2 className='h-5 w-5 text-blue-400 animate-spin' />
-                          Escaneando huella...
+                          {/* Crestas de huella siendo llenadas */}
+                          <svg
+                            className='absolute h-56 w-56'
+                            viewBox='0 0 100 100'
+                            xmlns='http://www.w3.org/2000/svg'
+                          >
+                            <g
+                              className='fingerprint-scan'
+                              stroke='rgba(59, 130, 246, 0.8)'
+                              fill='none'
+                              strokeWidth='2.5'
+                            >
+                              <path d='M50,15 C25,15 15,30 15,50 C15,70 25,85 50,85 C75,85 85,70 85,50 C85,30 75,15 50,15 Z' />
+                              <path d='M50,20 C30,20 20,35 20,50 C20,65 30,80 50,80 C70,80 80,65 80,50 C80,35 70,20 50,20 Z' />
+                              <path d='M50,25 C35,25 25,35 25,50 C25,65 35,75 50,75 C65,75 75,65 75,50 C75,35 65,25 50,25 Z' />
+                              <path d='M50,30 C37,30 30,40 30,50 C30,60 37,70 50,70 C63,70 70,60 70,50 C70,40 63,30 50,30 Z' />
+                              <path d='M50,35 C40,35 35,42 35,50 C35,58 40,65 50,65 C60,65 65,58 65,50 C65,42 60,35 50,35 Z' />
+                              <path d='M50,40 C42,40 40,45 40,50 C40,55 42,60 50,60 C58,60 60,55 60,50 C60,45 58,40 50,40 Z' />
+                              <path d='M50,45 C45,45 45,47 45,50 C45,53 45,55 50,55 C55,55 55,53 55,50 C55,47 55,45 50,45 Z' />
+                            </g>
+                          </svg>
+
+                          {/* Efecto de barrido mejorado */}
+                          <motion.div
+                            className='absolute h-1.5 rounded-full bg-blue-500/70'
+                            style={{ width: '80%' }}
+                            initial={{ y: 50, opacity: 0 }}
+                            animate={{
+                              y: [-40, 40],
+                              opacity: [0.2, 0.8, 0.2],
+                            }}
+                            transition={{
+                              duration: 0.8,
+                              repeat: Number.POSITIVE_INFINITY,
+                              repeatType: 'reverse',
+                            }}
+                          />
+
+                          {/* Efecto de brillo adicional */}
+                          <motion.div
+                            className='absolute h-56 w-56 rounded-full bg-blue-500/5'
+                            animate={{
+                              scale: [1, 1.05, 1],
+                              opacity: [0.2, 0.4, 0.2],
+                            }}
+                            transition={{
+                              duration: 1.5,
+                              repeat: Number.POSITIVE_INFINITY,
+                              repeatType: 'reverse',
+                            }}
+                          />
+
+                          <div className='absolute -bottom-12 text-center'>
+                            <p className='text-blue-400 text-sm'>
+                              Escaneando huella digital...
+                            </p>
+                          </div>
                         </>
                       )}
+
+                      {/* Estado de éxito - animación de marca de verificación verde */}
                       {scanState === 'success' && (
                         <>
-                          <CheckCircle className='h-5 w-5 text-green-400' />
-                          Verificación exitosa
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{
+                              type: 'spring',
+                              stiffness: 300,
+                              damping: 15,
+                              duration: 0.2,
+                            }}
+                          >
+                            <CheckCircle
+                              className={`h-32 w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : 'text-green-500'}`}
+                            />
+                          </motion.div>
+                          <motion.div
+                            className='absolute h-68 w-68 rounded-full'
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{
+                              scale: [0.8, 1.2],
+                              opacity: [0, 0.5],
+                            }}
+                            transition={{
+                              duration: 0.5,
+                              ease: 'easeOut',
+                            }}
+                            style={{
+                              background: `radial-gradient(circle, ${statusCode && statusCode.startsWith('2') ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.2)'} 0%, transparent 70%)`,
+                            }}
+                          />
                         </>
                       )}
+
+                      {/* Estado de fallo - animación de X roja */}
                       {scanState === 'failed' && (
                         <>
-                          <XCircle className='h-5 w-5 text-red-400' />
-                          Huella no reconocida
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{
+                              type: 'spring',
+                              stiffness: 300,
+                              damping: 15,
+                              duration: 0.2,
+                            }}
+                          >
+                            <XCircle
+                              className={`h-32 w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : 'text-red-500'}`}
+                            />
+                          </motion.div>
+                          <motion.div
+                            className='absolute h-68 w-68 rounded-full'
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{
+                              scale: [0.8, 1.2],
+                              opacity: [0, 0.5],
+                            }}
+                            transition={{
+                              duration: 0.5,
+                              ease: 'easeOut',
+                            }}
+                            style={{
+                              background: `radial-gradient(circle, ${statusCode && statusCode.startsWith('4') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.2)'} 0%, transparent 70%)`,
+                            }}
+                          />
                         </>
                       )}
-                    </p>
-                  )}
-                </div>
-              </div>
+                    </div>
+
+                    {/* Mensaje de instrucción - SIEMPRE VISIBLE CON ALTURA FIJA */}
+                    <div className='h-12 flex items-center justify-center'>
+                      {showInstructionMessage && (
+                        <p className='text-center text-lg font-medium text-zinc-300 flex items-center gap-2'>
+                          {(scanState === 'idle' || scanState === 'ready') && (
+                            <>
+                              <Fingerprint className='h-5 w-5 text-blue-400 animate-pulse' />
+                              Coloque su dedo en el escáner
+                            </>
+                          )}
+                          {scanState === 'scanning' && (
+                            <>
+                              <Loader2 className='h-5 w-5 text-blue-400 animate-spin' />
+                              Escaneando huella...
+                            </>
+                          )}
+                          {scanState === 'success' && (
+                            <>
+                              <CheckCircle className='h-5 w-5 text-green-400' />
+                              Verificación exitosa
+                            </>
+                          )}
+                          {scanState === 'failed' && (
+                            <>
+                              <XCircle className='h-5 w-5 text-red-400' />
+                              Huella no reconocida
+                            </>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Sección de datos de asistencia - SIEMPRE VISIBLE CON PLACEHOLDERS */}
               <div className='mt-4 w-full border-t-2 border-zinc-700 pt-6'>

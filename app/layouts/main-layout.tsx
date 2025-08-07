@@ -19,7 +19,10 @@ export default function MainLayout({
   if (isLoading) {
     return (
       <div className='flex h-screen w-full items-center justify-center bg-black'>
-        <Loader2 className='h-8 w-8 animate-spin text-blue-500' />
+        <div className='flex flex-col items-center space-y-4'>
+          <Loader2 className='h-8 w-8 animate-spin text-blue-500' />
+          <p className='text-sm text-gray-400'>Cargando...</p>
+        </div>
       </div>
     );
   }
@@ -33,9 +36,11 @@ export default function MainLayout({
 
   // El layout normal para el resto de las páginas
   return (
-    <div className='flex h-screen bg-black'>
+    <div className='flex h-screen bg-black overflow-hidden'>
       <Sidebar />
-      <main className='flex-1 overflow-auto'>{children}</main>
+      <main className='flex-1 main-content overflow-x-hidden'>
+        <div className='min-h-full'>{children}</div>
+      </main>
     </div>
   );
 }

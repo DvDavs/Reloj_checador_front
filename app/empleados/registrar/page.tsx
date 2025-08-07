@@ -45,6 +45,7 @@ export default function RegistrarEmpleadoPage() {
     academia: null as string | null,
     tipoNombramientoSecundario: '',
     estatusId: 1,
+    permiteChecarConPin: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +86,11 @@ export default function RegistrarEmpleadoPage() {
     setError(null);
   };
 
+  const handleSwitchChange = (name: keyof typeof formData, value: boolean) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -97,6 +103,7 @@ export default function RegistrarEmpleadoPage() {
       academia: formData.academia ? parseInt(formData.academia, 10) : null,
       nombramiento: formData.nombramiento || null,
       tipoNombramientoSecundario: formData.tipoNombramientoSecundario || null,
+      permiteChecarConPin: formData.permiteChecarConPin || false,
     };
     if (
       !payload.primerNombre ||
@@ -140,7 +147,7 @@ export default function RegistrarEmpleadoPage() {
 
   return (
     <>
-      <div className='p-6 md:p-8'>
+      <div className='p-6 md:p-8 pb-12'>
         <BreadcrumbNav
           items={[
             { label: 'Empleados', href: '/empleados' },
@@ -170,6 +177,7 @@ export default function RegistrarEmpleadoPage() {
                 formData={formData}
                 onChange={handleChange}
                 onSelectChange={handleSelectChange}
+                onSwitchChange={handleSwitchChange}
                 isSubmitting={isSubmitting}
                 noneValue={NONE_VALUE_SELECT}
               />

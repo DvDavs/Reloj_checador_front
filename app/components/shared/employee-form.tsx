@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -25,6 +26,7 @@ interface EmployeeFormData {
   departamento?: string | null;
   academia?: string | null;
   tipoNombramientoSecundario?: string | null;
+  permiteChecarConPin?: boolean;
 }
 
 interface EmployeeFormProps {
@@ -33,6 +35,7 @@ interface EmployeeFormProps {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
   onSelectChange: (name: keyof EmployeeFormData, value: string) => void;
+  onSwitchChange?: (name: keyof EmployeeFormData, value: boolean) => void;
   isSubmitting?: boolean;
   noneValue?: string;
 }
@@ -41,6 +44,7 @@ export function EmployeeForm({
   formData,
   onChange,
   onSelectChange,
+  onSwitchChange,
   isSubmitting = false,
   noneValue = '__NONE__',
 }: EmployeeFormProps) {
@@ -163,6 +167,28 @@ export function EmployeeForm({
             placeholder='Ej: 12345'
             value={formData.tarjeta ?? ''}
             onChange={onChange}
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+
+      <div className='space-y-2'>
+        <div className='flex items-center justify-between'>
+          <div className='space-y-0.5'>
+            <Label htmlFor='permiteChecarConPin'>
+              Permitir Check-in con PIN
+            </Label>
+            <p className='text-sm text-muted-foreground'>
+              Permite al empleado usar su número de tarjeta para registrar
+              entrada/salida
+            </p>
+          </div>
+          <Switch
+            id='permiteChecarConPin'
+            checked={formData.permiteChecarConPin || false}
+            onCheckedChange={(checked) =>
+              onSwitchChange?.('permiteChecarConPin', checked)
+            }
             disabled={isSubmitting}
           />
         </div>

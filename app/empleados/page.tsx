@@ -142,7 +142,7 @@ export default function EmpleadosPage() {
 
   return (
     <>
-      <div className='p-6 md:p-8'>
+      <div className='p-6 md:p-8 pb-12'>
         <PageHeader
           title='Gestión de Empleados'
           isLoading={isLoading}
