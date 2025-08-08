@@ -4,6 +4,7 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
 import { FileText, Clock, Edit3, Settings } from 'lucide-react';
+import { JustificacionForm } from '@/components/admin/JustificacionForm';
 
 export default function HerramientasAdminPage() {
   return (
@@ -73,17 +74,8 @@ export default function HerramientasAdminPage() {
                 </div>
               </div>
 
-              {/* Placeholder content - will be replaced with JustificacionForm component */}
-              <div className='bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center'>
-                <FileText className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
-                <h3 className='text-lg font-medium text-muted-foreground mb-2'>
-                  Formulario de Justificaciones
-                </h3>
-                <p className='text-sm text-muted-foreground'>
-                  El componente JustificacionForm se implementará en la
-                  siguiente tarea
-                </p>
-              </div>
+              {/* JustificacionForm Component */}
+              <JustificacionForm />
             </div>
           </TabsContent>
 
