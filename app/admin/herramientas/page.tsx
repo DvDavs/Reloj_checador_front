@@ -6,6 +6,7 @@ import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
 import { FileText, Clock, Edit3, Settings } from 'lucide-react';
 import { JustificacionForm } from '@/components/admin/JustificacionForm';
 import { RegistroManualForm } from '@/components/admin/RegistroManualForm';
+import { CorreccionEstatusForm } from '@/components/admin/CorreccionEstatusForm';
 
 export default function HerramientasAdminPage() {
   return (
@@ -113,17 +114,8 @@ export default function HerramientasAdminPage() {
                 </div>
               </div>
 
-              {/* Placeholder content - will be replaced with AsistenciaSearchForm and EstatusCorrecionModal components */}
-              <div className='bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center'>
-                <Edit3 className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
-                <h3 className='text-lg font-medium text-muted-foreground mb-2'>
-                  Herramienta de Corrección de Estatus
-                </h3>
-                <p className='text-sm text-muted-foreground'>
-                  Los componentes AsistenciaSearchForm y EstatusCorrecionModal
-                  se implementarán en las siguientes tareas
-                </p>
-              </div>
+              {/* CorreccionEstatusForm Component */}
+              <CorreccionEstatusForm />
             </div>
           </TabsContent>
         </Tabs>

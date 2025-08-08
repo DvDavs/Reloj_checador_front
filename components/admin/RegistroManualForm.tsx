@@ -149,7 +149,7 @@ export function RegistroManualForm({ onSuccess }: RegistroManualFormProps) {
 
       toast({
         title: 'Registro creado exitosamente',
-        description: `Registro manual creado para ${response.empleado.nombreCompleto}. Tipo: ${response.tipo}`,
+        description: `Registro manual creado para ${formData.empleado!.nombreCompleto}. Tipo: ${response.data.tipo}`,
       });
 
       // Reset form

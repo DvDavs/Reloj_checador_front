@@ -12,16 +12,16 @@ export interface RegistroManualData {
 }
 
 export interface RegistroManualResponse {
-  id: number;
-  mensaje: string;
-  empleado: {
+  code: string; // "200" o "202" si fue retardo
+  type: string; // "OK"
+  data: {
     id: number;
-    nombreCompleto: string;
-    numeroEmpleado: string;
+    empleadoId: number;
+    fechaHora: string;
+    tipo: string; // "ENTRADA" o "SALIDA"
+    // Otros campos del RegistroDto según el backend
   };
-  fechaHora: string;
-  tipo: string;
-  estatusAsistenciaRecalculado?: string;
+  message: string; // "Registro manual creado exitosamente"
 }
 
 export interface EmpleadoBasico {
@@ -49,6 +49,8 @@ export const createRegistroManual = async (
 ): Promise<RegistroManualResponse> => {
   try {
     const response = await apiClient.post('/api/registros/manual', data);
+    // Según la guía técnica, este endpoint devuelve una estructura diferente
+    // No usa la envoltura estándar { success, message, data }
     return response.data;
   } catch (error) {
     throw new Error(

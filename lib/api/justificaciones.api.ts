@@ -90,9 +90,25 @@ export const createJustificacionMasiva = async (
   data: JustificacionMasivaData
 ): Promise<JustificacionResponse> => {
   try {
+    console.log('API: Enviando justificación masiva:', data); // Debug log
     const response = await apiClient.post('/api/justificaciones/masivo', data);
-    return response.data;
+    console.log('API: Respuesta completa del backend:', response); // Debug log
+    console.log('API: response.data:', response.data); // Debug log
+
+    // El backend puede devolver la respuesta directamente o envuelta
+    const responseData = response.data.data ? response.data : response.data;
+
+    return {
+      id: responseData.id || 0,
+      mensaje:
+        responseData.message || response.data.message || 'Justificación creada',
+      empleadosAfectados:
+        response.data.empleadosJustificados ||
+        response.data.empleadosAfectados ||
+        0,
+    };
   } catch (error) {
+    console.error('API: Error en justificación masiva:', error); // Debug log
     throw new Error(
       getApiErrorMessage(
         error,

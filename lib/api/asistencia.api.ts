@@ -6,34 +6,35 @@ import { getApiErrorMessage } from './api-helpers';
 // ============================================================================
 
 export interface AsistenciaFilters {
+  // Filtros opcionales para búsqueda flexible
   empleadoId?: number;
-  fechaInicio?: string;
-  fechaFin?: string;
-  estatusId?: number;
   departamentoId?: number;
+  fechaInicio?: string; // Formato YYYY-MM-DD
+  fechaFin?: string; // Formato YYYY-MM-DD
+  estatusId?: number;
+  // Para compatibilidad con endpoint que requiere fecha única
+  fecha?: string; // Formato YYYY-MM-DD
 }
 
 export interface AsistenciaRecord {
+  // Campos de AsistenciaDiaria
   id: number;
-  empleado: {
-    id: number;
-    nombreCompleto: string;
-    numeroEmpleado: string;
-    departamento: {
-      clave: string;
-      nombre: string;
-    };
-  };
   fecha: string;
-  estatus: {
-    id: number;
-    nombre: string;
-    descripcion: string;
-  };
-  horaEntrada?: string;
-  horaSalida?: string;
-  minutosRetardo?: number;
-  observaciones?: string;
+  horaEntradaProgramada: string;
+  horaSalidaProgramada: string;
+  horaEntradaReal: string | null;
+  horaSalidaReal: string | null;
+  minutosRetardo: number | null;
+  observaciones: string | null;
+
+  // Campos aplanados del Empleado
+  empleadoId: number;
+  empleadoNombre: string;
+
+  // Campos aplanados del EstatusAsistencia
+  estatusAsistenciaId: number;
+  estatusAsistenciaNombre: string;
+  estatusAsistenciaClave: string;
 }
 
 export interface EstatusDisponible {
@@ -44,9 +45,10 @@ export interface EstatusDisponible {
 }
 
 export interface EstatusCorrecionData {
+  asistenciaId: number; // Requerido por el backend DTO
   nuevoEstatusId: number;
-  observaciones?: string;
   motivo: string;
+  observaciones?: string;
 }
 
 export interface EstatusCorrecionMasivaData {
@@ -93,24 +95,46 @@ export const buscarAsistencias = async (
   limite: number = 50
 ): Promise<BusquedaAsistenciasResponse> => {
   try {
+    // Validación: Según la guía técnica, se requiere estatusId Y fecha
+    const hasEstatus = filters.estatusId;
+    const hasFecha = filters.fecha || filters.fechaInicio || filters.fechaFin;
+
+    if (!hasEstatus || !hasFecha) {
+      throw new Error(
+        'Debe proporcionar tanto el estatus como la fecha para realizar la búsqueda.'
+      );
+    }
+
     const params = new URLSearchParams();
 
-    if (filters.empleadoId)
-      params.append('empleadoId', filters.empleadoId.toString());
-    if (filters.fechaInicio) params.append('fechaInicio', filters.fechaInicio);
-    if (filters.fechaFin) params.append('fechaFin', filters.fechaFin);
-    if (filters.estatusId)
+    // Parámetros requeridos según la guía técnica
+    if (filters.estatusId) {
       params.append('estatusId', filters.estatusId.toString());
-    if (filters.departamentoId)
-      params.append('departamentoId', filters.departamentoId.toString());
+    }
 
-    params.append('pagina', pagina.toString());
-    params.append('limite', limite.toString());
+    // Para fecha, usar el primer valor disponible
+    const fechaParam = filters.fecha || filters.fechaInicio || filters.fechaFin;
+    if (fechaParam) {
+      params.append('fecha', fechaParam);
+    }
 
     const response = await apiClient.get(
       `/api/asistencias/buscar?${params.toString()}`
     );
-    return response.data;
+
+    // El backend devuelve { success, message, data, total }
+    const backendResponse = response.data;
+
+    // Construimos el objeto que el frontend espera, mapeando los campos del backend
+    const results: BusquedaAsistenciasResponse = {
+      asistencias: backendResponse.data, // Mapeamos 'data' a 'asistencias'
+      total: backendResponse.total,
+      pagina: pagina, // Usamos la página que se pasó a la función
+      // Si el backend no devuelve totalPaginas, lo calculamos
+      totalPaginas: Math.ceil(backendResponse.total / limite) || 1,
+    };
+
+    return results;
   } catch (error) {
     throw new Error(
       getApiErrorMessage(
@@ -130,7 +154,8 @@ export const getEstatusDisponibles = async (): Promise<EstatusDisponible[]> => {
     const response = await apiClient.get(
       '/api/asistencias/estatus/disponibles'
     );
-    return response.data;
+    // El backend devuelve { success, message, data } donde data contiene el array
+    return response.data.data;
   } catch (error) {
     throw new Error(
       getApiErrorMessage(
@@ -156,7 +181,8 @@ export const corregirEstatusIndividual = async (
       `/api/asistencias/${id}/estatus`,
       data
     );
-    return response.data;
+    // El backend devuelve { success, message, data } donde data contiene la respuesta
+    return response.data.data;
   } catch (error) {
     throw new Error(
       getApiErrorMessage(
@@ -180,7 +206,8 @@ export const corregirEstatusMasivo = async (
       '/api/asistencias/estatus/masivo',
       data
     );
-    return response.data;
+    // El backend devuelve { success, message, data } donde data contiene la respuesta
+    return response.data.data;
   } catch (error) {
     throw new Error(
       getApiErrorMessage(
@@ -201,7 +228,8 @@ export const getAsistenciaById = async (
 ): Promise<AsistenciaRecord> => {
   try {
     const response = await apiClient.get(`/api/asistencias/${id}`);
-    return response.data;
+    // El backend devuelve { success, message, data } donde data contiene la asistencia
+    return response.data.data;
   } catch (error) {
     throw new Error(
       getApiErrorMessage(

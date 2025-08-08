@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Eye, ArrowRight, X } from 'lucide-react';
 
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
 import { DepartmentSearch } from './DepartmentSearch';
@@ -39,6 +39,7 @@ import {
   JustificacionDepartamentalData,
   JustificacionMasivaData,
 } from '@/lib/api/justificaciones.api';
+import { buscarAsistencias } from '@/lib/api/asistencia.api';
 import { useToast } from '@/components/ui/use-toast';
 
 type TipoJustificacion = 'individual' | 'departamental' | 'masiva';
@@ -53,6 +54,14 @@ interface JustificacionFormData {
   motivo: string;
 }
 
+interface JustificacionExitosa {
+  tipo: TipoJustificacion;
+  empleadosAfectados: number;
+  fechasAfectadas: string[];
+  empleadoNombre?: string;
+  departamentoNombre?: string;
+}
+
 interface JustificacionFormProps {
   onSuccess?: () => void;
 }
@@ -61,6 +70,8 @@ export function JustificacionForm({ onSuccess }: JustificacionFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [justificacionExitosa, setJustificacionExitosa] =
+    useState<JustificacionExitosa | null>(null);
   const [formData, setFormData] = useState<JustificacionFormData>({
     tipo: 'individual',
     empleado: null,
@@ -83,6 +94,48 @@ export function JustificacionForm({ onSuccess }: JustificacionFormProps) {
       motivo: '',
     });
     setErrors({});
+    setJustificacionExitosa(null); // Limpiar mensaje de éxito al cambiar tipo
+  };
+
+  // Función para verificar si las asistencias fueron actualizadas
+  const verificarAsistenciasActualizadas = async (
+    fechas: string[]
+  ): Promise<{ actualizadas: number; total: number }> => {
+    try {
+      let totalActualizadas = 0;
+      let totalAsistencias = 0;
+
+      for (const fecha of fechas) {
+        // Buscar asistencias justificadas (estatus FJ = 6)
+        const asistenciasJustificadas = await buscarAsistencias(
+          {
+            fecha,
+            estatusId: 6, // FJ - Falta Justificada
+          },
+          1,
+          1000
+        );
+
+        // Buscar asistencias con faltas completas (estatus FC = 4) para comparar
+        const asistenciasFaltaCompleta = await buscarAsistencias(
+          {
+            fecha,
+            estatusId: 4, // FC - Falta Completa
+          },
+          1,
+          1000
+        );
+
+        totalActualizadas += asistenciasJustificadas.total;
+        totalAsistencias +=
+          asistenciasJustificadas.total + asistenciasFaltaCompleta.total;
+      }
+
+      return { actualizadas: totalActualizadas, total: totalAsistencias };
+    } catch (error) {
+      console.error('Error verificando asistencias actualizadas:', error);
+      return { actualizadas: 0, total: 0 };
+    }
   };
 
   const handleDateChange = (
@@ -164,6 +217,10 @@ export function JustificacionForm({ onSuccess }: JustificacionFormProps) {
     setErrors({});
 
     try {
+      let response: any;
+      let empleadosAfectados = 0;
+      let fechasAfectadas: string[] = [];
+
       switch (formData.tipo) {
         case 'individual':
           const individualData: JustificacionIndividualData = {
@@ -172,7 +229,21 @@ export function JustificacionForm({ onSuccess }: JustificacionFormProps) {
             fechaFin: format(formData.fechaFin!, 'yyyy-MM-dd'),
             motivo: formData.motivo.trim(),
           };
-          await createJustificacionIndividual(individualData);
+          response = await createJustificacionIndividual(individualData);
+          empleadosAfectados = 1;
+
+          // Calcular fechas afectadas para justificación individual
+          const fechaInicio = new Date(formData.fechaInicio!);
+          const fechaFin = new Date(formData.fechaFin!);
+          const fechasRango: string[] = [];
+          for (
+            let d = new Date(fechaInicio);
+            d <= fechaFin;
+            d.setDate(d.getDate() + 1)
+          ) {
+            fechasRango.push(format(d, 'yyyy-MM-dd'));
+          }
+          fechasAfectadas = fechasRango;
           break;
 
         case 'departamental':
@@ -181,7 +252,10 @@ export function JustificacionForm({ onSuccess }: JustificacionFormProps) {
             fecha: format(formData.fecha!, 'yyyy-MM-dd'),
             motivo: formData.motivo.trim(),
           };
-          await createJustificacionDepartamental(departamentalData);
+          response = await createJustificacionDepartamental(departamentalData);
+          empleadosAfectados =
+            response.empleadosJustificados || response.empleadosAfectados || 0;
+          fechasAfectadas = [format(formData.fecha!, 'yyyy-MM-dd')];
           break;
 
         case 'masiva':
@@ -189,13 +263,53 @@ export function JustificacionForm({ onSuccess }: JustificacionFormProps) {
             fecha: format(formData.fecha!, 'yyyy-MM-dd'),
             motivo: formData.motivo.trim(),
           };
-          await createJustificacionMasiva(masivaData);
+          console.log('Enviando justificación masiva:', masivaData); // Debug log
+          response = await createJustificacionMasiva(masivaData);
+          console.log('Respuesta del backend:', response); // Debug log
+          empleadosAfectados =
+            response.empleadosJustificados || response.empleadosAfectados || 0;
+          fechasAfectadas = [format(formData.fecha!, 'yyyy-MM-dd')];
           break;
       }
 
+      // Verificar si las asistencias fueron realmente actualizadas
+      const verificacion =
+        await verificarAsistenciasActualizadas(fechasAfectadas);
+
+      // Toast mejorado con información detallada
+      const fechasTexto =
+        fechasAfectadas.length === 1
+          ? format(new Date(fechasAfectadas[0]), 'dd/MM/yyyy', { locale: es })
+          : fechasAfectadas.length > 1
+            ? `${format(new Date(fechasAfectadas[0]), 'dd/MM/yyyy', { locale: es })} - ${format(new Date(fechasAfectadas[fechasAfectadas.length - 1]), 'dd/MM/yyyy', { locale: es })}`
+            : 'fechas seleccionadas';
+
+      // Determinar si hay problemas con la actualización
+      const hayProblemas =
+        verificacion.actualizadas === 0 && empleadosAfectados > 0;
+
+      const descripcionDetallada = hayProblemas
+        ? `⚠️ ADVERTENCIA: La justificación se creó pero las asistencias NO fueron actualizadas automáticamente. Verifique manualmente en "Corrección de Estatus".`
+        : empleadosAfectados > 0
+          ? `Justificación procesada exitosamente. ${empleadosAfectados} empleado${empleadosAfectados > 1 ? 's' : ''} afectado${empleadosAfectados > 1 ? 's' : ''} para ${fechasTexto}. ${verificacion.actualizadas} asistencias actualizadas.`
+          : `Justificación procesada exitosamente para ${fechasTexto}. ${verificacion.actualizadas} asistencias actualizadas.`;
+
       toast({
-        title: 'Justificación creada',
-        description: 'La justificación se ha procesado correctamente.',
+        title: hayProblemas
+          ? 'Justificación creada con advertencias'
+          : 'Justificación creada exitosamente',
+        description: descripcionDetallada,
+        duration: hayProblemas ? 10000 : 6000, // Más tiempo si hay problemas
+        variant: hayProblemas ? 'destructive' : 'default',
+      });
+
+      // Guardar información de la justificación exitosa para mostrar el alert
+      setJustificacionExitosa({
+        tipo: formData.tipo,
+        empleadosAfectados,
+        fechasAfectadas,
+        empleadoNombre: formData.empleado?.nombreCompleto,
+        departamentoNombre: formData.departamento?.nombre,
       });
 
       // Reset form
@@ -212,7 +326,7 @@ export function JustificacionForm({ onSuccess }: JustificacionFormProps) {
       onSuccess?.();
     } catch (error: any) {
       toast({
-        title: 'Error',
+        title: 'Error al procesar justificación',
         description:
           error.message || 'Ocurrió un error al procesar la justificación',
         variant: 'destructive',
@@ -332,13 +446,84 @@ export function JustificacionForm({ onSuccess }: JustificacionFormProps) {
     }
   };
 
+  const renderJustificacionExitosaAlert = () => {
+    if (!justificacionExitosa) return null;
+
+    const fechasTexto =
+      justificacionExitosa.fechasAfectadas.length === 1
+        ? format(
+            new Date(justificacionExitosa.fechasAfectadas[0]),
+            'dd/MM/yyyy',
+            { locale: es }
+          )
+        : justificacionExitosa.fechasAfectadas.length > 1
+          ? `${format(new Date(justificacionExitosa.fechasAfectadas[0]), 'dd/MM/yyyy', { locale: es })} - ${format(new Date(justificacionExitosa.fechasAfectadas[justificacionExitosa.fechasAfectadas.length - 1]), 'dd/MM/yyyy', { locale: es })}`
+          : 'fechas seleccionadas';
+
+    let detalleAfectados = '';
+    switch (justificacionExitosa.tipo) {
+      case 'individual':
+        detalleAfectados = `Empleado: ${justificacionExitosa.empleadoNombre}`;
+        break;
+      case 'departamental':
+        detalleAfectados = `Departamento: ${justificacionExitosa.departamentoNombre} (${justificacionExitosa.empleadosAfectados} empleados)`;
+        break;
+      case 'masiva':
+        detalleAfectados = `Todos los empleados del sistema (${justificacionExitosa.empleadosAfectados} empleados)`;
+        break;
+    }
+
+    return (
+      <Alert className='border-green-200 bg-green-50 relative'>
+        <CheckCircle2 className='h-4 w-4 text-green-600' />
+        <Button
+          variant='ghost'
+          size='icon'
+          className='absolute top-2 right-2 h-6 w-6 text-green-600 hover:text-green-800 hover:bg-green-100'
+          onClick={() => setJustificacionExitosa(null)}
+        >
+          <X className='h-4 w-4' />
+        </Button>
+        <AlertDescription className='text-green-800 pr-8'>
+          <div className='space-y-2'>
+            <div className='font-medium'>
+              ✅ Justificación procesada exitosamente
+            </div>
+            <div className='text-sm space-y-1'>
+              <div>
+                <strong>Fechas afectadas:</strong> {fechasTexto}
+              </div>
+              <div>
+                <strong>Personal afectado:</strong> {detalleAfectados}
+              </div>
+            </div>
+            <div className='flex items-center gap-2 text-sm pt-2 border-t border-green-200'>
+              <Eye className='h-4 w-4' />
+              <span>
+                Para verificar las asistencias actualizadas, vaya a la pestaña
+              </span>
+              <strong>"Corrección de Estatus"</strong>
+              <ArrowRight className='h-4 w-4' />
+            </div>
+          </div>
+        </AlertDescription>
+      </Alert>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Crear Justificación</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className='space-y-6'>
+        {/* Alert de justificación exitosa */}
+        {renderJustificacionExitosaAlert()}
+
+        <form
+          onSubmit={handleSubmit}
+          className={`space-y-6 ${justificacionExitosa ? 'mt-6' : ''}`}
+        >
           {/* Tipo de Justificación */}
           <div className='space-y-2'>
             <Label htmlFor='tipo'>Tipo de Justificación</Label>
