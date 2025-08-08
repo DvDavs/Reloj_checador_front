@@ -19,6 +19,7 @@ import {
   Monitor,
   BarChart2,
   LogOut,
+  Settings,
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/use-sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -129,7 +130,24 @@ const navItems: NavItemData[] = [
     ],
   },
 
-  // 5. Reportes (A futuro)
+  // 5. Herramientas Administrativas
+  {
+    id: 'herramientas',
+    href: '/admin/herramientas',
+    icon: <Settings size={20} />,
+    text: 'Herramientas',
+    keywords: [
+      'herramientas',
+      'justificaciones',
+      'registro',
+      'manual',
+      'correccion',
+      'estatus',
+      'admin',
+    ],
+  },
+
+  // 6. Reportes (A futuro)
   {
     id: 'reportes',
     href: '/reportes',

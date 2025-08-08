@@ -1,0 +1,149 @@
+'use client';
+
+import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
+import { FileText, Clock, Edit3, Settings } from 'lucide-react';
+
+export default function HerramientasAdminPage() {
+  return (
+    <div className='p-8'>
+      <div className='max-w-7xl mx-auto'>
+        {/* Header with breadcrumbs */}
+        <header className='mb-8'>
+          <BreadcrumbNav
+            items={[
+              { label: 'Admin', href: '/admin' },
+              { label: 'Herramientas' },
+            ]}
+          />
+          <div className='flex items-center gap-3'>
+            <Settings className='h-8 w-8 text-primary' />
+            <div>
+              <h1 className='text-3xl font-bold text-foreground'>
+                Herramientas Administrativas
+              </h1>
+              <p className='text-muted-foreground mt-1'>
+                Gestión de justificaciones, registros manuales y corrección de
+                estatus
+              </p>
+            </div>
+          </div>
+        </header>
+
+        {/* Tabs Container */}
+        <Tabs defaultValue='justificaciones' className='w-full'>
+          <TabsList className='grid w-full grid-cols-3 mb-8'>
+            <TabsTrigger
+              value='justificaciones'
+              className='flex items-center gap-2'
+            >
+              <FileText className='h-4 w-4' />
+              Justificaciones
+            </TabsTrigger>
+            <TabsTrigger
+              value='registro-manual'
+              className='flex items-center gap-2'
+            >
+              <Clock className='h-4 w-4' />
+              Registro Manual
+            </TabsTrigger>
+            <TabsTrigger
+              value='correccion-estatus'
+              className='flex items-center gap-2'
+            >
+              <Edit3 className='h-4 w-4' />
+              Corrección de Estatus
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Justificaciones Tab */}
+          <TabsContent value='justificaciones' className='space-y-6'>
+            <div className='bg-card border rounded-lg p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <FileText className='h-6 w-6 text-primary' />
+                <div>
+                  <h2 className='text-xl font-semibold'>
+                    Herramienta de Justificaciones
+                  </h2>
+                  <p className='text-muted-foreground'>
+                    Justificar faltas de empleados de manera individual,
+                    departamental o masiva
+                  </p>
+                </div>
+              </div>
+
+              {/* Placeholder content - will be replaced with JustificacionForm component */}
+              <div className='bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center'>
+                <FileText className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
+                <h3 className='text-lg font-medium text-muted-foreground mb-2'>
+                  Formulario de Justificaciones
+                </h3>
+                <p className='text-sm text-muted-foreground'>
+                  El componente JustificacionForm se implementará en la
+                  siguiente tarea
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Registro Manual Tab */}
+          <TabsContent value='registro-manual' className='space-y-6'>
+            <div className='bg-card border rounded-lg p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <Clock className='h-6 w-6 text-primary' />
+                <div>
+                  <h2 className='text-xl font-semibold'>Registro Manual</h2>
+                  <p className='text-muted-foreground'>
+                    Crear registros de checada retroactivos para empleados
+                  </p>
+                </div>
+              </div>
+
+              {/* Placeholder content - will be replaced with RegistroManualForm component */}
+              <div className='bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center'>
+                <Clock className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
+                <h3 className='text-lg font-medium text-muted-foreground mb-2'>
+                  Formulario de Registro Manual
+                </h3>
+                <p className='text-sm text-muted-foreground'>
+                  El componente RegistroManualForm se implementará en la
+                  siguiente tarea
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Corrección de Estatus Tab */}
+          <TabsContent value='correccion-estatus' className='space-y-6'>
+            <div className='bg-card border rounded-lg p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <Edit3 className='h-6 w-6 text-primary' />
+                <div>
+                  <h2 className='text-xl font-semibold'>
+                    Corrección de Estatus
+                  </h2>
+                  <p className='text-muted-foreground'>
+                    Corregir el estatus de asistencias ya generadas
+                  </p>
+                </div>
+              </div>
+
+              {/* Placeholder content - will be replaced with AsistenciaSearchForm and EstatusCorrecionModal components */}
+              <div className='bg-muted/50 border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center'>
+                <Edit3 className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
+                <h3 className='text-lg font-medium text-muted-foreground mb-2'>
+                  Herramienta de Corrección de Estatus
+                </h3>
+                <p className='text-sm text-muted-foreground'>
+                  Los componentes AsistenciaSearchForm y EstatusCorrecionModal
+                  se implementarán en las siguientes tareas
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
