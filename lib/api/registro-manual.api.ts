@@ -7,9 +7,8 @@ import { getApiErrorMessage } from './api-helpers';
 
 export interface RegistroManualData {
   empleadoId: number;
-  fecha: string;
-  hora: string;
-  tipo: 'ENTRADA' | 'SALIDA';
+  fechaHora: string; // Formato: "2025-08-07 08:01:00"
+  motivo: string; // Ej: "Falla de luz en el área de trabajo"
 }
 
 export interface RegistroManualResponse {
@@ -41,8 +40,9 @@ export interface EmpleadoBasico {
 
 /**
  * Crea un registro manual de checada retroactivo
- * @param data - Datos del registro manual
+ * @param data - Datos del registro manual (empleadoId, fechaHora, motivo)
  * @returns Promise con la respuesta del servidor
+ * @note El backend determina automáticamente si es ENTRADA o SALIDA basándose en la hora y horario del empleado
  */
 export const createRegistroManual = async (
   data: RegistroManualData
