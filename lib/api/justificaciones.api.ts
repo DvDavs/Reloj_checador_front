@@ -13,7 +13,7 @@ export interface JustificacionIndividualData {
 }
 
 export interface JustificacionDepartamentalData {
-  departamentoId: number;
+  departamentoClave: string; // DEBE SER departamentoClave y de tipo string
   fecha: string;
   motivo: string;
 }
@@ -66,18 +66,58 @@ export const createJustificacionDepartamental = async (
   data: JustificacionDepartamentalData
 ): Promise<JustificacionResponse> => {
   try {
+    console.log('API: Enviando justificación departamental:', data); // Debug log
     const response = await apiClient.post(
       '/api/justificaciones/departamento',
       data
     );
-    return response.data;
+    console.log('API: Respuesta departamental:', response.data); // Debug log
+
+    // Extraer empleados afectados de diferentes posibles ubicaciones en la respuesta
+    let empleadosAfectados = 0;
+
+    if (response.data.empleadosJustificados !== undefined) {
+      empleadosAfectados = response.data.empleadosJustificados;
+    } else if (response.data.empleadosAfectados !== undefined) {
+      empleadosAfectados = response.data.empleadosAfectados;
+    } else if (response.data.data?.empleadosJustificados !== undefined) {
+      empleadosAfectados = response.data.data.empleadosJustificados;
+    } else if (response.data.data?.empleadosAfectados !== undefined) {
+      empleadosAfectados = response.data.data.empleadosAfectados;
+    } else if (response.data.count !== undefined) {
+      empleadosAfectados = response.data.count;
+    }
+
+    console.log(
+      'API: Empleados afectados (departamental):',
+      empleadosAfectados
+    ); // Debug log
+
+    return {
+      id: response.data.id || response.data.data?.id || 0,
+      mensaje:
+        response.data.message ||
+        response.data.data?.message ||
+        'Justificación creada',
+      empleadosAfectados,
+    };
   } catch (error) {
-    throw new Error(
-      getApiErrorMessage(
-        error,
-        'Ocurrió un error inesperado al procesar la justificación departamental.'
-      )
-    );
+    // Extraer mensaje específico del backend si está disponible
+    let backendMessage =
+      'Ocurrió un error inesperado al procesar la justificación departamental.';
+
+    if (error && typeof error === 'object') {
+      const errorObj = error as any;
+      backendMessage =
+        errorObj.response?.data?.message ||
+        errorObj.response?.data?.mensaje ||
+        errorObj.response?.data?.error ||
+        errorObj.message ||
+        backendMessage;
+    }
+
+    console.error('API: Error en justificación departamental:', backendMessage); // Debug log
+    throw new Error(backendMessage);
   }
 };
 
@@ -95,25 +135,50 @@ export const createJustificacionMasiva = async (
     console.log('API: Respuesta completa del backend:', response); // Debug log
     console.log('API: response.data:', response.data); // Debug log
 
-    // El backend puede devolver la respuesta directamente o envuelta
-    const responseData = response.data.data ? response.data : response.data;
+    // Extraer empleados afectados de diferentes posibles ubicaciones en la respuesta
+    let empleadosAfectados = 0;
+
+    // Intentar extraer de diferentes campos posibles
+    if (response.data.empleadosJustificados !== undefined) {
+      empleadosAfectados = response.data.empleadosJustificados;
+    } else if (response.data.empleadosAfectados !== undefined) {
+      empleadosAfectados = response.data.empleadosAfectados;
+    } else if (response.data.data?.empleadosJustificados !== undefined) {
+      empleadosAfectados = response.data.data.empleadosJustificados;
+    } else if (response.data.data?.empleadosAfectados !== undefined) {
+      empleadosAfectados = response.data.data.empleadosAfectados;
+    } else if (response.data.count !== undefined) {
+      empleadosAfectados = response.data.count;
+    } else if (response.data.data?.count !== undefined) {
+      empleadosAfectados = response.data.data.count;
+    }
+
+    console.log('API: Empleados afectados extraídos:', empleadosAfectados); // Debug log
 
     return {
-      id: responseData.id || 0,
+      id: response.data.id || response.data.data?.id || 0,
       mensaje:
-        responseData.message || response.data.message || 'Justificación creada',
-      empleadosAfectados:
-        response.data.empleadosJustificados ||
-        response.data.empleadosAfectados ||
-        0,
+        response.data.message ||
+        response.data.data?.message ||
+        'Justificación creada',
+      empleadosAfectados,
     };
   } catch (error) {
-    console.error('API: Error en justificación masiva:', error); // Debug log
-    throw new Error(
-      getApiErrorMessage(
-        error,
-        'Ocurrió un error inesperado al procesar la justificación masiva.'
-      )
-    );
+    // Extraer mensaje específico del backend si está disponible
+    let backendMessage =
+      'Ocurrió un error inesperado al procesar la justificación masiva.';
+
+    if (error && typeof error === 'object') {
+      const errorObj = error as any;
+      backendMessage =
+        errorObj.response?.data?.message ||
+        errorObj.response?.data?.mensaje ||
+        errorObj.response?.data?.error ||
+        errorObj.message ||
+        backendMessage;
+    }
+
+    console.error('API: Error en justificación masiva:', backendMessage); // Debug log
+    throw new Error(backendMessage);
   }
 };

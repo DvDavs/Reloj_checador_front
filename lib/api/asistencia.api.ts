@@ -69,6 +69,8 @@ export interface EstatusCorrecionResponse {
     estatusAnterior: string;
     estatusNuevo: string;
   }[];
+  warnings?: string[]; // Advertencias del backend
+  success?: boolean;
 }
 
 export interface BusquedaAsistenciasResponse {
@@ -177,19 +179,39 @@ export const corregirEstatusIndividual = async (
   data: EstatusCorrecionData
 ): Promise<EstatusCorrecionResponse> => {
   try {
+    console.log('API: Enviando corrección individual:', { id, data }); // Debug log
     const response = await apiClient.put(
       `/api/asistencias/${id}/estatus`,
       data
     );
+    console.log('API: Respuesta corrección individual:', response.data); // Debug log
+
     // El backend devuelve { success, message, data } donde data contiene la respuesta
-    return response.data.data;
+    const result = response.data.data || response.data;
+
+    return {
+      ...result,
+      warnings:
+        result.warnings || result.advertencias || response.data.warnings || [],
+      success: response.data.success !== false,
+    };
   } catch (error) {
-    throw new Error(
-      getApiErrorMessage(
-        error,
-        'Ocurrió un error inesperado al corregir el estatus individual.'
-      )
-    );
+    // Extraer mensaje específico del backend si está disponible
+    let backendMessage =
+      'Ocurrió un error inesperado al corregir el estatus individual.';
+
+    if (error && typeof error === 'object') {
+      const errorObj = error as any;
+      backendMessage =
+        errorObj.response?.data?.message ||
+        errorObj.response?.data?.mensaje ||
+        errorObj.response?.data?.error ||
+        errorObj.message ||
+        backendMessage;
+    }
+
+    console.error('API: Error en corrección individual:', backendMessage); // Debug log
+    throw new Error(backendMessage);
   }
 };
 
@@ -202,19 +224,39 @@ export const corregirEstatusMasivo = async (
   data: EstatusCorrecionMasivaData
 ): Promise<EstatusCorrecionResponse> => {
   try {
+    console.log('API: Enviando corrección masiva:', data); // Debug log
     const response = await apiClient.put(
       '/api/asistencias/estatus/masivo',
       data
     );
+    console.log('API: Respuesta corrección masiva:', response.data); // Debug log
+
     // El backend devuelve { success, message, data } donde data contiene la respuesta
-    return response.data.data;
+    const result = response.data.data || response.data;
+
+    return {
+      ...result,
+      warnings:
+        result.warnings || result.advertencias || response.data.warnings || [],
+      success: response.data.success !== false,
+    };
   } catch (error) {
-    throw new Error(
-      getApiErrorMessage(
-        error,
-        'Ocurrió un error inesperado al corregir el estatus masivo.'
-      )
-    );
+    // Extraer mensaje específico del backend si está disponible
+    let backendMessage =
+      'Ocurrió un error inesperado al corregir el estatus masivo.';
+
+    if (error && typeof error === 'object') {
+      const errorObj = error as any;
+      backendMessage =
+        errorObj.response?.data?.message ||
+        errorObj.response?.data?.mensaje ||
+        errorObj.response?.data?.error ||
+        errorObj.message ||
+        backendMessage;
+    }
+
+    console.error('API: Error en corrección masiva:', backendMessage); // Debug log
+    throw new Error(backendMessage);
   }
 };
 

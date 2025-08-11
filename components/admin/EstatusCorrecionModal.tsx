@@ -1,7 +1,16 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { AlertTriangle, Edit3, Users, User, CheckCircle2 } from 'lucide-react';
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  AlertTriangle,
+  Edit3,
+  Users,
+  User,
+  CheckCircle2,
+  Eye,
+  BarChart3,
+  TrendingUp,
+} from 'lucide-react';
 
 import {
   Dialog,
@@ -57,6 +66,13 @@ interface FormData {
   observaciones: string;
 }
 
+interface EstadisticasCorreccion {
+  totalRegistros: number;
+  estatusActuales: { [key: string]: number };
+  empleadosAfectados: number;
+  fechasAfectadas: string[];
+}
+
 // ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
@@ -82,6 +98,11 @@ export function EstatusCorrecionModal({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [progress, setProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   // ============================================================================
   // COMPUTED VALUES
@@ -93,6 +114,27 @@ export function EstatusCorrecionModal({
   const selectedEstatus = estatusDisponibles.find(
     (estatus) => estatus.id.toString() === formData.nuevoEstatusId
   );
+
+  // Calcular estadísticas de la corrección
+  const estadisticasCorreccion: EstadisticasCorreccion = useMemo(() => {
+    const estatusActuales: { [key: string]: number } = {};
+    const empleadosUnicos = new Set<number>();
+    const fechasUnicas = new Set<string>();
+
+    asistenciasSeleccionadas.forEach((asistencia) => {
+      const estatus = asistencia.estatusAsistenciaNombre || 'Sin estatus';
+      estatusActuales[estatus] = (estatusActuales[estatus] || 0) + 1;
+      empleadosUnicos.add(asistencia.empleadoId);
+      fechasUnicas.add(asistencia.fecha);
+    });
+
+    return {
+      totalRegistros: asistenciasSeleccionadas.length,
+      estatusActuales,
+      empleadosAfectados: empleadosUnicos.size,
+      fechasAfectadas: Array.from(fechasUnicas).sort(),
+    };
+  }, [asistenciasSeleccionadas]);
 
   // ============================================================================
   // HANDLERS
@@ -152,6 +194,9 @@ export function EstatusCorrecionModal({
 
     setLoading(true);
     setError(null);
+    setProgress(
+      isMasivo ? { current: 0, total: asistenciasSeleccionadas.length } : null
+    );
 
     try {
       const correctionData = {
@@ -168,11 +213,41 @@ export function EstatusCorrecionModal({
           asistenciaId: asistencia.id, // Incluir el ID de la asistencia
         };
 
-        await corregirEstatusIndividual(asistencia.id, individualData);
+        const response = await corregirEstatusIndividual(
+          asistencia.id,
+          individualData
+        );
+
+        // Toast mejorado con información específica del backend
+        const estatusAnterior = asistencia.estatusAsistenciaNombre;
+        const estatusNuevo = selectedEstatus?.nombre || 'Nuevo estatus';
+
+        let descripcionDetallada = '';
+        let tituloToast = 'Corrección exitosa';
+        let variantToast: 'default' | 'destructive' = 'default';
+        let duracionToast = 6000;
+
+        // Usar mensaje del backend si está disponible
+        if (response.mensaje && response.mensaje !== 'Estatus corregido') {
+          descripcionDetallada = response.mensaje;
+        } else {
+          descripcionDetallada = `${asistencia.empleadoNombre}: "${estatusAnterior}" → "${estatusNuevo}" (${asistencia.fecha})`;
+        }
+
+        // Agregar advertencias del backend
+        if (response.warnings && response.warnings.length > 0) {
+          const advertenciasTexto = response.warnings.join('. ');
+          descripcionDetallada += ` ⚠️ Advertencias: ${advertenciasTexto}`;
+          variantToast = 'destructive';
+          duracionToast = 10000;
+          tituloToast = 'Corrección completada con advertencias';
+        }
 
         toast({
-          title: 'Corrección exitosa',
-          description: `El estatus de ${asistencia.empleadoNombre} ha sido actualizado correctamente.`,
+          title: tituloToast,
+          description: descripcionDetallada,
+          duration: duracionToast,
+          variant: variantToast,
         });
       } else {
         // Corrección masiva
@@ -181,11 +256,59 @@ export function EstatusCorrecionModal({
           asistenciaIds: asistenciasSeleccionadas.map((a) => a.id),
         };
 
-        await corregirEstatusMasivo(masiveData);
+        const response = await corregirEstatusMasivo(masiveData);
+
+        // Toast mejorado con estadísticas y información del backend
+        const estatusNuevoNombre = selectedEstatus?.nombre || 'Nuevo estatus';
+        const empleadosTexto =
+          estadisticasCorreccion.empleadosAfectados === 1
+            ? '1 empleado'
+            : `${estadisticasCorreccion.empleadosAfectados} empleados`;
+        const fechasTexto =
+          estadisticasCorreccion.fechasAfectadas.length === 1
+            ? '1 fecha'
+            : `${estadisticasCorreccion.fechasAfectadas.length} fechas`;
+
+        let descripcionDetallada = '';
+        let tituloToast = 'Corrección masiva exitosa';
+        let variantToast: 'default' | 'destructive' = 'default';
+        let duracionToast = 8000;
+
+        // Usar mensaje del backend si está disponible
+        if (
+          response.mensaje &&
+          response.mensaje !== 'Estatus corregido masivamente'
+        ) {
+          descripcionDetallada = response.mensaje;
+        } else {
+          descripcionDetallada = `Se actualizaron ${asistenciasSeleccionadas.length} registros a "${estatusNuevoNombre}". Afectados: ${empleadosTexto} en ${fechasTexto}.`;
+        }
+
+        // Agregar detalles específicos si están disponibles
+        if (response.detalles && response.detalles.length > 0) {
+          const detallesTexto = response.detalles
+            .map(
+              (d) =>
+                `${d.empleado} (${d.fecha}): ${d.estatusAnterior} → ${d.estatusNuevo}`
+            )
+            .join(', ');
+          descripcionDetallada += ` Detalles: ${detallesTexto}`;
+        }
+
+        // Agregar advertencias del backend
+        if (response.warnings && response.warnings.length > 0) {
+          const advertenciasTexto = response.warnings.join('. ');
+          descripcionDetallada += ` ⚠️ Advertencias: ${advertenciasTexto}`;
+          variantToast = 'destructive';
+          duracionToast = 12000;
+          tituloToast = 'Corrección masiva completada con advertencias';
+        }
 
         toast({
-          title: 'Corrección masiva exitosa',
-          description: `Se actualizaron ${asistenciasSeleccionadas.length} registros de asistencia correctamente.`,
+          title: tituloToast,
+          description: descripcionDetallada,
+          duration: duracionToast,
+          variant: variantToast,
         });
       }
 
@@ -197,15 +320,45 @@ export function EstatusCorrecionModal({
         error instanceof Error
           ? error.message
           : 'Error inesperado al corregir el estatus.';
-      setError(errorMessage);
+      let errorTitle = 'Error en la corrección';
+      let sugerenciaSolucion = '';
+
+      // Personalizar mensajes según el tipo de error
+      if (errorMessage.includes('Sin horario asignado')) {
+        errorTitle = 'Error: Sin horario asignado';
+        sugerenciaSolucion =
+          'Algunos empleados no tienen horario asignado para las fechas seleccionadas.';
+      } else if (errorMessage.includes('estatus no válido')) {
+        errorTitle = 'Error: Estatus no válido';
+        sugerenciaSolucion =
+          'El estatus seleccionado no es válido para estas asistencias.';
+      } else if (errorMessage.includes('asistencia no encontrada')) {
+        errorTitle = 'Error: Asistencia no encontrada';
+        sugerenciaSolucion =
+          'Una o más asistencias seleccionadas ya no existen.';
+      } else if (errorMessage.includes('ya tiene el estatus')) {
+        errorTitle = 'Error: Estatus duplicado';
+        sugerenciaSolucion =
+          'Algunas asistencias ya tienen el estatus seleccionado.';
+      } else if (errorMessage.includes('fecha')) {
+        errorTitle = 'Error: Fecha no válida';
+        sugerenciaSolucion =
+          'Verifique que las fechas de las asistencias sean válidas.';
+      }
+
+      setError(
+        `${errorMessage}${sugerenciaSolucion ? ` ${sugerenciaSolucion}` : ''}`
+      );
 
       toast({
-        title: 'Error en la corrección',
-        description: errorMessage,
+        title: errorTitle,
+        description: `${errorMessage}${sugerenciaSolucion ? ` ${sugerenciaSolucion}` : ''}`,
         variant: 'destructive',
+        duration: 12000, // Más tiempo para leer errores específicos
       });
     } finally {
       setLoading(false);
+      setProgress(null);
     }
   }, [
     validateForm,
@@ -220,6 +373,83 @@ export function EstatusCorrecionModal({
   // ============================================================================
   // RENDER HELPERS
   // ============================================================================
+
+  const renderPreviewChanges = () => {
+    if (!showPreview || !selectedEstatus) return null;
+
+    return (
+      <Alert className='border-blue-200 bg-blue-50'>
+        <Eye className='h-4 w-4 text-blue-600' />
+        <AlertDescription className='text-blue-800'>
+          <div className='space-y-3'>
+            <div className='font-medium'>Vista previa de cambios:</div>
+
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-xs'>
+              <div className='bg-white p-2 rounded border'>
+                <div className='font-medium text-blue-900 mb-1'>Registros</div>
+                <div>{estadisticasCorreccion.totalRegistros} asistencias</div>
+              </div>
+              <div className='bg-white p-2 rounded border'>
+                <div className='font-medium text-blue-900 mb-1'>Empleados</div>
+                <div>{estadisticasCorreccion.empleadosAfectados} personas</div>
+              </div>
+              <div className='bg-white p-2 rounded border'>
+                <div className='font-medium text-blue-900 mb-1'>Fechas</div>
+                <div>{estadisticasCorreccion.fechasAfectadas.length} días</div>
+              </div>
+            </div>
+
+            <div className='bg-white p-3 rounded border'>
+              <div className='font-medium text-blue-900 mb-2'>
+                Cambios por estatus actual:
+              </div>
+              <div className='space-y-1 text-xs'>
+                {Object.entries(estadisticasCorreccion.estatusActuales).map(
+                  ([estatus, cantidad]) => (
+                    <div
+                      key={estatus}
+                      className='flex justify-between items-center'
+                    >
+                      <span>"{estatus}"</span>
+                      <div className='flex items-center gap-2'>
+                        <Badge variant='outline' className='text-xs'>
+                          {cantidad}
+                        </Badge>
+                        <span>→</span>
+                        <Badge
+                          variant='outline'
+                          className='text-xs'
+                          style={{
+                            backgroundColor: selectedEstatus.color
+                              ? `${selectedEstatus.color}20`
+                              : undefined,
+                            borderColor: selectedEstatus.color || undefined,
+                          }}
+                        >
+                          {selectedEstatus.nombre}
+                        </Badge>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+
+            {estadisticasCorreccion.fechasAfectadas.length <= 5 && (
+              <div className='bg-white p-2 rounded border'>
+                <div className='font-medium text-blue-900 mb-1'>
+                  Fechas afectadas:
+                </div>
+                <div className='text-xs'>
+                  {estadisticasCorreccion.fechasAfectadas.join(', ')}
+                </div>
+              </div>
+            )}
+          </div>
+        </AlertDescription>
+      </Alert>
+    );
+  };
 
   const renderAsistenciasSummary = () => {
     if (isIndividual) {
@@ -324,11 +554,29 @@ export function EstatusCorrecionModal({
                 </SelectContent>
               </Select>
               {selectedEstatus && (
-                <div className='text-xs text-muted-foreground'>
-                  {selectedEstatus.descripcion}
+                <div className='flex items-center justify-between'>
+                  <div className='text-xs text-muted-foreground'>
+                    {selectedEstatus.descripcion}
+                  </div>
+                  {isMasivo && (
+                    <Button
+                      type='button'
+                      variant='outline'
+                      size='sm'
+                      onClick={() => setShowPreview(!showPreview)}
+                      disabled={!formData.nuevoEstatusId}
+                      className='text-xs'
+                    >
+                      <Eye className='mr-1 h-3 w-3' />
+                      {showPreview ? 'Ocultar' : 'Vista previa'}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
+
+            {/* Vista previa de cambios */}
+            {renderPreviewChanges()}
 
             {/* Motivo de la corrección */}
             <div className='space-y-2'>
@@ -398,7 +646,13 @@ export function EstatusCorrecionModal({
             {loading ? (
               <>
                 <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent' />
-                Procesando...
+                {progress ? (
+                  <span>
+                    Procesando... ({progress.current}/{progress.total})
+                  </span>
+                ) : (
+                  'Procesando...'
+                )}
               </>
             ) : (
               <>

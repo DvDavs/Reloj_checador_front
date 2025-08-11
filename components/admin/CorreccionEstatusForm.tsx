@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Edit3, Users, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -22,6 +22,17 @@ import {
   AsistenciaFilters,
 } from '@/lib/api/asistencia.api';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 // ============================================================================
 // INTERFACES
 // ============================================================================
@@ -41,6 +52,7 @@ interface Column {
 export function CorreccionEstatusForm() {
   const { state, actions } = useCorreccionEstatusReducer();
   const { toast } = useToast();
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
 
   // ============================================================================
   // EFECTOS
@@ -211,8 +223,14 @@ export function CorreccionEstatusForm() {
       return;
     }
 
+    setConfirmOpen(true);
+  }, [state.selectedIds?.length, toast]);
+
+  const handleConfirmAction = () => {
+    // Una vez confirmado, cierra el diálogo de confirmación y abre el modal de corrección
+    setConfirmOpen(false);
     actions.openModal();
-  }, [state.selectedIds?.length, toast, actions]);
+  };
 
   // ============================================================================
   // CONFIGURACIÓN DE COLUMNAS MEMOIZADA
@@ -440,6 +458,28 @@ export function CorreccionEstatusForm() {
         estatusDisponibles={state.estatusDisponibles || []}
         onSuccess={handleModalSuccess}
       />
+
+      {/* Diálogo de Confirmación AÑADIDO */}
+      <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Acción</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro de que desea proceder a corregir el estatus de los{' '}
+              <strong>{state.selectedIds?.length || 0}</strong> registros
+              seleccionados?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction}>
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

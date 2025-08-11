@@ -2,12 +2,26 @@
 
 import * as React from 'react';
 import { useState } from 'react';
-import { CalendarIcon, Loader2, Clock } from 'lucide-react';
+import {
+  CalendarIcon,
+  Loader2,
+  Clock,
+  Send,
+  AlertCircle,
+  CheckCircle2,
+  Eye,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,14 +31,32 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/components/ui/use-toast';
 
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
-import { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
+import {
+  EmpleadoSimpleDTO,
+  HorarioTemplateDTO,
+} from '@/app/horarios/asignados/registrar/types';
 import {
   createRegistroManual,
   RegistroManualData,
 } from '@/lib/api/registro-manual.api';
-import { useToast } from '@/components/ui/use-toast';
+import { getApiErrorMessage } from '@/lib/api/api-helpers';
+import { SchedulePreviewModal } from '@/app/components/shared/SchedulePreviewModal';
+import { apiClient } from '@/lib/apiClient';
+import { adaptHorarioTemplate } from '@/lib/adapters/horario-adapter';
 
 interface RegistroManualFormData {
   empleado: EmpleadoSimpleDTO | null;
@@ -33,112 +65,62 @@ interface RegistroManualFormData {
   motivo: string;
 }
 
-interface RegistroManualFormProps {
-  onSuccess?: () => void;
+interface RegistroExitoso {
+  empleadoNombre: string;
+  fechaHora: string;
+  tipo: string;
 }
 
-export function RegistroManualForm({ onSuccess }: RegistroManualFormProps) {
+const initialState: RegistroManualFormData = {
+  empleado: null,
+  fecha: null,
+  hora: '',
+  motivo: '',
+};
+
+export function RegistroManualForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formData, setFormData] = useState<RegistroManualFormData>({
-    empleado: null,
-    fecha: null,
-    hora: '',
-    motivo: '',
-  });
-
-  const handleDateChange = (date: Date | undefined) => {
-    setFormData({
-      ...formData,
-      fecha: date || null,
-    });
-
-    // Clear date error
-    if (errors.fecha) {
-      setErrors({
-        ...errors,
-        fecha: '',
-      });
-    }
-  };
-
-  const handleHoraChange = (value: string) => {
-    // Allow only time format (HH:MM)
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    const partialTimeRegex = /^([0-1]?[0-9]|2[0-3])?:?[0-5]?[0-9]?$/;
-
-    // Allow partial input while typing
-    if (partialTimeRegex.test(value) || value === '') {
-      setFormData({
-        ...formData,
-        hora: value,
-      });
-
-      // Clear hora error if format is now valid
-      if (errors.hora && (timeRegex.test(value) || value === '')) {
-        setErrors({
-          ...errors,
-          hora: '',
-        });
-      }
-    }
-  };
+  const [error, setError] = useState<string | null>(null);
+  const [successInfo, setSuccessInfo] = useState<RegistroExitoso | null>(null);
+  const [formData, setFormData] =
+    useState<RegistroManualFormData>(initialState);
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
+  const [isPreviewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewTemplate, setPreviewTemplate] =
+    useState<HorarioTemplateDTO | null>(null);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+    if (!formData.empleado)
+      newErrors.empleado = 'Debe seleccionar un empleado.';
+    if (!formData.fecha) newErrors.fecha = 'La fecha es requerida.';
+    if (!/^(?:2[0-3]|[01]?[0-9]):[0-5][0-9]$/.test(formData.hora))
+      newErrors.hora = 'El formato de hora debe ser HH:MM.';
+    if (!formData.motivo.trim() || formData.motivo.trim().length < 10)
+      newErrors.motivo = 'El motivo es requerido (mínimo 10 caracteres).';
 
-    // Validar empleado
-    if (!formData.empleado) {
-      newErrors.empleado = 'Debe seleccionar un empleado';
-    }
-
-    // Validar fecha
-    if (!formData.fecha) {
-      newErrors.fecha = 'La fecha es requerida';
-    } else {
-      // Validar que la fecha no sea futura
-      const today = new Date();
-      today.setHours(23, 59, 59, 999); // Set to end of today
-      if (formData.fecha > today) {
-        newErrors.fecha = 'La fecha no puede ser futura';
-      }
-    }
-
-    // Validar hora
-    if (!formData.hora.trim()) {
-      newErrors.hora = 'La hora es requerida';
-    } else {
-      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-      if (!timeRegex.test(formData.hora)) {
-        newErrors.hora = 'Formato de hora inválido (HH:MM)';
-      }
-    }
-
-    // Validar motivo
-    if (!formData.motivo.trim()) {
-      newErrors.motivo = 'El motivo es requerido';
-    }
-
-    setErrors(newErrors);
+    setError(Object.values(newErrors).join(' '));
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
+    setSuccessInfo(null);
+    if (validateForm()) {
+      setConfirmOpen(true);
     }
+  };
 
+  const handleConfirmSubmit = async () => {
     setLoading(true);
-    setErrors({});
+    setError(null);
+    setConfirmOpen(false);
 
     try {
-      // Combine date and time into fechaHora format
-      const fechaStr = format(formData.fecha!, 'yyyy-MM-dd');
-      const fechaHora = `${fechaStr} ${formData.hora}:00`;
-
+      const fechaHora = `${format(formData.fecha!, 'yyyy-MM-dd')} ${formData.hora}:00`;
       const registroData: RegistroManualData = {
         empleadoId: formData.empleado!.id,
         fechaHora,
@@ -147,25 +129,26 @@ export function RegistroManualForm({ onSuccess }: RegistroManualFormProps) {
 
       const response = await createRegistroManual(registroData);
 
+      setSuccessInfo({
+        empleadoNombre: formData.empleado!.nombreCompleto,
+        fechaHora: format(new Date(response.data.fechaHora), 'PPPp', {
+          locale: es,
+        }),
+        tipo: response.data.tipoEoS === 'E' ? 'Entrada' : 'Salida',
+      });
+
       toast({
-        title: 'Registro creado exitosamente',
-        description: `Registro manual creado para ${formData.empleado!.nombreCompleto}. Tipo: ${response.data.tipo}`,
+        title: 'Registro Creado',
+        description: `Registro de ${response.data.tipoEoS === 'E' ? 'entrada' : 'salida'} creado para ${formData.empleado!.nombreCompleto}.`,
       });
 
-      // Reset form
-      setFormData({
-        empleado: null,
-        fecha: null,
-        hora: '',
-        motivo: '',
-      });
-
-      onSuccess?.();
-    } catch (error: any) {
+      setFormData(initialState);
+    } catch (err) {
+      const errorMessage = getApiErrorMessage(err);
+      setError(errorMessage);
       toast({
         title: 'Error',
-        description:
-          error.message || 'Ocurrió un error al crear el registro manual',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -173,110 +156,213 @@ export function RegistroManualForm({ onSuccess }: RegistroManualFormProps) {
     }
   };
 
+  const openEmployeeSchedulePreview = async () => {
+    setPreviewError(null);
+    setPreviewTemplate(null);
+    setPreviewOpen(true);
+
+    if (!formData.empleado) {
+      setPreviewError('Seleccione un empleado para ver su horario.');
+      return;
+    }
+
+    try {
+      setPreviewLoading(true);
+      const empleadoId = formData.empleado.id;
+      const asignacionesResp = await apiClient.get(
+        `/api/horarios-asignados/empleado/${empleadoId}`
+      );
+      const asignaciones: any[] = asignacionesResp.data || [];
+
+      if (!asignaciones.length) {
+        setPreviewError('El empleado no tiene horarios asignados.');
+        return;
+      }
+
+      // Elegir la asignación más reciente (o sin fecha fin)
+      const sorted = [...asignaciones].sort((a, b) => {
+        const aDate = a.fechaInicio ? new Date(a.fechaInicio).getTime() : 0;
+        const bDate = b.fechaInicio ? new Date(b.fechaInicio).getTime() : 0;
+        return bDate - aDate;
+      });
+      const selected = sorted.find((a) => !a.fechaFin) ?? sorted[0];
+
+      const horarioResp = await apiClient.get(
+        `/api/horarios/${selected.horarioId}`
+      );
+      const template = adaptHorarioTemplate(horarioResp.data);
+      setPreviewTemplate(template);
+    } catch (err) {
+      setPreviewError(getApiErrorMessage(err));
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Crear Registro Manual</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className='space-y-6'>
-          {/* Empleado */}
-          <div className='space-y-2'>
-            <Label htmlFor='empleado'>Empleado</Label>
-            <EmployeeSearch
-              value={formData.empleado}
-              onChange={(empleado) => setFormData({ ...formData, empleado })}
-              disabled={loading}
-              placeholder='Buscar empleado por nombre, RFC o CURP...'
-            />
-            {errors.empleado && (
-              <p className='text-sm text-destructive'>{errors.empleado}</p>
-            )}
-          </div>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Crear Registro Manual</CardTitle>
+          <CardDescription>
+            Esta herramienta crea un registro de checada retroactivo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant='destructive' className='mb-4'>
+              <AlertCircle className='h-4 w-4' />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-          {/* Fecha */}
-          <div className='space-y-2'>
-            <Label htmlFor='fecha'>Fecha</Label>
-            <Popover>
-              <PopoverTrigger asChild>
+          {successInfo && (
+            <Alert className='mb-4 border-green-500/50 text-green-700 dark:text-green-400 [&>svg]:text-green-700 dark:[&>svg]:text-green-400'>
+              <CheckCircle2 className='h-4 w-4' />
+              <AlertTitle>¡Registro Completado!</AlertTitle>
+              <AlertDescription>
+                Se creó un registro de <strong>{successInfo.tipo}</strong> para{' '}
+                <strong>{successInfo.empleadoNombre}</strong> el{' '}
+                <strong>{successInfo.fechaHora}</strong>.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className='space-y-6'>
+            <div className='space-y-2'>
+              <Label>Empleado</Label>
+              <div className='flex items-center gap-2'>
+                <div className='flex-1'>
+                  <EmployeeSearch
+                    value={formData.empleado}
+                    onChange={(emp) =>
+                      setFormData((f) => ({ ...f, empleado: emp }))
+                    }
+                    disabled={loading}
+                  />
+                </div>
                 <Button
+                  type='button'
                   variant='outline'
-                  className='w-full justify-start text-left font-normal'
-                  disabled={loading}
+                  size='icon'
+                  title='Vista previa del horario del empleado'
+                  aria-label='Vista previa del horario del empleado'
+                  onClick={openEmployeeSchedulePreview}
+                  disabled={loading || !formData.empleado}
                 >
-                  <CalendarIcon className='mr-2 h-4 w-4' />
-                  {formData.fecha ? (
-                    format(formData.fecha, 'PPP', { locale: es })
-                  ) : (
-                    <span>Seleccione fecha</span>
-                  )}
+                  <Eye className='h-4 w-4' />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className='w-auto p-0'>
-                <Calendar
-                  mode='single'
-                  selected={formData.fecha ?? undefined}
-                  onSelect={handleDateChange}
-                  disabled={{ after: new Date() }} // Disable future dates
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            {errors.fecha && (
-              <p className='text-sm text-destructive'>{errors.fecha}</p>
-            )}
-          </div>
+              </div>
+            </div>
 
-          {/* Hora */}
-          <div className='space-y-2'>
-            <Label htmlFor='hora'>Hora</Label>
-            <div className='relative'>
-              <Clock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
-              <Input
-                id='hora'
-                type='text'
-                placeholder='HH:MM (ej: 08:30)'
-                value={formData.hora}
-                onChange={(e) => handleHoraChange(e.target.value)}
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div className='space-y-2'>
+                <Label>Fecha</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant='outline'
+                      className='w-full justify-start text-left font-normal'
+                      disabled={loading}
+                    >
+                      <CalendarIcon className='mr-2 h-4 w-4' />
+                      {formData.fecha ? (
+                        format(formData.fecha, 'PPP', { locale: es })
+                      ) : (
+                        <span>Seleccione fecha</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className='w-auto p-0'>
+                    <Calendar
+                      mode='single'
+                      selected={formData.fecha ?? undefined}
+                      onSelect={(d) =>
+                        setFormData((f) => ({ ...f, fecha: d || null }))
+                      }
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className='space-y-2'>
+                <Label>Hora (Formato 24h)</Label>
+                <Input
+                  type='text'
+                  placeholder='HH:MM'
+                  value={formData.hora}
+                  onChange={(e) =>
+                    setFormData((f) => ({ ...f, hora: e.target.value }))
+                  }
+                  disabled={loading}
+                  maxLength={5}
+                />
+              </div>
+            </div>
+
+            <div className='space-y-2'>
+              <Label>Motivo</Label>
+              <Textarea
+                placeholder='Describa el motivo del registro manual (ej: Falla de lector)'
+                value={formData.motivo}
+                onChange={(e) =>
+                  setFormData((f) => ({ ...f, motivo: e.target.value }))
+                }
                 disabled={loading}
-                className='pl-10'
-                maxLength={5}
+                rows={3}
               />
             </div>
-            {errors.hora && (
-              <p className='text-sm text-destructive'>{errors.hora}</p>
-            )}
-            <p className='text-xs text-muted-foreground'>
-              Formato de 24 horas (HH:MM). El sistema determinará
-              automáticamente si es entrada o salida.
-            </p>
-          </div>
 
-          {/* Motivo */}
-          <div className='space-y-2'>
-            <Label htmlFor='motivo'>Motivo</Label>
-            <Textarea
-              id='motivo'
-              placeholder='Ingrese el motivo del registro manual (ej: Falla de luz en el área de trabajo)...'
-              value={formData.motivo}
-              onChange={(e) =>
-                setFormData({ ...formData, motivo: e.target.value })
-              }
-              disabled={loading}
-              rows={3}
-            />
-            {errors.motivo && (
-              <p className='text-sm text-destructive'>{errors.motivo}</p>
-            )}
-          </div>
+            <Button type='submit' disabled={loading} className='w-full'>
+              {loading ? (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              ) : (
+                <Send className='mr-2 h-4 w-4' />
+              )}
+              {loading ? 'Procesando...' : 'Crear Registro'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-          {/* Botón de envío */}
-          <Button type='submit' disabled={loading} className='w-full'>
-            {loading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            {loading ? 'Creando registro...' : 'Crear Registro Manual'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar Registro Manual?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se creará un registro de checada para{' '}
+              <strong>{formData.empleado?.nombreCompleto}</strong> el{' '}
+              <strong>
+                {formData.fecha
+                  ? format(formData.fecha, 'PPP', { locale: es })
+                  : ''}{' '}
+                a las {formData.hora}
+              </strong>
+              . Esta acción afectará su cálculo de asistencia.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSubmit} disabled={loading}>
+              {loading ? (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              ) : (
+                'Confirmar'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <SchedulePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setPreviewOpen(false)}
+        template={previewTemplate}
+        isLoading={previewLoading}
+        error={previewError}
+      />
+    </>
   );
 }

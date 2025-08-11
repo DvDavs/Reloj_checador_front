@@ -1,12 +1,47 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
-import { FileText, Clock, Edit3, Settings } from 'lucide-react';
+import {
+  FileText,
+  Clock,
+  Edit3,
+  Settings,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { JustificacionForm } from '@/components/admin/JustificacionForm';
 import { RegistroManualForm } from '@/components/admin/RegistroManualForm';
 import { CorreccionEstatusForm } from '@/components/admin/CorreccionEstatusForm';
+
+// Componente de carga para las herramientas
+const LoadingComponent = ({ title }: { title: string }) => (
+  <div className='flex items-center justify-center py-12'>
+    <div className='text-center space-y-4'>
+      <Loader2 className='h-8 w-8 animate-spin mx-auto text-primary' />
+      <div className='text-sm text-muted-foreground'>Cargando {title}...</div>
+    </div>
+  </div>
+);
+
+// Componente de error para las herramientas
+const ErrorComponent = ({ title, error }: { title: string; error: Error }) => (
+  <Alert variant='destructive'>
+    <AlertCircle className='h-4 w-4' />
+    <AlertDescription>
+      <div className='space-y-2'>
+        <div className='font-medium'>Error al cargar {title}</div>
+        <div className='text-sm'>{error.message}</div>
+        <div className='text-xs text-muted-foreground'>
+          Intente recargar la página. Si el problema persiste, contacte al
+          administrador del sistema.
+        </div>
+      </div>
+    </AlertDescription>
+  </Alert>
+);
 
 export default function HerramientasAdminPage() {
   return (
@@ -71,13 +106,20 @@ export default function HerramientasAdminPage() {
                   </h2>
                   <p className='text-muted-foreground'>
                     Justificar faltas de empleados de manera individual,
-                    departamental o masiva
+                    departamental o masiva para prevenir generación automática
+                    de faltas
                   </p>
                 </div>
               </div>
 
-              {/* JustificacionForm Component */}
-              <JustificacionForm />
+              {/* JustificacionForm Component with Error Boundary */}
+              <Suspense
+                fallback={
+                  <LoadingComponent title='Herramienta de Justificaciones' />
+                }
+              >
+                <JustificacionForm />
+              </Suspense>
             </div>
           </TabsContent>
 
@@ -89,13 +131,16 @@ export default function HerramientasAdminPage() {
                 <div>
                   <h2 className='text-xl font-semibold'>Registro Manual</h2>
                   <p className='text-muted-foreground'>
-                    Crear registros de checada retroactivos para empleados
+                    Crear registros de checada retroactivos para corregir
+                    omisiones de empleados
                   </p>
                 </div>
               </div>
 
-              {/* RegistroManualForm Component */}
-              <RegistroManualForm />
+              {/* RegistroManualForm Component with Error Boundary */}
+              <Suspense fallback={<LoadingComponent title='Registro Manual' />}>
+                <RegistroManualForm />
+              </Suspense>
             </div>
           </TabsContent>
 
@@ -109,13 +154,18 @@ export default function HerramientasAdminPage() {
                     Corrección de Estatus
                   </h2>
                   <p className='text-muted-foreground'>
-                    Corregir el estatus de asistencias ya generadas
+                    Corregir el estatus de asistencias ya generadas cuando hay
+                    errores o situaciones injustas
                   </p>
                 </div>
               </div>
 
-              {/* CorreccionEstatusForm Component */}
-              <CorreccionEstatusForm />
+              {/* CorreccionEstatusForm Component with Error Boundary */}
+              <Suspense
+                fallback={<LoadingComponent title='Corrección de Estatus' />}
+              >
+                <CorreccionEstatusForm />
+              </Suspense>
             </div>
           </TabsContent>
         </Tabs>
