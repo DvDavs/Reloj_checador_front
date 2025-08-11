@@ -6,13 +6,13 @@ import {
 
 // Mapeo de números a nombres de días
 const DAY_MAP: Record<number, DetalleHorarioDTO['diaSemana']> = {
-  1: 'LUNES',
-  2: 'MARTES',
-  3: 'MIERCOLES',
-  4: 'JUEVES',
-  5: 'VIERNES',
-  6: 'SABADO',
-  7: 'DOMINGO',
+  1: 'DOMINGO',
+  2: 'LUNES',
+  3: 'MARTES',
+  4: 'MIERCOLES',
+  5: 'JUEVES',
+  6: 'VIERNES',
+  7: 'SABADO',
 };
 
 // Tipos del backend (lo que realmente viene de la API)
