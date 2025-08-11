@@ -6,18 +6,16 @@ import { getApiErrorMessage } from './api-helpers';
 // ============================================================================
 
 export interface AsistenciaFilters {
-  // Filtros opcionales para búsqueda flexible
   empleadoId?: number;
-  departamentoId?: number;
-  fechaInicio?: string; // Formato YYYY-MM-DD
-  fechaFin?: string; // Formato YYYY-MM-DD
-  estatusId?: number;
-  // Para compatibilidad con endpoint que requiere fecha única
-  fecha?: string; // Formato YYYY-MM-DD
+  departamentoClave?: string; // Cambiado de departamentoId para coincidir con el backend
+  fechaInicio?: string;
+  fechaFin?: string;
+  estatusClave?: string; // Cambiado de estatusId para usar la clave de estatus
+  // El campo 'fecha' se mantiene por compatibilidad con otras herramientas si es necesario
+  fecha?: string;
 }
 
 export interface AsistenciaRecord {
-  // Campos de AsistenciaDiaria
   id: number;
   fecha: string;
   horaEntradaProgramada: string;
@@ -26,21 +24,18 @@ export interface AsistenciaRecord {
   horaSalidaReal: string | null;
   minutosRetardo: number | null;
   observaciones: string | null;
-
-  // Campos aplanados del Empleado
   empleadoId: number;
   empleadoNombre: string;
-
-  // Campos aplanados del EstatusAsistencia
   estatusAsistenciaId: number;
   estatusAsistenciaNombre: string;
-  estatusAsistenciaClave: string;
+  estatusClave: string; // Corregido a estatusClave
 }
 
 export interface EstatusDisponible {
   id: number;
   nombre: string;
   descripcion: string;
+  clave: string;
   color?: string;
 }
 
@@ -80,6 +75,11 @@ export interface BusquedaAsistenciasResponse {
   totalPaginas: number;
 }
 
+export interface ConsolidacionResponse {
+  registrosConsolidados: number;
+  mensaje: string;
+}
+
 // ============================================================================
 // FUNCIONES DE API
 // ============================================================================
@@ -98,7 +98,7 @@ export const buscarAsistencias = async (
 ): Promise<BusquedaAsistenciasResponse> => {
   try {
     // Validación: Según la guía técnica, se requiere estatusId Y fecha
-    const hasEstatus = filters.estatusId;
+    const hasEstatus = filters.estatusClave;
     const hasFecha = filters.fecha || filters.fechaInicio || filters.fechaFin;
 
     if (!hasEstatus || !hasFecha) {
@@ -110,8 +110,8 @@ export const buscarAsistencias = async (
     const params = new URLSearchParams();
 
     // Parámetros requeridos según la guía técnica
-    if (filters.estatusId) {
-      params.append('estatusId', filters.estatusId.toString());
+    if (filters.estatusClave) {
+      params.append('estatusClave', filters.estatusClave);
     }
 
     // Para fecha, usar el primer valor disponible
@@ -278,6 +278,68 @@ export const getAsistenciaById = async (
         error,
         'Ocurrió un error inesperado al obtener los detalles de la asistencia.'
       )
+    );
+  }
+};
+
+/**
+ * Dispara manualmente el proceso de consolidación de asistencias para una fecha específica.
+ * @param fecha - La fecha para la cual consolidar, en formato "yyyy-MM-dd".
+ * @returns Promise con la respuesta del servidor, incluyendo el número de registros consolidados.
+ */
+export const consolidarAsistenciaManual = async (
+  fecha: string
+): Promise<ConsolidacionResponse> => {
+  try {
+    const response = await apiClient.post(
+      `/api/estatus-asistencia/consolidar/${fecha}`
+    );
+    // El backend devuelve un objeto como { registrosConsolidados: 123 }
+    // Lo envolvemos en una estructura consistente si es necesario.
+    return {
+      registrosConsolidados: response.data.registrosConsolidados || 0,
+      mensaje: response.data.mensaje || 'Proceso de consolidación completado.',
+    };
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(
+        error,
+        'Ocurrió un error inesperado al consolidar las asistencias.'
+      )
+    );
+  }
+};
+
+/**
+ * Busca asistencias consolidadas con filtros flexibles.
+ * Ideal para la herramienta de corrección, permitiendo rangos de fecha y estatus opcional.
+ * @param filters - Filtros de búsqueda.
+ * @returns Promise con un array de registros de asistencia.
+ */
+export const buscarAsistenciasConsolidadas = async (
+  filters: AsistenciaFilters
+): Promise<AsistenciaRecord[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (filters.empleadoId)
+      params.append('empleadoId', filters.empleadoId.toString());
+    // El backend espera 'departamentoId' para la clave numérica del departamento.
+    if (filters.departamentoClave)
+      params.append('departamentoId', filters.departamentoClave);
+    if (filters.fechaInicio) params.append('desde', filters.fechaInicio);
+    if (filters.fechaFin) params.append('hasta', filters.fechaFin);
+    if (filters.estatusClave) params.append('estatus', filters.estatusClave);
+
+    // Llama al endpoint flexible del backend
+    const response = await apiClient.get(
+      `/api/asistencias?${params.toString()}`
+    );
+
+    // Este endpoint devuelve directamente un array
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al buscar asistencias consolidadas.')
     );
   }
 };
