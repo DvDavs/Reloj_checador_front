@@ -76,8 +76,11 @@ export interface BusquedaAsistenciasResponse {
 }
 
 export interface ConsolidacionResponse {
-  registrosConsolidados: number;
+  totalConsolidados: number;
+  totalFaltas: number;
   mensaje: string;
+  // Compat: algunos consumidores antiguos pueden leer este alias
+  registrosConsolidados?: number;
 }
 
 // ============================================================================
@@ -294,11 +297,20 @@ export const consolidarAsistenciaManual = async (
     const response = await apiClient.post(
       `/api/estatus-asistencia/consolidar/${fecha}`
     );
-    // El backend devuelve un objeto como { registrosConsolidados: 123 }
-    // Lo envolvemos en una estructura consistente si es necesario.
+    // Backend devuelve { totalConsolidados, totalFaltas }
+    const data = response.data || {};
+    const totalConsolidados =
+      data.totalConsolidados ?? data.registrosConsolidados ?? 0;
+    const totalFaltas = data.totalFaltas ?? 0;
+    const mensaje =
+      data.mensaje ||
+      `Registros consolidados: ${totalConsolidados}. Faltas: ${totalFaltas}.`;
+
     return {
-      registrosConsolidados: response.data.registrosConsolidados || 0,
-      mensaje: response.data.mensaje || 'Proceso de consolidación completado.',
+      totalConsolidados,
+      totalFaltas,
+      mensaje,
+      registrosConsolidados: totalConsolidados,
     };
   } catch (error) {
     throw new Error(
