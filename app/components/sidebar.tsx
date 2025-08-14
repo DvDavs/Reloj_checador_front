@@ -16,10 +16,7 @@ import {
   ChevronLeft,
   Search,
   Calendar,
-  Monitor,
-  BarChart2,
   LogOut,
-  Settings,
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/use-sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -51,27 +48,10 @@ const navItems: NavItemData[] = [
   // 2. Gestión de Reloj Checador (Acciones Clave)
   {
     id: 'reloj',
-    href: '/admin', // Apunta a la página de lanzamiento
+    href: '/admin',
     icon: <Clock size={20} />,
     text: 'Reloj Checador',
-    keywords: ['reloj', 'checador', 'lanzar', 'monitorear', 'sesiones'],
-    submenu: [
-      {
-        id: 'lanzar-sesion',
-        href: '/admin', // Tu página actual de selección de lector
-        icon: <Fingerprint size={18} />,
-        text: 'Lanzar Sesión',
-        keywords: ['lanzar', 'iniciar', 'sesion', 'lector'],
-      },
-      {
-        id: 'monitoreo-sesiones', // ¡NUEVA PÁGINA RECOMENDADA!
-        href: '/admin/monitoreo',
-        icon: <Monitor size={18} />, // O un ícono similar
-        text: 'Monitorear Sesiones',
-        keywords: ['monitorear', 'activas', 'sesiones', 'lectores'],
-        disabled: true,
-      },
-    ],
+    keywords: ['reloj', 'checador', 'lanzar', 'sesion'],
   },
 
   // 3. Gestión de Personal
@@ -131,33 +111,6 @@ const navItems: NavItemData[] = [
     ],
   },
 
-  // 5. Herramientas Administrativas
-  {
-    id: 'herramientas',
-    href: '/admin/herramientas',
-    icon: <Settings size={20} />,
-    text: 'Herramientas',
-    keywords: [
-      'herramientas',
-      'justificaciones',
-      'registro',
-      'manual',
-      'correccion',
-      'estatus',
-      'admin',
-    ],
-  },
-
-  // 6. Reportes (A futuro)
-  {
-    id: 'reportes',
-    href: '/reportes',
-    icon: <BarChart2 size={20} />,
-    text: 'Reportes de Asistencia',
-    keywords: ['reportes', 'asistencia', 'estadisticas', 'informes'],
-    disabled: true,
-  },
-
   // 7. Control de Asistencia (Nueva vista principal)
   {
     id: 'control-asistencia',
@@ -180,6 +133,15 @@ const navItems: NavItemData[] = [
       'departamental',
       'masiva',
     ],
+  },
+
+  // 9. Chequeos (Estatus de registros)
+  {
+    id: 'chequeos',
+    href: '/chequeos',
+    icon: <Clock size={20} />,
+    text: 'Chequeos',
+    keywords: ['chequeos', 'registros', 'entradas', 'salidas', 'correccion'],
   },
 ];
 

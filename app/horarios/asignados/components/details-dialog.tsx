@@ -7,8 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Calendar, User, Clock, Tag } from 'lucide-react';
+import { Calendar, User, Clock } from 'lucide-react';
 import { HorarioAsignadoDto } from '../types';
 import { apiClient } from '@/lib/apiClient';
 import { LoadingState } from '@/app/components/shared/loading-state';
@@ -70,15 +69,15 @@ export function DetailsDialog({ isOpen, onClose, item }: DetailsDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className='max-w-7xl max-h-[90vh] overflow-hidden'>
-        <DialogHeader className='pb-6'>
-          <DialogTitle className='text-2xl font-bold flex items-center gap-3 text-foreground'>
-            <Calendar className='h-6 w-6 text-primary' />
+      <DialogContent className='max-w-7xl max-h-[90vh] overflow-hidden bg-white'>
+        <DialogHeader className='pb-6 border-b border-gray-100'>
+          <DialogTitle className='text-2xl font-bold flex items-center gap-3 text-gray-900'>
+            <Calendar className='h-6 w-6 text-blue-600' />
             Detalles del Horario Asignado
           </DialogTitle>
-          <DialogDescription className='text-muted-foreground text-base'>
+          <DialogDescription className='text-gray-600 text-base'>
             Información completa de la asignación de horario para{' '}
-            <span className='font-medium text-foreground'>
+            <span className='font-medium text-gray-900'>
               {item.empleadoNombre}
             </span>
           </DialogDescription>
@@ -225,23 +224,23 @@ export function DetailsDialog({ isOpen, onClose, item }: DetailsDialogProps) {
                   />
                 </div>
               ) : adaptedTemplate ? (
-                <div className='bg-muted/20 border rounded-lg p-6'>
+                <div className='bg-white border border-gray-200 rounded-lg p-1 shadow-sm'>
                   <SchedulePreview
                     template={adaptedTemplate}
-                    className='border-none bg-transparent'
+                    className='border-none bg-transparent shadow-none'
                   />
                 </div>
               ) : (
-                <div className='bg-muted/20 border border-dashed rounded-lg p-12 text-center'>
+                <div className='bg-gray-50 border border-dashed border-gray-300 rounded-lg p-12 text-center'>
                   <div className='flex flex-col items-center gap-4'>
-                    <div className='w-16 h-16 rounded-full bg-muted flex items-center justify-center'>
-                      <Clock className='h-8 w-8 text-muted-foreground' />
+                    <div className='w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center'>
+                      <Clock className='h-8 w-8 text-gray-500' />
                     </div>
                     <div>
-                      <p className='text-muted-foreground font-medium text-lg mb-2'>
+                      <p className='text-gray-700 font-medium text-lg mb-2'>
                         No se pudieron cargar los detalles del horario
                       </p>
-                      <p className='text-sm text-muted-foreground'>
+                      <p className='text-sm text-gray-600'>
                         Intente cerrar y abrir nuevamente el modal
                       </p>
                     </div>

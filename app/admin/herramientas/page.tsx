@@ -110,7 +110,10 @@ export default function HerramientasAdminPage() {
           <TabsContent value='registros-checadas'>
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
               {/* Herramienta de Registro Manual */}
-              <div className='bg-card border rounded-lg p-6 flex flex-col'>
+              <div
+                id='registro-manual'
+                className='bg-card border rounded-lg p-6 flex flex-col'
+              >
                 <div className='flex items-center gap-3 mb-4'>
                   <Clock className='h-6 w-6 text-primary' />
                   <div>
@@ -137,10 +140,11 @@ export default function HerramientasAdminPage() {
                   <ClipboardList className='h-6 w-6 text-primary' />
                   <div>
                     <h2 className='text-xl font-semibold'>
-                      Corrección de Registros
+                      Auditoría de Registros de Checada
                     </h2>
                     <p className='text-muted-foreground'>
-                      Modificar el estatus de checadas individuales.
+                      Vista cruda de checadas con filtros avanzados y edición
+                      puntual.
                     </p>
                   </div>
                 </div>

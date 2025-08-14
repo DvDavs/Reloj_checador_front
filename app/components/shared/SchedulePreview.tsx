@@ -119,76 +119,81 @@ export default function SchedulePreview({
   const workingDays = Object.keys(scheduleByDay).length;
 
   return (
-    <Card className={cn('w-full', className)}>
-      <CardHeader className='pb-3'>
+    <Card
+      className={cn('w-full bg-white border-gray-200 shadow-sm', className)}
+    >
+      <CardHeader className='pb-4 bg-gray-50/50 border-b border-gray-100'>
         <div className='flex items-start justify-between'>
-          <div className='space-y-1'>
-            <CardTitle className='text-lg flex items-center gap-2'>
-              <Calendar className='h-5 w-5 text-primary' />
+          <div className='space-y-2'>
+            <CardTitle className='text-xl font-semibold flex items-center gap-3 text-gray-900'>
+              <Calendar className='h-5 w-5 text-blue-600' />
               {template.nombre}
             </CardTitle>
             {template.descripcion && (
-              <p className='text-sm text-muted-foreground'>
+              <p className='text-sm text-gray-600 leading-relaxed'>
                 {template.descripcion}
               </p>
             )}
           </div>
-          <div className='flex flex-col items-end gap-1'>
+          <div className='flex flex-col items-end gap-2'>
             {template.esHorarioJefe && (
-              <Badge variant='secondary' className='text-xs'>
+              <Badge className='bg-amber-100 text-amber-800 border-amber-200 text-xs font-medium px-2 py-1'>
                 Horario Jefe
               </Badge>
             )}
-            <Badge variant='outline' className='text-xs'>
+            <Badge className='bg-blue-50 text-blue-700 border-blue-200 text-xs font-medium px-2 py-1'>
               {workingDays} días • {totalShifts} turnos
             </Badge>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className='pt-0'>
-        <div className='space-y-3'>
+      <CardContent className='pt-6 pb-6'>
+        <div className='space-y-4'>
           {DAYS_ORDER.map((day) => {
             const dayShifts = scheduleByDay[day];
             if (!dayShifts || dayShifts.length === 0) {
               return (
                 <div
                   key={day}
-                  className='flex items-center gap-3 py-2 opacity-50'
+                  className='flex items-center gap-4 py-3 border-b border-gray-100 last:border-b-0'
                 >
-                  <div className='w-10 text-xs font-medium text-muted-foreground'>
+                  <div className='w-12 text-sm font-medium text-gray-400'>
                     {DAY_LABELS[day]}
                   </div>
-                  <div className='text-xs text-muted-foreground'>
-                    Sin horario
+                  <div className='text-sm text-gray-400 italic'>
+                    Sin horario asignado
                   </div>
                 </div>
               );
             }
 
             return (
-              <div key={day} className='flex items-center gap-3 py-1'>
-                <div className='w-10 text-xs font-medium'>
+              <div
+                key={day}
+                className='flex items-start gap-4 py-3 border-b border-gray-100 last:border-b-0'
+              >
+                <div className='w-12 text-sm font-semibold text-gray-700 pt-1'>
                   {DAY_LABELS[day]}
                 </div>
-                <div className='flex-1 space-y-1'>
+                <div className='flex-1 space-y-2'>
                   {dayShifts.map((shift, idx) => (
                     <div
                       key={`${day}-${shift.turno}-${idx}`}
-                      className='flex items-center gap-2'
+                      className='flex items-center gap-3'
                     >
-                      <div className='flex items-center gap-1 bg-primary/10 rounded-md px-2 py-1 text-xs'>
-                        <Clock className='h-3 w-3 text-primary' />
-                        <span className='font-mono'>
+                      <div className='flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm'>
+                        <Clock className='h-4 w-4 text-blue-600' />
+                        <span className='font-mono font-medium text-gray-900'>
                           {getTimeRange(shift.horaEntrada, shift.horaSalida)}
                         </span>
                       </div>
-                      <div className='text-xs text-muted-foreground'>
+                      <div className='text-sm text-gray-600 font-medium'>
                         {calculateDuration(shift.horaEntrada, shift.horaSalida)}
                       </div>
                       {dayShifts.length > 1 && (
-                        <Badge variant='outline' className='text-xs h-4 px-1'>
-                          T{shift.turno}
+                        <Badge className='bg-gray-100 text-gray-700 border-gray-200 text-xs font-medium px-2 py-1'>
+                          Turno {shift.turno}
                         </Badge>
                       )}
                     </div>

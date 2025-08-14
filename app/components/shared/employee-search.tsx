@@ -38,7 +38,7 @@ interface EmployeeSearchProps {
 export function EmployeeSearch({
   value,
   onChange,
-  placeholder = 'Buscar por nombre, RFC o CURP...', // <-- Placeholder actualizado
+  placeholder = 'Buscar por nombre y apellidos, RFC o CURP...',
   disabled = false,
   showAllOnOpen = false,
 }: EmployeeSearchProps) {
@@ -94,7 +94,24 @@ export function EmployeeSearch({
         </Button>
       </PopoverTrigger>
       <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
-        <Command>
+        <Command
+          // Filtro personalizado: busca por múltiples términos (nombre y apellidos en cualquier orden) y sin acentos
+          filter={(value, search) => {
+            const normalize = (s: string) =>
+              (s || '')
+                .toLocaleLowerCase('es')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+
+            const normalizedValue = normalize(value);
+            const normalizedSearch = normalize(search);
+            if (!normalizedSearch) return 1; // sin término, no filtrar
+
+            const tokens = normalizedSearch.split(/\s+/).filter(Boolean);
+            const matches = tokens.every((t) => normalizedValue.includes(t));
+            return matches ? 1 : -1; // -1 excluye el item en cmdk
+          }}
+        >
           <CommandInput
             placeholder={placeholder} // Usar el placeholder actualizado
             value={searchTerm}

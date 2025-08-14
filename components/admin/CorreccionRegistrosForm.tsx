@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Search,
   X,
+  Plus,
 } from 'lucide-react';
 import {
   Card,
@@ -27,6 +28,9 @@ import {
   buscarRegistrosDetalle,
   RegistroDetalle,
   RegistrosDetalleResponse,
+  getEstatusNombreMap,
+  getTiposRegistro,
+  updateRegistroDetalle,
 } from '@/lib/api/registros-detalle.api';
 import { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
 import { DepartamentoDto } from '@/lib/api/schedule-api';
@@ -42,6 +46,22 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CorreccionRegistrosModal } from './CorreccionRegistrosModal';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 export function CorreccionRegistrosForm() {
   const { toast } = useToast();
@@ -50,6 +70,9 @@ export function CorreccionRegistrosForm() {
     departamento: null as DepartamentoDto | null,
     desde: null as Date | null,
     hasta: null as Date | null,
+    tarjeta: '' as string,
+    estatusClave: '' as string,
+    tipoRegistroId: '' as string,
   });
   const [data, setData] = useState<RegistrosDetalleResponse>({
     content: [],
@@ -61,6 +84,34 @@ export function CorreccionRegistrosForm() {
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [estatusMap, setEstatusMap] = useState<Record<string, string>>({});
+  const [tipos, setTipos] = useState<{ id: number; nombre: string }[]>([]);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState<RegistroDetalle | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const getEstatusColor = (clave: string) => {
+    switch (clave) {
+      case 'AN':
+      case 'ANJ':
+        return 'bg-green-500';
+      case 'AR':
+      case 'AT':
+        return 'bg-orange-500';
+      case 'ST':
+        return 'bg-yellow-500';
+      case 'FR':
+        return 'bg-blue-500';
+      case 'HI':
+        return 'bg-amber-500';
+      case 'FE':
+      case 'FS':
+      case 'FC':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-400';
+    }
+  };
 
   const handleSearch = useCallback(
     async (page = 0) => {
@@ -77,6 +128,11 @@ export function CorreccionRegistrosForm() {
             : undefined,
           hasta: filters.hasta
             ? format(filters.hasta, 'yyyy-MM-dd')
+            : undefined,
+          tarjeta: filters.tarjeta ? Number(filters.tarjeta) : undefined,
+          estatusClave: filters.estatusClave || undefined,
+          tipoRegistroId: filters.tipoRegistroId
+            ? Number(filters.tipoRegistroId)
             : undefined,
         };
         const response = await buscarRegistrosDetalle(params);
@@ -97,6 +153,9 @@ export function CorreccionRegistrosForm() {
       departamento: null,
       desde: null,
       hasta: null,
+      tarjeta: '',
+      estatusClave: '',
+      tipoRegistroId: '',
     });
     setData({ content: [], totalPages: 0, totalElements: 0, number: 0 });
     setError(null);
@@ -122,6 +181,11 @@ export function CorreccionRegistrosForm() {
         ),
       },
       {
+        key: 'tarjeta',
+        label: 'No. Tarjeta',
+        render: (item: RegistroDetalle) => item.tarjeta ?? '-',
+      },
+      {
         key: 'fechaHora',
         label: 'Fecha y Hora',
         render: (item: RegistroDetalle) =>
@@ -142,7 +206,17 @@ export function CorreccionRegistrosForm() {
         key: 'estatusCalculado',
         label: 'Estatus',
         render: (item: RegistroDetalle) => (
-          <Badge variant='outline'>{item.estatusCalculado}</Badge>
+          <div className='flex items-center gap-2'>
+            <span
+              className={cn(
+                'inline-block w-2.5 h-2.5 rounded-full',
+                getEstatusColor(item.estatusCalculado)
+              )}
+            />
+            <span>
+              {estatusMap[item.estatusCalculado] || item.estatusCalculado}
+            </span>
+          </div>
         ),
       },
       { key: 'tipoRegistroNombre', label: 'Fuente' },
@@ -151,15 +225,50 @@ export function CorreccionRegistrosForm() {
         label: 'Observaciones',
         className: 'max-w-xs truncate',
       },
+      {
+        key: 'acciones',
+        label: 'Acciones',
+        render: (item: RegistroDetalle) => (
+          <Button
+            size='sm'
+            variant='outline'
+            onClick={() => {
+              setEditing(item);
+              setEditOpen(true);
+            }}
+          >
+            Editar
+          </Button>
+        ),
+      },
     ],
-    []
+    [estatusMap]
   );
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [mapa, tiposReg] = await Promise.all([
+          getEstatusNombreMap(),
+          getTiposRegistro(),
+        ]);
+        setEstatusMap(mapa);
+        setTipos(tiposReg);
+      } catch (err) {
+        toast({
+          title: 'Error al cargar catálogos',
+          description: getApiErrorMessage(err),
+          variant: 'destructive',
+        });
+      }
+    })();
+  }, []);
 
   return (
     <>
       <Card className='mb-6'>
         <CardHeader>
-          <CardTitle>Filtros de Búsqueda</CardTitle>
+          <CardTitle>Filtros de Búsqueda Avanzada</CardTitle>
         </CardHeader>
         <CardContent className='space-y-4'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -242,6 +351,72 @@ export function CorreccionRegistrosForm() {
               </Popover>
             </div>
           </div>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='space-y-2'>
+              <Label>Número de Tarjeta</Label>
+              <Input
+                value={filters.tarjeta}
+                onChange={(e) =>
+                  setFilters((f) => ({ ...f, tarjeta: e.target.value }))
+                }
+                placeholder='Ej. 6001'
+              />
+            </div>
+            <div className='space-y-2'>
+              <Label>Estatus Calculado</Label>
+              <Select
+                value={
+                  filters.estatusClave === '' ? '__ALL__' : filters.estatusClave
+                }
+                onValueChange={(v) =>
+                  setFilters((f) => ({
+                    ...f,
+                    estatusClave: v === '__ALL__' ? '' : v,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder='Todos' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='__ALL__'>Todos</SelectItem>
+                  {Object.entries(estatusMap).map(([clave, nombre]) => (
+                    <SelectItem key={clave} value={clave}>
+                      {nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className='space-y-2'>
+              <Label>Fuente de Registro</Label>
+              <Select
+                value={
+                  filters.tipoRegistroId === ''
+                    ? '__ALL__'
+                    : filters.tipoRegistroId
+                }
+                onValueChange={(v) =>
+                  setFilters((f) => ({
+                    ...f,
+                    tipoRegistroId: v === '__ALL__' ? '' : v,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder='Todas' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='__ALL__'>Todas</SelectItem>
+                  {tipos.map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>
+                      {t.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className='flex gap-2'>
             <Button onClick={() => handleSearch(0)} disabled={loading}>
               <Search className='mr-2 h-4 w-4' />{' '}
@@ -249,6 +424,16 @@ export function CorreccionRegistrosForm() {
             </Button>
             <Button variant='outline' onClick={handleClearFilters}>
               <X className='mr-2 h-4 w-4' /> Limpiar
+            </Button>
+            <Button
+              variant='default'
+              onClick={() => {
+                const el = document.getElementById('registro-manual');
+                if (el)
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              <Plus className='mr-2 h-4 w-4' /> Añadir Nuevo Registro Manual
             </Button>
           </div>
         </CardContent>
@@ -301,6 +486,97 @@ export function CorreccionRegistrosForm() {
         onSuccess={handleModalSuccess}
         selectedIds={selectedIds}
       />
+
+      {/* Modal de Edición */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Registro</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className='space-y-4'>
+              <div className='space-y-2'>
+                <Label>Fecha y Hora</Label>
+                <Input
+                  type='datetime-local'
+                  value={format(
+                    new Date(editing.fechaHora),
+                    "yyyy-MM-dd'T'HH:mm"
+                  )}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      fechaHora: e.target.value.replace('T', ' ') + ':00',
+                    })
+                  }
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label>Estatus Calculado</Label>
+                <Select
+                  value={editing.estatusCalculado}
+                  onValueChange={(v) =>
+                    setEditing({ ...editing, estatusCalculado: v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(estatusMap).map(([clave, nombre]) => (
+                      <SelectItem key={clave} value={clave}>
+                        {nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-2'>
+                <Label>Observaciones</Label>
+                <Textarea
+                  value={editing.observaciones ?? ''}
+                  onChange={(e) =>
+                    setEditing({ ...editing, observaciones: e.target.value })
+                  }
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setEditOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!editing) return;
+                try {
+                  setEditSaving(true);
+                  await updateRegistroDetalle(editing.id, {
+                    fechaHora: editing.fechaHora,
+                    estatusCalculado: editing.estatusCalculado,
+                    observaciones: editing.observaciones ?? null,
+                  });
+                  setEditOpen(false);
+                  handleSearch(data.number);
+                  toast({ title: 'Registro actualizado' });
+                } catch (err) {
+                  toast({
+                    title: 'Error',
+                    description: getApiErrorMessage(err),
+                    variant: 'destructive',
+                  });
+                } finally {
+                  setEditSaving(false);
+                }
+              }}
+              disabled={editSaving}
+            >
+              {editSaving ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

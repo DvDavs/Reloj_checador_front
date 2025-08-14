@@ -9,6 +9,7 @@ export interface RegistroDetalle {
   id: number;
   empleadoId: number;
   empleadoNombre: string;
+  tarjeta?: number | null;
   tipoRegistroNombre: string;
   tipoEoS: 'E' | 'S';
   estatusCalculado: string;
@@ -38,6 +39,9 @@ export const buscarRegistrosDetalle = async (params: {
   departamentoClave?: string | null;
   desde?: string | null; // "yyyy-MM-dd"
   hasta?: string | null; // "yyyy-MM-dd"
+  tarjeta?: number | null;
+  estatusClave?: string | null;
+  tipoRegistroId?: number | null;
   page?: number; // 0-indexed
   size?: number;
   sort?: string;
@@ -78,6 +82,61 @@ export const getClavesEstatus = async (): Promise<string[]> => {
   } catch (error) {
     throw new Error(
       getApiErrorMessage(error, 'Error al obtener las claves de estatus.')
+    );
+  }
+};
+
+export interface EstatusNombreMap {
+  [clave: string]: string;
+}
+
+export const getEstatusNombreMap = async (): Promise<EstatusNombreMap> => {
+  try {
+    const response = await apiClient.get(
+      '/api/reglas-estatus/mapa-clave-nombre'
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al obtener los nombres de estatus.')
+    );
+  }
+};
+
+export interface TipoRegistro {
+  id: number;
+  nombre: string;
+  descripcion?: string | null;
+}
+
+export const getTiposRegistro = async (): Promise<TipoRegistro[]> => {
+  try {
+    const response = await apiClient.get('/api/tipos-registro');
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al obtener las fuentes de registro.')
+    );
+  }
+};
+
+export const updateRegistroDetalle = async (
+  id: number,
+  payload: {
+    fechaHora?: string | null;
+    estatusCalculado?: string | null;
+    observaciones?: string | null;
+  }
+): Promise<RegistroDetalle> => {
+  try {
+    const response = await apiClient.put(
+      `/api/registros-detalle/${id}`,
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(error, 'Error al actualizar el registro.')
     );
   }
 };
