@@ -160,47 +160,6 @@ function Step2_SelectSchedule({
   dispatch: React.Dispatch<WizardAction>;
   setTemplates: React.Dispatch<React.SetStateAction<HorarioTemplateDTO[]>>;
 }) {
-  const [templates, setLocalTemplates] = React.useState<HorarioTemplateDTO[]>(
-    []
-  );
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    const fetchTemplates = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await getHorarioTemplates();
-        setLocalTemplates(data);
-        setTemplates(data);
-      } catch (err: any) {
-        setError(err.message || 'No se pudieron cargar las plantillas.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchTemplates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleSelectionTypeChange = React.useCallback(
-    (value: string) => {
-      dispatch({
-        type: 'SET_SCHEDULE_SELECTION_TYPE',
-        payload: value as 'existing' | 'new',
-      });
-    },
-    [dispatch]
-  );
-
-  const handleTemplateSelectChange = React.useCallback(
-    (value: string) => {
-      dispatch({ type: 'SELECT_EXISTING_TEMPLATE', payload: parseInt(value) });
-    },
-    [dispatch]
-  );
-
   const handleNewScheduleDataChange = React.useCallback(
     (data: Partial<Omit<HorarioTemplateDTO, 'id'>>) => {
       dispatch({ type: 'UPDATE_NEW_SCHEDULE_DATA', payload: data });
@@ -208,107 +167,54 @@ function Step2_SelectSchedule({
     [dispatch]
   );
 
+  // Automáticamente establecer como "nueva plantilla" al cargar el componente
+  React.useEffect(() => {
+    if (state.scheduleSelectionType !== 'new') {
+      dispatch({
+        type: 'SET_SCHEDULE_SELECTION_TYPE',
+        payload: 'new',
+      });
+    }
+  }, [state.scheduleSelectionType, dispatch]);
+
+  // Forzar la generación del nombre cuando se llega al step 2
+  React.useEffect(() => {
+    if (state.selectedEmployee && state.newScheduleData.nombre === '') {
+      // Trigger name generation by calling the form's effect
+      handleNewScheduleDataChange({});
+    }
+  }, [
+    state.selectedEmployee,
+    state.newScheduleData.nombre,
+    handleNewScheduleDataChange,
+  ]);
+
   return (
     <div className='space-y-6'>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-        <VisualOptionCard
-          icon={<List className='h-8 w-8' />}
-          title='Plantilla Existente'
-          description='Usa un horario predefinido.'
-          isSelected={state.scheduleSelectionType === 'existing'}
-          onClick={() => handleSelectionTypeChange('existing')}
-        />
-        <VisualOptionCard
-          icon={<FilePlus2 className='h-8 w-8' />}
-          title='Nueva Plantilla'
-          description='Crea un horario personalizado.'
-          isSelected={state.scheduleSelectionType === 'new'}
-          onClick={() => handleSelectionTypeChange('new')}
-        />
+      {/* Mensaje informativo sobre la creación automática */}
+      <div className='bg-primary/5 border border-primary/20 rounded-lg p-4'>
+        <div className='flex items-start gap-3'>
+          <div className='w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5'>
+            <FilePlus2 className='h-4 w-4 text-primary' />
+          </div>
+          <div>
+            <h3 className='font-semibold text-foreground mb-1'>
+              Crear Nuevo Horario
+            </h3>
+            <p className='text-sm text-muted-foreground'>
+              Se creará automáticamente un nuevo horario personalizado para este
+              empleado. El nombre se generará con un ID único para evitar
+              duplicados.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <AnimatePresence>
-        {state.scheduleSelectionType === 'existing' && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className='pl-2 pt-4 overflow-hidden'
-          >
-            {isLoading ? (
-              <div className='flex items-center gap-2 text-muted-foreground'>
-                <Loader2 className='h-4 w-4 animate-spin' /> Cargando
-                plantillas...
-              </div>
-            ) : error ? (
-              <Alert variant='destructive'>
-                <AlertCircle className='h-4 w-4' />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : (
-              <div className='space-y-4'>
-                <Select
-                  value={state.selectedTemplateId?.toString()}
-                  onValueChange={handleTemplateSelectChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder='Seleccione una plantilla...' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map((template) => (
-                      <SelectItem
-                        key={template.id}
-                        value={template.id.toString()}
-                      >
-                        {template.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Schedule Preview */}
-                {state.selectedTemplateId && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {(() => {
-                      const selectedTemplate = templates.find(
-                        (t) => t.id === state.selectedTemplateId
-                      );
-                      return selectedTemplate ? (
-                        <SchedulePreview
-                          template={selectedTemplate}
-                          className='border-2 border-primary/20'
-                        />
-                      ) : null;
-                    })()}
-                  </motion.div>
-                )}
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {state.scheduleSelectionType === 'new' && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className='pl-2 pt-4 overflow-hidden'
-          >
-            <NewScheduleTemplateForm
-              scheduleData={state.newScheduleData}
-              onDataChange={handleNewScheduleDataChange}
-              selectedEmployee={state.selectedEmployee}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <NewScheduleTemplateForm
+        scheduleData={state.newScheduleData}
+        onDataChange={handleNewScheduleDataChange}
+        selectedEmployee={state.selectedEmployee}
+      />
     </div>
   );
 }
@@ -582,30 +488,30 @@ export default function ScheduleAssignmentWizardPage() {
       label: 'Empleado',
       id: 'selectEmployee',
       description:
-        'Busca y selecciona el empleado al que se le asignará el horario.',
+        'Busca y selecciona el empleado al que se le asignará el horario personalizado.',
     },
     {
-      label: 'Horario',
+      label: 'Crear Horario',
       id: 'selectSchedule',
       description:
-        'Elige una plantilla de horario existente o crea una nueva para la asignación.',
+        'Define una nueva plantilla de horario personalizada con turnos específicos.',
     },
     {
-      label: 'Fechas',
+      label: 'Fechas y Tipo',
       id: 'setDates',
       description:
-        'Define el rango de fechas y la categoría del horario que se está asignando.',
+        'Establece el período de vigencia y selecciona la categoría del horario.',
     },
     {
-      label: 'Resumen',
+      label: 'Confirmar',
       id: 'summary',
       description:
-        'Verifica todos los detalles antes de guardar la asignación de forma permanente.',
+        'Revisa todos los detalles antes de crear la asignación definitiva.',
     },
     {
-      label: 'Finalizado',
+      label: 'Completado',
       id: 'completed',
-      description: 'La asignación ha sido creada exitosamente.',
+      description: 'La asignación de horario ha sido creada exitosamente.',
     },
   ];
 
@@ -703,14 +609,11 @@ export default function ScheduleAssignmentWizardPage() {
           dispatch({ type: 'SET_STEP', payload: 'selectSchedule' });
         break;
       case 'selectSchedule':
-        const isExistingValid =
-          state.scheduleSelectionType === 'existing' &&
-          state.selectedTemplateId !== null;
+        // Solo validar nueva plantilla ya que removimos la opción de existente
         const isNewValid =
-          state.scheduleSelectionType === 'new' &&
           state.newScheduleData.nombre.trim() !== '' &&
           state.newScheduleData.detalles.length > 0;
-        if (isExistingValid || isNewValid) {
+        if (isNewValid) {
           dispatch({ type: 'SET_STEP', payload: 'setDates' });
         }
         break;
@@ -759,18 +662,23 @@ export default function ScheduleAssignmentWizardPage() {
               }
             />
             {state.selectedEmployee && (
-              <div className='p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg'>
+              <div className='p-4 bg-primary/10 border border-primary/20 rounded-lg'>
                 <div className='flex items-center gap-4'>
-                  <div className='h-16 w-16 bg-zinc-800 rounded-full flex items-center justify-center'>
-                    <Users className='h-8 w-8 text-blue-500' />
+                  <div className='h-16 w-16 bg-muted rounded-full flex items-center justify-center'>
+                    <Users className='h-8 w-8 text-primary' />
                   </div>
                   <div>
-                    <h2 className='text-xl font-bold'>
+                    <h2 className='text-xl font-bold text-foreground'>
                       {state.selectedEmployee.nombreCompleto}
                     </h2>
-                    <p className='text-zinc-400'>
+                    <p className='text-muted-foreground'>
                       ID interno: {state.selectedEmployee.id}
                     </p>
+                    {state.selectedEmployee.rfc && (
+                      <p className='text-sm text-muted-foreground'>
+                        RFC: {state.selectedEmployee.rfc}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -858,10 +766,12 @@ export default function ScheduleAssignmentWizardPage() {
       )}
 
       <div className='max-w-4xl mx-auto'>
-        <Card className='bg-zinc-900 border-zinc-800'>
+        <Card>
           <CardHeader>
-            <CardTitle>{currentStepConfig.title}</CardTitle>
-            <p className='text-muted-foreground pt-1'>
+            <CardTitle className='text-2xl'>
+              {currentStepConfig.title}
+            </CardTitle>
+            <p className='text-muted-foreground pt-1 text-base'>
               {currentStepConfig.description}
             </p>
           </CardHeader>
@@ -869,7 +779,7 @@ export default function ScheduleAssignmentWizardPage() {
             {renderStepContent()}
           </CardContent>
           {state.step !== 'completed' && (
-            <CardFooter className='flex justify-between items-center bg-zinc-900/50 p-4 rounded-b-lg border-t border-zinc-800'>
+            <CardFooter className='flex justify-between items-center bg-muted/30 p-4 rounded-b-lg border-t'>
               {state.step === 'selectEmployee' ? (
                 <>
                   <Link href='/horarios/asignados'>
@@ -878,7 +788,8 @@ export default function ScheduleAssignmentWizardPage() {
                   <Button
                     onClick={handleNext}
                     disabled={!state.selectedEmployee}
-                    className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700'
+                    className='flex items-center gap-2'
+                    size='lg'
                   >
                     Siguiente
                     <ArrowRight className='h-4 w-4' />
@@ -889,11 +800,11 @@ export default function ScheduleAssignmentWizardPage() {
                   <div className='flex-grow'>
                     {state.selectedEmployee && (
                       <div className='flex items-center gap-3'>
-                        <div className='flex-shrink-0 h-10 w-10 bg-zinc-800 rounded-full flex items-center justify-center'>
-                          <User className='h-5 w-5 text-blue-400' />
+                        <div className='flex-shrink-0 h-10 w-10 bg-muted rounded-full flex items-center justify-center'>
+                          <User className='h-5 w-5 text-primary' />
                         </div>
                         <div>
-                          <p className='font-semibold text-sm text-white'>
+                          <p className='font-semibold text-sm text-foreground'>
                             {state.selectedEmployee.nombreCompleto}
                           </p>
                           <p className='text-xs text-zinc-400'>

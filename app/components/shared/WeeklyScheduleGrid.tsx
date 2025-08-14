@@ -374,7 +374,7 @@ export default function InteractiveWeeklySchedule({
           key={day}
           className={cn(
             'bg-card p-2 text-center font-medium sticky top-0 z-10 flex items-center justify-center gap-2 transition-all duration-150 border-b border-border/50',
-            hoveredDay === day && 'bg-muted/60'
+            hoveredDay === day && 'bg-muted/60 z-5'
           )}
           onMouseEnter={() => {
             setHoveredDay(day);
@@ -404,7 +404,7 @@ export default function InteractiveWeeklySchedule({
           <div
             className={cn(
               'bg-card p-1 text-xs text-muted-foreground text-right sticky left-0 z-5 select-none whitespace-nowrap border-r border-b border-border/50',
-              hoveredTime === time && 'bg-muted/60'
+              hoveredTime === time && 'bg-muted/60 z-5'
             )}
             onMouseEnter={() => {
               setHoveredTime(time);
@@ -437,8 +437,8 @@ export default function InteractiveWeeklySchedule({
                   'h-8 relative group transition-colors duration-75 border-b border-r border-border/50',
                   'bg-background',
                   editable && !isOccupied && 'hover:bg-muted/50',
-                  isOccupied && 'bg-primary text-primary-foreground',
-                  inSelection && !isOccupied && 'bg-primary/50',
+                  isOccupied && 'bg-primary text-primary-foreground z-10',
+                  inSelection && !isOccupied && 'bg-primary/50 z-20',
                   isHighlighted && !isOccupied && 'bg-muted/40',
                   isHighlighted && isOccupied && 'bg-primary/80',
                   isHoveredForDelete && 'bg-destructive',

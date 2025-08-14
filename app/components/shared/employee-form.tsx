@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getDepartamentos, DepartamentoDto } from '@/lib/api/schedule-api';
+import { DepartmentSearch } from '@/components/admin/DepartmentSearch';
 import { Loader2 } from 'lucide-react';
 
 interface EmployeeFormData {
@@ -36,6 +37,10 @@ interface EmployeeFormProps {
   ) => void;
   onSelectChange: (name: keyof EmployeeFormData, value: string) => void;
   onSwitchChange?: (name: keyof EmployeeFormData, value: boolean) => void;
+  onDepartmentChange?: (
+    name: keyof EmployeeFormData,
+    department: DepartamentoDto | null
+  ) => void;
   isSubmitting?: boolean;
   noneValue?: string;
 }
@@ -45,6 +50,7 @@ export function EmployeeForm({
   onChange,
   onSelectChange,
   onSwitchChange,
+  onDepartmentChange,
   isSubmitting = false,
   noneValue = '__NONE__',
 }: EmployeeFormProps) {
@@ -242,58 +248,92 @@ export function EmployeeForm({
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='departamento'>Departamento</Label>
-          {isLoadingCatalog ? (
-            <div className='flex items-center justify-center h-10 border rounded-md bg-muted'>
-              <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
-            </div>
-          ) : catalogError ? (
-            <div className='text-destructive text-sm'>{catalogError}</div>
-          ) : (
-            <Select
-              value={formData.departamento || noneValue}
-              onValueChange={(value) => onSelectChange('departamento', value)}
+          {onDepartmentChange ? (
+            <DepartmentSearch
+              value={
+                departamentoOptions.find(
+                  (d) => d.clave === formData.departamento
+                ) || null
+              }
+              onChange={(dept) => onDepartmentChange('departamento', dept)}
+              placeholder='Buscar departamento...'
               disabled={isSubmitting}
-            >
-              <SelectTrigger id='departamento'>
-                <SelectValue placeholder='Seleccionar departamento...' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={noneValue}>(Ninguno)</SelectItem>
-                {departamentoOptions.map((option) => (
-                  <SelectItem key={option.clave} value={option.clave}>
-                    {option.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
+          ) : (
+            // Fallback al select original si no se proporciona onDepartmentChange
+            <>
+              {isLoadingCatalog ? (
+                <div className='flex items-center justify-center h-10 border rounded-md bg-muted'>
+                  <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
+                </div>
+              ) : catalogError ? (
+                <div className='text-destructive text-sm'>{catalogError}</div>
+              ) : (
+                <Select
+                  value={formData.departamento || noneValue}
+                  onValueChange={(value) =>
+                    onSelectChange('departamento', value)
+                  }
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id='departamento'>
+                    <SelectValue placeholder='Seleccionar departamento...' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={noneValue}>(Ninguno)</SelectItem>
+                    {departamentoOptions.map((option) => (
+                      <SelectItem key={option.clave} value={option.clave}>
+                        {option.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </>
           )}
         </div>
         <div className='space-y-2'>
           <Label htmlFor='academia'>Academia</Label>
-          {isLoadingCatalog ? (
-            <div className='flex items-center justify-center h-10 border rounded-md bg-muted'>
-              <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
-            </div>
-          ) : catalogError ? (
-            <div className='text-destructive text-sm'>{catalogError}</div>
-          ) : (
-            <Select
-              value={formData.academia || noneValue}
-              onValueChange={(value) => onSelectChange('academia', value)}
+          {onDepartmentChange ? (
+            <DepartmentSearch
+              value={
+                departamentoOptions.find(
+                  (d) => d.clave === formData.academia
+                ) || null
+              }
+              onChange={(dept) => onDepartmentChange('academia', dept)}
+              placeholder='Buscar academia...'
               disabled={isSubmitting}
-            >
-              <SelectTrigger id='academia'>
-                <SelectValue placeholder='Seleccionar academia...' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={noneValue}>(Ninguno)</SelectItem>
-                {departamentoOptions.map((option) => (
-                  <SelectItem key={option.clave} value={option.clave}>
-                    {option.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
+          ) : (
+            // Fallback al select original si no se proporciona onDepartmentChange
+            <>
+              {isLoadingCatalog ? (
+                <div className='flex items-center justify-center h-10 border rounded-md bg-muted'>
+                  <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
+                </div>
+              ) : catalogError ? (
+                <div className='text-destructive text-sm'>{catalogError}</div>
+              ) : (
+                <Select
+                  value={formData.academia || noneValue}
+                  onValueChange={(value) => onSelectChange('academia', value)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id='academia'>
+                    <SelectValue placeholder='Seleccionar academia...' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={noneValue}>(Ninguno)</SelectItem>
+                    {departamentoOptions.map((option) => (
+                      <SelectItem key={option.clave} value={option.clave}>
+                        {option.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </>
           )}
         </div>
       </div>

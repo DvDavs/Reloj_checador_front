@@ -159,5 +159,19 @@
   html[data-theme-changing] .no-theme-transition * {
     transition: none !important;
   }
+
+  /* Arreglar overlap de colores en calendario */
+  .rdp-day_selected.rdp-day_today {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border: 2px solid hsl(var(--accent)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
+  }
+
+  .rdp-day_today:not(.rdp-day_selected) {
+    background: hsl(var(--accent) / 0.2) !important;
+    color: hsl(var(--accent-foreground)) !important;
+    border: 2px solid hsl(var(--accent)) !important;
+  }
 }
 

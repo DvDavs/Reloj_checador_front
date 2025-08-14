@@ -45,7 +45,19 @@ import {
   ConsolidacionResponse,
 } from '@/lib/api/asistencia.api';
 
-export function ConsolidacionManualForm() {
+interface ConsolidacionManualFormProps {
+  titleOverride?: string;
+  descriptionOverride?: string;
+  actionLabelOverride?: string;
+  confirmTitleOverride?: string;
+}
+
+export function ConsolidacionManualForm({
+  titleOverride,
+  descriptionOverride,
+  actionLabelOverride,
+  confirmTitleOverride,
+}: ConsolidacionManualFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,10 +117,12 @@ export function ConsolidacionManualForm() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Consolidar Asistencias por Fecha</CardTitle>
+          <CardTitle>
+            {titleOverride ?? 'Consolidar Asistencias por Fecha'}
+          </CardTitle>
           <CardDescription>
-            Seleccione una fecha para ejecutar manualmente el proceso de
-            consolidación diaria.
+            {descriptionOverride ??
+              'Seleccione una fecha para ejecutar manualmente el proceso de consolidación diaria.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -175,7 +189,9 @@ export function ConsolidacionManualForm() {
               ) : (
                 <DatabaseZap className='mr-2 h-4 w-4' />
               )}
-              {loading ? 'Procesando...' : 'Consolidar Asistencias'}
+              {loading
+                ? 'Procesando...'
+                : (actionLabelOverride ?? 'Consolidar Asistencias')}
             </Button>
           </form>
         </CardContent>
@@ -184,7 +200,9 @@ export function ConsolidacionManualForm() {
       <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Confirmar Consolidación?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmTitleOverride ?? '¿Confirmar Consolidación?'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción ejecutará el proceso de consolidación para la fecha{' '}
               <strong>

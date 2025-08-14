@@ -19,15 +19,13 @@ export default function Home() {
           <div className='relative w-64 h-64'>
             <div className='absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-xl'></div>
             <div className='relative flex items-center justify-center h-full'>
-              <div className='bg-card border border-border rounded-full p-8 shadow-lg'>
-                <Image
-                  src='/Logo_ITO.png?height=200&width=200'
-                  alt='Logo ITO'
-                  width={200}
-                  height={200}
-                  className='rounded-full'
-                />
-              </div>
+              <Image
+                src='/Logo_ITO.png?height=200&width=200'
+                alt='Logo ITO'
+                width={200}
+                height={200}
+                className='rounded-full shadow-2xl'
+              />
             </div>
           </div>
         </div>

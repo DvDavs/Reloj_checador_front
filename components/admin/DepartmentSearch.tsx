@@ -81,16 +81,19 @@ export function DepartmentSearch({
           className='w-full justify-between'
           disabled={disabled}
         >
-          {value ? `${value.clave} - ${value.nombre}` : placeholder}
+          <span className='truncate'>
+            {value ? `${value.clave} - ${value.nombre}` : placeholder}
+          </span>
           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
+      <PopoverContent className='w-[--radix-popover-trigger-width] min-w-[400px] p-0'>
         <Command>
           <CommandInput
             placeholder='Buscar por nombre o clave...'
             value={searchTerm}
             onValueChange={setSearchTerm}
+            className='border-0 focus:ring-0 focus:outline-none'
           />
           <CommandList>
             {isLoading && (
@@ -126,13 +129,13 @@ export function DepartmentSearch({
                           onChange(department);
                           setOpen(false);
                         }}
-                        className='flex items-center space-x-3 p-2 cursor-pointer hover:bg-accent'
+                        className='flex items-center space-x-3 p-3 cursor-pointer hover:bg-accent/50 data-[selected=true]:bg-primary/10'
                       >
-                        <div className='flex flex-col'>
-                          <span className='font-semibold'>
+                        <div className='flex flex-col flex-1 min-w-0'>
+                          <span className='font-semibold text-foreground text-base truncate'>
                             {department.nombre}
                           </span>
-                          <span className='text-xs text-zinc-500'>
+                          <span className='text-sm text-muted-foreground font-medium'>
                             Clave: {department.clave}
                           </span>
                         </div>

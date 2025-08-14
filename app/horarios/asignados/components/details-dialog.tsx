@@ -70,157 +70,185 @@ export function DetailsDialog({ isOpen, onClose, item }: DetailsDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className='max-w-7xl max-h-[90vh] overflow-y-auto bg-zinc-900 border-zinc-800 text-white'>
-        <DialogHeader>
-          <DialogTitle className='text-2xl font-bold flex items-center gap-2'>
-            <Calendar className='h-6 w-6' />
+      <DialogContent className='max-w-7xl max-h-[90vh] overflow-hidden'>
+        <DialogHeader className='pb-6'>
+          <DialogTitle className='text-2xl font-bold flex items-center gap-3 text-foreground'>
+            <Calendar className='h-6 w-6 text-primary' />
             Detalles del Horario Asignado
           </DialogTitle>
-          <DialogDescription className='text-zinc-400'>
-            Información detallada de la asignación de horario.
+          <DialogDescription className='text-muted-foreground text-base'>
+            Información completa de la asignación de horario para{' '}
+            <span className='font-medium text-foreground'>
+              {item.empleadoNombre}
+            </span>
           </DialogDescription>
         </DialogHeader>
 
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
-          {/* Left Column - Assignment Details */}
-          <div className='space-y-6'>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4'>
-              <div className='space-y-1'>
-                <p className='text-sm font-medium text-zinc-400'>
-                  ID de Asignación
-                </p>
-                <p className='text-lg font-mono'>{item.id}</p>
+        <div className='overflow-y-auto max-h-[calc(90vh-140px)] pr-2'>
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+            {/* Left Column - Assignment Details */}
+            <div className='space-y-8'>
+              {/* Basic Info Section */}
+              <div className='space-y-6'>
+                <div className='flex items-center gap-2 pb-2 border-b'>
+                  <User className='h-5 w-5 text-primary' />
+                  <h3 className='text-xl font-semibold text-foreground'>
+                    Información del Empleado
+                  </h3>
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Nombre Completo
+                    </p>
+                    <p className='text-lg font-medium text-foreground'>
+                      {item.empleadoNombre}
+                    </p>
+                  </div>
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Número de Tarjeta
+                    </p>
+                    <p className='text-base font-mono bg-primary/10 px-3 py-1 rounded text-primary inline-block font-semibold'>
+                      {item.empleadoId}
+                    </p>
+                  </div>
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      ID Empleado
+                    </p>
+                    <p className='text-sm font-mono bg-muted/50 px-2 py-1 rounded text-muted-foreground inline-block'>
+                      {item.empleadoId}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className='space-y-1'>
-                <p className='text-sm font-medium text-zinc-400'>Estado</p>
-                <Badge
-                  variant={item.activo ? 'default' : 'secondary'}
-                  className={
-                    item.activo
-                      ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                      : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
-                  }
-                >
-                  {item.activo ? 'Activo' : 'Inactivo'}
-                </Badge>
+
+              {/* Schedule Info Section */}
+              <div className='space-y-6'>
+                <div className='flex items-center gap-2 pb-2 border-b'>
+                  <Clock className='h-5 w-5 text-accent' />
+                  <h3 className='text-xl font-semibold text-foreground'>
+                    Información del Horario
+                  </h3>
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Nombre del Horario
+                    </p>
+                    <p className='text-lg font-medium text-foreground'>
+                      {item.horarioNombre}
+                    </p>
+                  </div>
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Tipo de Horario
+                    </p>
+                    <Badge
+                      variant='outline'
+                      className='bg-accent/10 text-accent border-accent/30 text-sm px-3 py-1'
+                    >
+                      {item.tipoHorarioNombre}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Assignment Details Section */}
+              <div className='space-y-6'>
+                <div className='flex items-center gap-2 pb-2 border-b'>
+                  <Calendar className='h-5 w-5 text-primary' />
+                  <h3 className='text-xl font-semibold text-foreground'>
+                    Detalles de la Asignación
+                  </h3>
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Estado
+                    </p>
+                    <Badge
+                      variant={item.activo ? 'default' : 'secondary'}
+                      className={
+                        item.activo
+                          ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200 text-sm px-3 py-1'
+                          : 'bg-muted text-muted-foreground border-border text-sm px-3 py-1'
+                      }
+                    >
+                      {item.activo ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Fecha de Inicio
+                    </p>
+                    <p className='text-base text-foreground'>
+                      {formatDate(item.fechaInicio)}
+                    </p>
+                  </div>
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Fecha de Fin
+                    </p>
+                    <p className='text-base text-foreground'>
+                      {item.fechaFin
+                        ? formatDate(item.fechaFin)
+                        : 'Sin fecha límite'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <Separator className='bg-zinc-700' />
-
-            <div className='space-y-4'>
-              <h3 className='text-xl font-semibold flex items-center gap-2'>
-                <User className='h-5 w-5 text-blue-400' />
-                Empleado
-              </h3>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4'>
-                <div className='space-y-1'>
-                  <p className='text-sm font-medium text-zinc-400'>Nombre</p>
-                  <p className='text-lg'>{item.empleadoNombre}</p>
-                </div>
-                <div className='space-y-1'>
-                  <p className='text-sm font-medium text-zinc-400'>
-                    ID Empleado
-                  </p>
-                  <p className='font-mono'>{item.empleadoId}</p>
-                </div>
+            {/* Right Column - Schedule Preview */}
+            <div className='space-y-6'>
+              <div className='flex items-center gap-2 pb-2 border-b'>
+                <Clock className='h-5 w-5 text-primary' />
+                <h3 className='text-xl font-semibold text-foreground'>
+                  Vista Previa del Horario
+                </h3>
               </div>
+
+              {isLoadingHorario ? (
+                <div className='flex flex-col items-center justify-center py-16'>
+                  <LoadingState message='Cargando detalles del horario...' />
+                </div>
+              ) : horarioError ? (
+                <div className='py-12'>
+                  <ErrorState
+                    message={horarioError}
+                    onRetry={() => fetchHorarioDetails(item.horarioId)}
+                  />
+                </div>
+              ) : adaptedTemplate ? (
+                <div className='bg-muted/20 border rounded-lg p-6'>
+                  <SchedulePreview
+                    template={adaptedTemplate}
+                    className='border-none bg-transparent'
+                  />
+                </div>
+              ) : (
+                <div className='bg-muted/20 border border-dashed rounded-lg p-12 text-center'>
+                  <div className='flex flex-col items-center gap-4'>
+                    <div className='w-16 h-16 rounded-full bg-muted flex items-center justify-center'>
+                      <Clock className='h-8 w-8 text-muted-foreground' />
+                    </div>
+                    <div>
+                      <p className='text-muted-foreground font-medium text-lg mb-2'>
+                        No se pudieron cargar los detalles del horario
+                      </p>
+                      <p className='text-sm text-muted-foreground'>
+                        Intente cerrar y abrir nuevamente el modal
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-
-            <Separator className='bg-zinc-700' />
-
-            <div className='space-y-4'>
-              <h3 className='text-xl font-semibold flex items-center gap-2'>
-                <Clock className='h-5 w-5 text-purple-400' />
-                Horario
-              </h3>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4'>
-                <div className='space-y-1'>
-                  <p className='text-sm font-medium text-zinc-400'>
-                    Nombre del Horario
-                  </p>
-                  <p className='text-lg'>{item.horarioNombre}</p>
-                </div>
-                <div className='space-y-1'>
-                  <p className='text-sm font-medium text-zinc-400'>
-                    ID Horario
-                  </p>
-                  <p className='font-mono'>{item.horarioId}</p>
-                </div>
-              </div>
-            </div>
-
-            <Separator className='bg-zinc-700' />
-
-            <div className='space-y-4'>
-              <h3 className='text-xl font-semibold flex items-center gap-2'>
-                <Tag className='h-5 w-5 text-green-400' />
-                Tipo de Horario
-              </h3>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4'>
-                <div className='space-y-1'>
-                  <p className='text-sm font-medium text-zinc-400'>Tipo</p>
-                  <p className='text-lg'>{item.tipoHorarioNombre}</p>
-                </div>
-                <div className='space-y-1'>
-                  <p className='text-sm font-medium text-zinc-400'>ID Tipo</p>
-                  <p className='font-mono'>{item.tipoHorarioId}</p>
-                </div>
-              </div>
-            </div>
-
-            <Separator className='bg-zinc-700' />
-
-            <div className='space-y-4'>
-              <h3 className='text-xl font-semibold flex items-center gap-2'>
-                <Calendar className='h-5 w-5 text-orange-400' />
-                Período de Vigencia
-              </h3>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4'>
-                <div className='space-y-1'>
-                  <p className='text-sm font-medium text-zinc-400'>
-                    Fecha de Inicio
-                  </p>
-                  <p className='text-lg'>{formatDate(item.fechaInicio)}</p>
-                </div>
-                <div className='space-y-1'>
-                  <p className='text-sm font-medium text-zinc-400'>
-                    Fecha de Fin
-                  </p>
-                  <p className='text-lg'>{formatDate(item.fechaFin)}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Schedule Preview */}
-          <div className='space-y-4'>
-            <h3 className='text-xl font-semibold flex items-center gap-2'>
-              <Clock className='h-5 w-5 text-primary' />
-              Vista Previa del Horario
-            </h3>
-
-            {isLoadingHorario ? (
-              <LoadingState message='Cargando detalles del horario...' />
-            ) : horarioError ? (
-              <ErrorState
-                message={horarioError}
-                onRetry={() => fetchHorarioDetails(item.horarioId)}
-              />
-            ) : adaptedTemplate ? (
-              <div className='bg-card border border-border rounded-lg p-1'>
-                <SchedulePreview
-                  template={adaptedTemplate}
-                  className='border-none bg-transparent'
-                />
-              </div>
-            ) : (
-              <div className='bg-muted/20 border border-muted rounded-lg p-6 text-center'>
-                <p className='text-muted-foreground'>
-                  No se pudieron cargar los detalles del horario
-                </p>
-              </div>
-            )}
           </div>
         </div>
       </DialogContent>

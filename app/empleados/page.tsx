@@ -28,6 +28,7 @@ import type { EmpleadoDto } from '@/app/lib/types/timeClockTypes';
 
 interface EmployeeDisplayData {
   id: number;
+  tarjeta: number | string;
   nombre: string;
   rfc: string;
   curp: string;
@@ -65,7 +66,7 @@ export default function EmpleadosPage() {
     data: allEmployees,
     itemsPerPage: ITEMS_PER_PAGE,
     searchFields: [
-      'id',
+      'tarjeta',
       'primerNombre',
       'segundoNombre',
       'primerApellido',
@@ -76,7 +77,7 @@ export default function EmpleadosPage() {
       'departamentoNombre',
       'academiaNombre',
     ],
-    defaultSortField: 'id',
+    defaultSortField: 'tarjeta',
   });
 
   const getFullName = useCallback(
@@ -116,6 +117,7 @@ export default function EmpleadosPage() {
 
       return {
         id: emp.id,
+        tarjeta: emp.tarjeta ?? 'N/A',
         nombre: getFullName(emp),
         rfc: emp.rfc ?? 'N/A',
         curp: emp.curp ?? 'N/A',
@@ -159,7 +161,7 @@ export default function EmpleadosPage() {
         <SearchInput
           value={searchTerm}
           onChange={handleSearch}
-          placeholder='Buscar por ID, nombre, RFC, departamento...'
+          placeholder='Buscar por No. Tarjeta, nombre, RFC, departamento...'
         />
         {isLoading && <LoadingState message='Cargando empleados...' />}
         {error && <ErrorState message={error} />}
@@ -170,12 +172,12 @@ export default function EmpleadosPage() {
                 <TableHeader>
                   <TableRow>
                     <SortableHeader
-                      field='id'
+                      field='tarjeta'
                       sortField={sortField}
                       sortDirection={sortDirection}
                       onSort={handleSort}
                     >
-                      ID
+                      No. Tarjeta
                     </SortableHeader>
                     <SortableHeader
                       field='primerNombre'
@@ -219,7 +221,7 @@ export default function EmpleadosPage() {
                       return (
                         <TableRow key={employee.id}>
                           <TableCell className='font-medium'>
-                            {displayData.id}
+                            {displayData.tarjeta}
                           </TableCell>
                           <TableCell>{displayData.nombre}</TableCell>
                           <TableCell>{displayData.rfc}</TableCell>

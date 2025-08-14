@@ -13,6 +13,7 @@ export interface AsistenciaFilters {
   estatusClave?: string; // Cambiado de estatusId para usar la clave de estatus
   // El campo 'fecha' se mantiene por compatibilidad con otras herramientas si es necesario
   fecha?: string;
+  numeroTarjeta?: string; // Número de tarjeta para búsqueda simple
 }
 
 export interface AsistenciaRecord {
@@ -22,10 +23,14 @@ export interface AsistenciaRecord {
   horaSalidaProgramada: string;
   horaEntradaReal: string | null;
   horaSalidaReal: string | null;
+  // Compatibilidad con backend DTO (horaEntrada/horaSalida)
+  horaEntrada?: string | null;
+  horaSalida?: string | null;
   minutosRetardo: number | null;
   observaciones: string | null;
   empleadoId: number;
   empleadoNombre: string;
+  empleadoTarjeta?: number | null;
   estatusAsistenciaId: number;
   estatusAsistenciaNombre: string;
   estatusClave: string; // Corregido a estatusClave
@@ -341,6 +346,19 @@ export const buscarAsistenciasConsolidadas = async (
     if (filters.fechaInicio) params.append('desde', filters.fechaInicio);
     if (filters.fechaFin) params.append('hasta', filters.fechaFin);
     if (filters.estatusClave) params.append('estatus', filters.estatusClave);
+    // Búsqueda por número de tarjeta: resolver a empleadoId si viene
+    if (filters.numeroTarjeta && !filters.empleadoId) {
+      try {
+        const resp = await apiClient.get(
+          `/api/empleados/tarjeta/${encodeURIComponent(filters.numeroTarjeta)}`
+        );
+        if (resp.data?.id) {
+          params.set('empleadoId', String(resp.data.id));
+        }
+      } catch (_) {
+        // Si no se encuentra por tarjeta, la búsqueda no devolverá resultados por empleado
+      }
+    }
 
     // Llama al endpoint flexible del backend
     const response = await apiClient.get(

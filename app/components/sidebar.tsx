@@ -166,6 +166,21 @@ const navItems: NavItemData[] = [
     text: 'Control de Asistencia',
     keywords: ['control', 'asistencia', 'consolidacion', 'filtros', 'tabla'],
   },
+
+  // 8. Justificaciones (Nueva vista)
+  {
+    id: 'justificaciones',
+    href: '/justificaciones',
+    icon: <ClipboardList size={20} />,
+    text: 'Justificaciones',
+    keywords: [
+      'justificaciones',
+      'falta',
+      'permiso',
+      'departamental',
+      'masiva',
+    ],
+  },
 ];
 
 interface NavItemProps {
