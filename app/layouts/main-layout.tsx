@@ -2,10 +2,11 @@
 'use client';
 
 import type React from 'react';
-import { usePathname } from 'next/navigation'; // Importa el hook
-import { useAuth } from '../context/AuthContext'; // Importa useAuth
-import { Loader2 } from 'lucide-react'; // Importa el ícono de carga
+import { usePathname } from 'next/navigation';
+import { useAuth } from '../context/AuthContext';
+import { Loader2 } from 'lucide-react';
 import Sidebar from '../components/sidebar';
+import { useMemo } from 'react';
 
 export default function MainLayout({
   children,
@@ -13,7 +14,14 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { isLoading } = useAuth(); // Usa el hook para obtener el estado de carga
+  const { isLoading } = useAuth();
+
+  // Memoizar las rutas para evitar re-cálculos
+  const noLayoutRoutes = useMemo(() => ['/login', '/reloj-checador'], []);
+
+  const shouldShowLayout = useMemo(() => {
+    return !noLayoutRoutes.includes(pathname);
+  }, [pathname, noLayoutRoutes]);
 
   // Si la autenticación todavía está cargando, muestra un spinner global
   if (isLoading) {
@@ -27,10 +35,8 @@ export default function MainLayout({
     );
   }
 
-  // Define las rutas que NO deben tener el layout principal (sidebar, etc.)
-  const noLayoutRoutes = ['/login', '/reloj-checador'];
-
-  if (noLayoutRoutes.includes(pathname)) {
+  // Páginas sin layout (login, reloj-checador)
+  if (!shouldShowLayout) {
     return <>{children}</>;
   }
 

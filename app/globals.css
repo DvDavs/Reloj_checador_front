@@ -96,6 +96,8 @@
     @apply bg-background text-foreground;
     height: 100%;
     overflow: hidden; /* Evitar scroll en el body */
+    /* Suavizar transiciones de tema */
+    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
   }
   #__next {
     height: 100%;
@@ -141,6 +143,21 @@
   textarea:focus,
   select:focus {
     @apply ring-2 ring-accent/20 border-accent/50;
+  }
+
+  /* Transiciones suaves durante cambio de tema */
+  html[data-theme-changing] * {
+    transition: background-color 0.15s ease-in-out, 
+                border-color 0.15s ease-in-out, 
+                color 0.15s ease-in-out,
+                fill 0.15s ease-in-out,
+                stroke 0.15s ease-in-out !important;
+  }
+
+  /* Evitar transiciones en elementos que no las necesitan */
+  html[data-theme-changing] .no-theme-transition,
+  html[data-theme-changing] .no-theme-transition * {
+    transition: none !important;
   }
 }
 

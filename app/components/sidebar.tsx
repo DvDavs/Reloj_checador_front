@@ -157,6 +157,15 @@ const navItems: NavItemData[] = [
     keywords: ['reportes', 'asistencia', 'estadisticas', 'informes'],
     disabled: true,
   },
+
+  // 7. Control de Asistencia (Nueva vista principal)
+  {
+    id: 'control-asistencia',
+    href: '/asistencias',
+    icon: <ClipboardList size={20} />,
+    text: 'Control de Asistencia',
+    keywords: ['control', 'asistencia', 'consolidacion', 'filtros', 'tabla'],
+  },
 ];
 
 interface NavItemProps {

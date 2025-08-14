@@ -1092,7 +1092,7 @@ function AsignarHuellaContent() {
   const renderStepContent = () => {
     if (currentStep === 1) {
       return (
-        <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>
+        <Card className='max-w-3xl mx-auto'>
           <CardHeader>
             <CardTitle>Paso 1: Selección de Empleado</CardTitle>
             <CardDescription>
@@ -1102,7 +1102,7 @@ function AsignarHuellaContent() {
           <CardContent>
             <div className='space-y-6'>
               <div className='space-y-2'>
-                <Label className='text-sm font-medium text-zinc-400'>
+                <Label className='text-sm font-medium text-muted-foreground'>
                   Buscar empleado
                 </Label>
                 <EmployeeSearch
@@ -1112,16 +1112,16 @@ function AsignarHuellaContent() {
                 />
               </div>
               {selectedEmployee && (
-                <div className='p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg'>
+                <div className='p-4 bg-primary/10 border border-primary/20 rounded-lg'>
                   <div className='flex items-center gap-4'>
-                    <div className='h-16 w-16 bg-zinc-800 rounded-full flex items-center justify-center'>
-                      <Users className='h-8 w-8 text-blue-500' />
+                    <div className='h-16 w-16 bg-muted rounded-full flex items-center justify-center'>
+                      <Users className='h-8 w-8 text-primary' />
                     </div>
                     <div>
-                      <h2 className='text-xl font-bold'>
+                      <h2 className='text-xl font-bold text-foreground'>
                         {selectedEmployee.nombreCompleto}
                       </h2>
-                      <p className='text-zinc-400'>
+                      <p className='text-muted-foreground'>
                         ID interno: {selectedEmployee.id}
                       </p>
                     </div>
@@ -1134,11 +1134,7 @@ function AsignarHuellaContent() {
             <Link href='/empleados'>
               <Button variant='outline'>Cancelar</Button>
             </Link>
-            <Button
-              onClick={goToNextStep}
-              disabled={!selectedEmployee}
-              className='bg-blue-600 hover:bg-blue-700'
-            >
+            <Button onClick={goToNextStep} disabled={!selectedEmployee}>
               Continuar
               <ArrowRight className='ml-2 h-4 w-4' />
             </Button>
@@ -1149,7 +1145,7 @@ function AsignarHuellaContent() {
 
     if (currentStep === 2) {
       return (
-        <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>
+        <Card className='max-w-3xl mx-auto'>
           <CardHeader>
             <CardTitle>Paso 2: Selección de Lector</CardTitle>
             <CardDescription>
@@ -1159,21 +1155,21 @@ function AsignarHuellaContent() {
           <CardContent>
             <div className='space-y-6'>
               <div className='flex items-center gap-4 mb-6'>
-                <div className='h-16 w-16 bg-zinc-800 rounded-full flex items-center justify-center'>
-                  <Users className='h-8 w-8 text-blue-500' />
+                <div className='h-16 w-16 bg-muted rounded-full flex items-center justify-center'>
+                  <Users className='h-8 w-8 text-primary' />
                 </div>
                 <div>
-                  <h2 className='text-xl font-bold'>
+                  <h2 className='text-xl font-bold text-foreground'>
                     {selectedEmployee?.nombreCompleto}
                   </h2>
-                  <p className='text-zinc-400'>
+                  <p className='text-muted-foreground'>
                     ID interno: {selectedEmployee?.id}
                   </p>
                 </div>
               </div>
 
               <div className='space-y-2'>
-                <Label className='text-sm font-medium text-zinc-400'>
+                <Label className='text-sm font-medium text-muted-foreground'>
                   Lector de Huellas
                 </Label>
                 <div className='flex gap-2'>
@@ -1217,7 +1213,7 @@ function AsignarHuellaContent() {
                   </Button>
                 </div>
                 {selectedScanner && (
-                  <div className='p-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-400 flex items-center gap-2'>
+                  <div className='p-2 bg-primary/10 border border-primary/20 rounded-lg text-primary flex items-center gap-2'>
                     <CheckCircle className='h-5 w-5' />
                     Lector seleccionado: {selectedScanner}
                   </div>
@@ -1230,11 +1226,7 @@ function AsignarHuellaContent() {
               <ArrowLeft className='mr-2 h-4 w-4' />
               Volver
             </Button>
-            <Button
-              onClick={goToNextStep}
-              disabled={!selectedScanner}
-              className='bg-blue-600 hover:bg-blue-700'
-            >
+            <Button onClick={goToNextStep} disabled={!selectedScanner}>
               Continuar
               <ArrowRight className='ml-2 h-4 w-4' />
             </Button>
@@ -1245,39 +1237,39 @@ function AsignarHuellaContent() {
 
     if (currentStep === 3) {
       return (
-        <Card className='max-w-4xl mx-auto bg-zinc-900 border-zinc-800'>
+        <Card className='max-w-4xl mx-auto'>
           <CardHeader className='pb-2'>
             <CardTitle>Paso 3: Selección de Dedo</CardTitle>
             <CardDescription className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
               <span className='inline-flex items-center'>
-                <span className='inline-block w-3 h-3 rounded-full bg-green-800 border border-green-600 mr-1'></span>
+                <span className='inline-block w-3 h-3 rounded-full bg-green-600 border border-green-500 mr-1'></span>
                 Ya registrado
               </span>
               <span className='inline-flex items-center'>
-                <span className='inline-block w-3 h-3 rounded-full bg-blue-600 border border-blue-400 mr-1'></span>
+                <span className='inline-block w-3 h-3 rounded-full bg-accent border border-accent mr-1'></span>
                 Registrado en esta sesión
               </span>
               <span className='inline-flex items-center'>
-                <span className='inline-block w-3 h-3 rounded-full bg-purple-600 border border-purple-400 mr-1'></span>
+                <span className='inline-block w-3 h-3 rounded-full bg-primary border border-primary mr-1'></span>
                 Seleccionado
               </span>
               <span className='inline-flex items-center'>
-                <span className='inline-block w-3 h-3 rounded-full bg-zinc-700 border border-zinc-600 mr-1'></span>
+                <span className='inline-block w-3 h-3 rounded-full bg-muted-foreground border border-muted-foreground mr-1'></span>
                 Disponible
               </span>
             </CardDescription>
           </CardHeader>
           <CardContent className='pt-2'>
             <div className='space-y-3'>
-              <div className='flex items-center gap-3 mb-2 bg-zinc-800/50 p-2 rounded-md'>
-                <div className='h-12 w-12 bg-zinc-800 rounded-full flex items-center justify-center'>
-                  <Users className='h-6 w-6 text-blue-500' />
+              <div className='flex items-center gap-3 mb-2 bg-muted/50 p-2 rounded-md'>
+                <div className='h-12 w-12 bg-muted rounded-full flex items-center justify-center'>
+                  <Users className='h-6 w-6 text-primary' />
                 </div>
                 <div>
-                  <h2 className='text-lg font-bold'>
+                  <h2 className='text-lg font-bold text-foreground'>
                     {selectedEmployee?.nombreCompleto}
                   </h2>
-                  <p className='text-xs text-zinc-400'>
+                  <p className='text-xs text-muted-foreground'>
                     Lector: {selectedScanner}
                   </p>
                 </div>
@@ -1295,7 +1287,7 @@ function AsignarHuellaContent() {
               />
 
               {captureError && (
-                <div className='p-2 bg-red-900/30 border border-red-500/30 rounded-lg text-sm text-red-400 flex items-center gap-2'>
+                <div className='p-2 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive flex items-center gap-2'>
                   <AlertCircle className='h-4 w-4' /> {captureError}
                 </div>
               )}
@@ -1306,11 +1298,7 @@ function AsignarHuellaContent() {
               <ArrowLeft className='mr-2 h-4 w-4' />
               Volver
             </Button>
-            <Button
-              onClick={goToNextStep}
-              disabled={selectedFinger === null}
-              className='bg-blue-600 hover:bg-blue-700'
-            >
+            <Button onClick={goToNextStep} disabled={selectedFinger === null}>
               Continuar
               <ArrowRight className='ml-2 h-4 w-4' />
             </Button>
@@ -1322,7 +1310,7 @@ function AsignarHuellaContent() {
     if (currentStep === 4) {
       return (
         <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-          <Card className='bg-zinc-900 border-zinc-800'>
+          <Card>
             <CardHeader>
               <CardTitle>Paso 4: Captura de Huella</CardTitle>
               <CardDescription>
@@ -1334,14 +1322,14 @@ function AsignarHuellaContent() {
             <CardContent>
               <div className='space-y-6'>
                 <div className='flex items-center gap-4'>
-                  <div className='h-16 w-16 bg-zinc-800 rounded-full flex items-center justify-center'>
-                    <Users className='h-8 w-8 text-blue-500' />
+                  <div className='h-16 w-16 bg-muted rounded-full flex items-center justify-center'>
+                    <Users className='h-8 w-8 text-primary' />
                   </div>
                   <div>
-                    <h2 className='text-xl font-bold'>
+                    <h2 className='text-xl font-bold text-foreground'>
                       {selectedEmployee?.nombreCompleto}
                     </h2>
-                    <p className='text-zinc-400'>
+                    <p className='text-muted-foreground'>
                       Dedo:{' '}
                       {selectedFinger ? fingerIndexToName[selectedFinger] : ''}
                     </p>
@@ -1365,8 +1353,8 @@ function AsignarHuellaContent() {
                             stepDone
                               ? 'bg-green-500'
                               : stepActive
-                                ? 'bg-purple-500 animate-pulse'
-                                : 'bg-zinc-700'
+                                ? 'bg-primary animate-pulse'
+                                : 'bg-muted'
                           }`}
                           initial={{ scaleX: 0 }}
                           animate={{ scaleX: 1 }}
@@ -1376,11 +1364,13 @@ function AsignarHuellaContent() {
                   </div>
                 </div>
 
-                <div className='min-h-[4rem] p-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-2 border-blue-500/30 rounded-lg text-center flex items-center justify-center'>
+                <div className='min-h-[4rem] p-4 bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-lg text-center flex items-center justify-center'>
                   {captureError ? (
                     <div className='flex items-center gap-2'>
-                      <AlertCircle className='h-5 w-5 text-red-400' />
-                      <p className='text-red-400 font-medium'>{captureError}</p>
+                      <AlertCircle className='h-5 w-5 text-destructive' />
+                      <p className='text-destructive font-medium'>
+                        {captureError}
+                      </p>
                     </div>
                   ) : (
                     <div className='flex items-center gap-2'>
@@ -1388,16 +1378,16 @@ function AsignarHuellaContent() {
                         captureState === 'capturing' ||
                         captureState === 'reserving' ||
                         captureState === 'starting_enroll') && (
-                        <Loader2 className='h-5 w-5 animate-spin text-blue-400' />
+                        <Loader2 className='h-5 w-5 animate-spin text-primary' />
                       )}
                       {captureState === 'ready_to_capture' && (
-                        <Fingerprint className='h-5 w-5 text-purple-400 animate-pulse' />
+                        <Fingerprint className='h-5 w-5 text-primary animate-pulse' />
                       )}
                       {(captureState === 'save_success' ||
                         captureState === 'enroll_complete') && (
-                        <CheckCircle className='h-5 w-5 text-green-400' />
+                        <CheckCircle className='h-5 w-5 text-green-600' />
                       )}
-                      <p className='text-base font-medium text-zinc-200'>
+                      <p className='text-base font-medium text-foreground'>
                         {captureFeedbackMsg || 'Preparando...'}
                       </p>
                     </div>
@@ -1424,7 +1414,7 @@ function AsignarHuellaContent() {
                 <Button
                   onClick={handleRetrySave}
                   disabled={isLoading}
-                  className='bg-yellow-600 hover:bg-yellow-700'
+                  variant='secondary'
                 >
                   <RefreshCcw className='mr-2 h-4 w-4' />
                   Reintentar
@@ -1437,7 +1427,6 @@ function AsignarHuellaContent() {
                     captureState !== 'enroll_complete' &&
                     captureState !== ('save_failed' as CaptureStepState)
                   }
-                  className='bg-blue-600 hover:bg-blue-700'
                 >
                   Continuar
                   <ArrowRight className='ml-2 h-4 w-4' />
@@ -1446,7 +1435,7 @@ function AsignarHuellaContent() {
             </CardFooter>
           </Card>
 
-          <Card className='bg-zinc-900 border-zinc-800'>
+          <Card>
             <CardHeader>
               <CardTitle>Escáner de Huella</CardTitle>
               <CardDescription>Lector: {selectedScanner}</CardDescription>
@@ -1464,12 +1453,12 @@ function AsignarHuellaContent() {
                       captureState === 'capture_success' ||
                       captureState === 'save_success' ||
                       captureState === 'enroll_complete'
-                        ? 'rgba(34, 197, 94, 0.3)'
+                        ? 'hsl(142 76% 36% / 0.3)'
                         : captureState === 'capture_failed' ||
                             captureState === 'save_failed' ||
                             captureState === 'error'
-                          ? 'rgba(239, 68, 68, 0.3)'
-                          : 'rgba(168, 85, 247, 0.3)'
+                          ? 'hsl(var(--destructive) / 0.3)'
+                          : 'hsl(var(--primary) / 0.3)'
                     }
                     fill='none'
                     strokeWidth='2'
@@ -1488,7 +1477,7 @@ function AsignarHuellaContent() {
                   captureState === 'ready_to_capture') && (
                   <>
                     <motion.div
-                      className='absolute h-56 w-56 rounded-full bg-purple-500/10'
+                      className='absolute h-56 w-56 rounded-full bg-primary/10'
                       animate={{
                         scale: [1, 1.1, 1],
                         opacity: [0.7, 0.5, 0.7],
@@ -1510,7 +1499,7 @@ function AsignarHuellaContent() {
                         ease: 'easeInOut',
                       }}
                     >
-                      <Fingerprint className='h-36 w-36 text-purple-500/80' />
+                      <Fingerprint className='h-36 w-36 text-primary/80' />
                     </motion.div>
                   </>
                 )}
@@ -1518,7 +1507,7 @@ function AsignarHuellaContent() {
                 {captureState === 'capturing' && (
                   <>
                     <motion.div
-                      className='absolute h-1.5 rounded-full bg-purple-500/70'
+                      className='absolute h-1.5 rounded-full bg-primary/70'
                       style={{ width: '80%' }}
                       initial={{ y: 50, opacity: 0 }}
                       animate={{
@@ -1533,7 +1522,7 @@ function AsignarHuellaContent() {
                     />
 
                     <motion.div
-                      className='absolute h-56 w-56 rounded-full bg-purple-500/5'
+                      className='absolute h-56 w-56 rounded-full bg-primary/5'
                       animate={{
                         scale: [1, 1.05, 1],
                         opacity: [0.2, 0.4, 0.2],
@@ -1598,7 +1587,7 @@ function AsignarHuellaContent() {
               </div>
 
               <div className='text-center mb-6'>
-                <p className='text-xl font-medium text-zinc-300'>
+                <p className='text-xl font-medium text-foreground'>
                   {captureState === 'idle' && 'Listo para iniciar captura'}
                   {captureState === 'ready_to_capture' &&
                     'Coloque el dedo en el lector'}
@@ -1621,33 +1610,34 @@ function AsignarHuellaContent() {
               captureState === 'enroll_complete' ? (
                 <div className='flex flex-col gap-3 items-center'>
                   <Button
-                    className='bg-green-600 hover:bg-green-700 w-48'
+                    className='bg-green-600 hover:bg-green-700 text-white w-48'
                     onClick={goToNextStep}
                   >
                     <CheckCircle className='mr-2 h-5 w-5' />
                     ¡Continuar!
                   </Button>
-                  <p className='text-sm text-green-400 text-center'>
+                  <p className='text-sm text-green-600 text-center'>
                     Huella registrada exitosamente
                   </p>
                 </div>
               ) : captureState === 'save_failed' ? (
                 <div className='flex flex-col gap-3 items-center'>
                   <Button
-                    className='bg-yellow-600 hover:bg-yellow-700 w-48'
+                    variant='secondary'
+                    className='w-48'
                     onClick={handleRetrySave}
                     disabled={isLoading}
                   >
                     <RefreshCcw className='mr-2 h-5 w-5' />
                     Reintentar Guardado
                   </Button>
-                  <p className='text-sm text-yellow-400 text-center'>
+                  <p className='text-sm text-muted-foreground text-center'>
                     Error al guardar, intente nuevamente
                   </p>
                 </div>
               ) : (
                 <Button
-                  className='bg-purple-600 hover:bg-purple-700 w-48'
+                  className='w-48'
                   onClick={handleCapture}
                   disabled={captureState !== 'ready_to_capture' || isLoading}
                 >
@@ -1671,7 +1661,7 @@ function AsignarHuellaContent() {
 
     if (currentStep === 5) {
       return (
-        <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>
+        <Card className='max-w-3xl mx-auto'>
           <CardHeader className='text-center'>
             <motion.div
               initial={{ scale: 0 }}
@@ -1679,45 +1669,45 @@ function AsignarHuellaContent() {
               transition={{ type: 'spring', duration: 0.4 }}
               className='mx-auto mb-2'
             >
-              <CheckCircle className='h-12 w-12 text-green-500' />
+              <CheckCircle className='h-12 w-12 text-green-600' />
             </motion.div>
             <CardTitle>¡Éxito!</CardTitle>
             <CardDescription>Huella registrada correctamente.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className='flex flex-col items-center justify-center py-4'>
-              <h2 className='text-xl font-bold mb-2'>
+              <h2 className='text-xl font-bold mb-2 text-foreground'>
                 Empleado: {selectedEmployee?.nombreCompleto}
               </h2>
-              <p className='text-zinc-400 mb-6'>
+              <p className='text-muted-foreground mb-6'>
                 Se registró el dedo:{' '}
                 {selectedFinger ? fingerIndexToName[selectedFinger] : '???'}
               </p>
 
-              <div className='bg-zinc-800 rounded-lg p-6 w-full max-w-md mb-6'>
+              <div className='bg-muted/50 rounded-lg p-6 w-full max-w-md mb-6'>
                 <div className='flex items-center gap-4 mb-4'>
-                  <div className='h-16 w-16 bg-zinc-700 rounded-full flex items-center justify-center'>
-                    <Fingerprint className='h-8 w-8 text-purple-500' />
+                  <div className='h-16 w-16 bg-muted rounded-full flex items-center justify-center'>
+                    <Fingerprint className='h-8 w-8 text-primary' />
                   </div>
                   <div>
-                    <h3 className='text-xl font-bold'>
+                    <h3 className='text-xl font-bold text-foreground'>
                       {selectedEmployee?.nombreCompleto}
                     </h3>
-                    <p className='text-zinc-400'>
+                    <p className='text-muted-foreground'>
                       ID interno: {selectedEmployee?.id}
                     </p>
                   </div>
                 </div>
 
-                <div className='space-y-2 text-sm text-zinc-400'>
+                <div className='space-y-2 text-sm text-muted-foreground'>
                   <p>
-                    <span className='font-medium text-white'>
+                    <span className='font-medium text-foreground'>
                       Lector utilizado:
                     </span>{' '}
                     {selectedScanner}
                   </p>
                   <p>
-                    <span className='font-medium text-white'>
+                    <span className='font-medium text-foreground'>
                       Dedos registrados en esta sesión:
                     </span>{' '}
                     {registeredThisSessionIndices.length}
@@ -1726,7 +1716,7 @@ function AsignarHuellaContent() {
                     {registeredThisSessionIndices.map((finger) => (
                       <span
                         key={finger}
-                        className='px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs'
+                        className='px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs'
                       >
                         {fingerIndexToName[finger]}
                       </span>
@@ -1789,10 +1779,11 @@ function AsignarHuellaContent() {
 
       {/* Mensaje de error general */}
       {generalError && currentStep !== 4 && (
-        <div className='mb-4 max-w-4xl mx-auto p-3 bg-red-900/30 border border-red-500/30 rounded-lg flex items-center gap-2 text-sm'>
-          <AlertCircle className='text-red-400' /> <span>{generalError}</span>
+        <div className='mb-4 max-w-4xl mx-auto p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-sm'>
+          <AlertCircle className='text-destructive' />{' '}
+          <span className='text-destructive'>{generalError}</span>
           <button
-            className='ml-auto'
+            className='ml-auto text-destructive hover:text-destructive/80'
             onClick={() => setGeneralError(null)}
             title='Cerrar'
           >
@@ -1806,9 +1797,9 @@ function AsignarHuellaContent() {
         availableReaders.length === 0 &&
         !isLoading &&
         !generalError && (
-          <div className='mb-4 max-w-4xl mx-auto p-3 bg-yellow-900/30 border border-yellow-500/30 rounded-lg flex items-center gap-2 text-sm'>
-            <AlertCircle className='text-yellow-400' />
-            <span>
+          <div className='mb-4 max-w-4xl mx-auto p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-sm'>
+            <AlertCircle className='text-yellow-600' />
+            <span className='text-yellow-800'>
               No se encontraron lectores disponibles. Conecte un lector y
               presione el botón de refrescar.
             </span>
@@ -1839,8 +1830,8 @@ export default function AsignarHuellaPage() {
     <Suspense
       fallback={
         <div className='p-8 text-center'>
-          <Loader2 className='h-8 w-8 animate-spin mx-auto text-blue-400' />{' '}
-          Cargando...
+          <Loader2 className='h-8 w-8 animate-spin mx-auto text-primary' />
+          <p className='mt-2 text-muted-foreground'>Cargando...</p>
         </div>
       }
     >
