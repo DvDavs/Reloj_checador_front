@@ -85,7 +85,7 @@ export function ConsolidacionManualForm() {
         title: 'Consolidación Exitosa',
         description:
           response.mensaje ||
-          `Se procesaron ${response.registrosConsolidados} registros.`,
+          `Registros consolidados: ${response.totalConsolidados}. Faltas: ${response.totalFaltas}.`,
       });
       setSelectedDate(null); // Reset date after success
     } catch (err) {
@@ -125,8 +125,9 @@ export function ConsolidacionManualForm() {
               <CheckCircle2 className='h-4 w-4' />
               <AlertTitle>¡Proceso Completado!</AlertTitle>
               <AlertDescription>
-                <strong>{successInfo.registrosConsolidados}</strong> registros
-                fueron procesados para la fecha seleccionada.
+                <strong>{successInfo.totalConsolidados}</strong> registros
+                consolidados. Faltas: <strong>{successInfo.totalFaltas}</strong>
+                .
               </AlertDescription>
             </Alert>
           )}

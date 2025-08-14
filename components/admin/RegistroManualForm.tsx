@@ -99,8 +99,8 @@ export function RegistroManualForm() {
     if (!formData.fecha) newErrors.fecha = 'La fecha es requerida.';
     if (!/^(?:2[0-3]|[01]?[0-9]):[0-5][0-9]$/.test(formData.hora))
       newErrors.hora = 'El formato de hora debe ser HH:MM.';
-    if (!formData.motivo.trim() || formData.motivo.trim().length < 10)
-      newErrors.motivo = 'El motivo es requerido (mínimo 10 caracteres).';
+    if (!formData.motivo.trim() || formData.motivo.trim().length < 5)
+      newErrors.motivo = 'El motivo es requerido ';
 
     setError(Object.values(newErrors).join(' '));
     return Object.keys(newErrors).length === 0;

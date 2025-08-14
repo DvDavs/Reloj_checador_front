@@ -66,6 +66,7 @@ import {
 } from '@/lib/api/justificaciones.api';
 import { useToast } from '@/components/ui/use-toast';
 import { getApiErrorMessage } from '@/lib/api/api-helpers';
+import { apiClient } from '@/lib/apiClient';
 
 type TipoJustificacion = 'individual' | 'departamental' | 'masiva';
 
@@ -85,6 +86,8 @@ interface JustificacionExitosa {
   fechasAfectadas: string;
   empleadoNombre?: string;
   departamentoNombre?: string;
+  totalConsolidados?: number;
+  totalFaltas?: number;
 }
 
 const initialState: JustificacionFormData = {
@@ -174,6 +177,34 @@ export function JustificacionForm() {
         tipo: formData.tipo,
       };
 
+      // Helper: consolidar asistencias y obtener totales (soporta rango)
+      const consolidarYObtenerTotales = async (
+        start: Date,
+        end?: Date
+      ): Promise<{ totalConsolidados: number; totalFaltas: number }> => {
+        let totalConsolidados = 0;
+        let totalFaltas = 0;
+        const dEnd = end ?? start;
+        let cursor = new Date(start);
+        cursor.setHours(0, 0, 0, 0);
+        const last = new Date(dEnd);
+        last.setHours(0, 0, 0, 0);
+        while (cursor <= last) {
+          const fechaStr = format(cursor, 'yyyy-MM-dd');
+          try {
+            const res = await apiClient.post(
+              `/api/estatus-asistencia/consolidar/${fechaStr}`
+            );
+            totalConsolidados += res.data?.totalConsolidados ?? 0;
+            totalFaltas += res.data?.totalFaltas ?? 0;
+          } catch (e) {
+            // No interrumpir el flujo por fallo de consolidación; continuar con el siguiente día
+          }
+          cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
+        }
+        return { totalConsolidados, totalFaltas };
+      };
+
       switch (formData.tipo) {
         case 'individual':
           const individualData: JustificacionIndividualData = {
@@ -188,6 +219,16 @@ export function JustificacionForm() {
           response = await createJustificacionIndividual(individualData);
           successPayload.empleadoNombre = formData.empleado?.nombreCompleto;
           successPayload.fechasAfectadas = `${format(formData.fechaInicio!, 'dd/MM/yyyy')} - ${format(formData.fechaFin || formData.fechaInicio!, 'dd/MM/yyyy')}`;
+          // Obtener totales de consolidación para el rango afectado
+          if (formData.fechaInicio) {
+            const { totalConsolidados, totalFaltas } =
+              await consolidarYObtenerTotales(
+                formData.fechaInicio,
+                formData.fechaFin || formData.fechaInicio
+              );
+            successPayload.totalConsolidados = totalConsolidados;
+            successPayload.totalFaltas = totalFaltas;
+          }
           break;
 
         case 'departamental':
@@ -203,6 +244,13 @@ export function JustificacionForm() {
             'dd/MM/yyyy'
           );
           successPayload.empleadosAfectados = response.empleadosAfectados;
+          // Obtener totales de consolidación para la fecha afectada
+          if (formData.fecha) {
+            const { totalConsolidados, totalFaltas } =
+              await consolidarYObtenerTotales(formData.fecha);
+            successPayload.totalConsolidados = totalConsolidados;
+            successPayload.totalFaltas = totalFaltas;
+          }
           break;
 
         case 'masiva':
@@ -216,6 +264,13 @@ export function JustificacionForm() {
             'dd/MM/yyyy'
           );
           successPayload.empleadosAfectados = response.empleadosAfectados;
+          // Obtener totales de consolidación para la fecha afectada
+          if (formData.fecha) {
+            const { totalConsolidados, totalFaltas } =
+              await consolidarYObtenerTotales(formData.fecha);
+            successPayload.totalConsolidados = totalConsolidados;
+            successPayload.totalFaltas = totalFaltas;
+          }
           break;
       }
 
@@ -303,6 +358,10 @@ export function JustificacionForm() {
                   ` Departamento: ${successInfo.departamentoNombre}.`}
                 {typeof successInfo.empleadosAfectados !== 'undefined' &&
                   ` Empleados afectados: ${successInfo.empleadosAfectados}.`}
+                {typeof successInfo.totalConsolidados !== 'undefined' &&
+                  ` Registros consolidados: ${successInfo.totalConsolidados}.`}
+                {typeof successInfo.totalFaltas !== 'undefined' &&
+                  ` Faltas consolidadas: ${successInfo.totalFaltas}.`}
               </AlertDescription>
             </Alert>
           )}
