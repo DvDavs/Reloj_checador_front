@@ -158,10 +158,12 @@ export default function RegistrarEmpleadoPage() {
         <h1 className='text-2xl md:text-3xl font-bold mb-8'>
           Registrar Nuevo Empleado
         </h1>
-        <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>
+        <Card className='max-w-3xl mx-auto bg-card border-border shadow-sm'>
           <CardHeader>
-            <CardTitle>Información del Empleado</CardTitle>
-            <CardDescription>
+            <CardTitle className='text-foreground'>
+              Información del Empleado
+            </CardTitle>
+            <CardDescription className='text-muted-foreground'>
               Ingrese los datos básicos. La asignación de huella se realizará en
               el siguiente paso.
             </CardDescription>
@@ -190,7 +192,7 @@ export default function RegistrarEmpleadoPage() {
               </Link>
               <Button
                 type='submit'
-                className='bg-green-600 hover:bg-green-700'
+                className='bg-primary hover:bg-primary/90 text-primary-foreground'
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

@@ -128,22 +128,28 @@ export default function AdminDashboard() {
 
   // --- Renderizado (Ajustes menores en UI) ---
   return (
-    <div className='p-8'>
+    <div className='p-8 bg-background min-h-screen'>
       <div className='max-w-7xl mx-auto'>
         <header className='mb-10 flex items-center justify-between'>
-          <h1 className='text-3xl font-bold'>
-            Iniciar Sesión de Reloj Checador
-          </h1>
+          <div>
+            <h1 className='text-3xl font-bold text-foreground mb-2'>
+              Iniciar Sesión de Reloj Checador
+            </h1>
+            <p className='text-muted-foreground'>
+              Seleccione un lector de huellas disponible para iniciar una nueva
+              sesión
+            </p>
+          </div>
           <Button
             variant='outline'
             size='icon'
-            className='rounded-full'
+            className='rounded-full border-border hover:bg-muted hover:border-accent/50 transition-all duration-200'
             onClick={handleRefreshScanners}
             disabled={isLoading || isLaunching}
             aria-label='Refrescar lista de lectores'
           >
             {isLoading ? (
-              <Loader2 className='h-5 w-5 animate-spin' />
+              <Loader2 className='h-5 w-5 animate-spin text-accent' />
             ) : (
               <RefreshCw className='h-5 w-5' />
             )}
@@ -152,61 +158,61 @@ export default function AdminDashboard() {
 
         {/* Mensaje de Error General */}
         {errorMessage && !isLoading && (
-          <div className='mb-6 p-4 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg flex items-center gap-3'>
-            <AlertCircle className='h-5 w-5' />
-            <p>{errorMessage}</p>
+          <div className='mb-6 p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-center gap-3 shadow-sm'>
+            <AlertCircle className='h-5 w-5 flex-shrink-0' />
+            <p className='text-sm'>{errorMessage}</p>
           </div>
         )}
 
         {/* Diálogo de Confirmación */}
         {showConfirmation && selectedScanner && (
           <motion.div
-            className='fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4' // Aumentar opacidad
+            className='fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4'
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className='bg-zinc-900 border border-blue-500/50 rounded-lg p-6 max-w-md w-full shadow-xl' // Añadir sombra
+              className='bg-card border border-border rounded-xl p-6 max-w-md w-full shadow-2xl'
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
             >
-              <h3 className='text-xl font-bold mb-4 flex items-center gap-2'>
-                <Fingerprint className='h-6 w-6 text-blue-400' />{' '}
-                {/* Cambiar color */}
+              <h3 className='text-xl font-bold mb-4 flex items-center gap-2 text-card-foreground'>
+                <Fingerprint className='h-6 w-6 text-accent' />
                 Confirmar Inicio
               </h3>
-              <p className='text-zinc-300 mb-6'>
+              <p className='text-muted-foreground mb-6'>
                 ¿Desea iniciar una nueva ventana de Reloj Checador con el lector{' '}
-                <strong className='text-blue-300'>
+                <strong className='text-foreground font-semibold'>
                   {selectedScanner.name}
                 </strong>
                 ?
               </p>
               {errorMessage && (
-                <p className='text-red-400 text-sm mb-4'>{errorMessage}</p>
+                <div className='mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-sm'>
+                  {errorMessage}
+                </div>
               )}
               <div className='flex gap-3 justify-end'>
                 <Button
                   variant='outline'
                   onClick={handleCancelSelection}
                   disabled={isLaunching}
+                  className='border-border hover:bg-muted'
                 >
-                  {' '}
-                  Cancelar{' '}
+                  Cancelar
                 </Button>
                 <Button
                   onClick={handleConfirmSelection}
-                  className='bg-blue-600 hover:bg-blue-700'
+                  className='bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm'
                   disabled={isLaunching}
                 >
                   {isLaunching ? (
                     <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                   ) : (
                     <CheckCircle className='mr-2 h-4 w-4' />
-                  )}{' '}
-                  {/* Icono Confirmar */}
+                  )}
                   {isLaunching ? 'Lanzando...' : 'Confirmar e Iniciar'}
                 </Button>
               </div>
@@ -217,95 +223,108 @@ export default function AdminDashboard() {
         {/* Contenido principal */}
         {
           isLoading ? (
-            // Esqueletos de carga (sin cambios)
+            // Esqueletos de carga
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
               {Array.from({ length: 3 }).map((_, index) => (
                 <div
                   key={`skeleton-${index}`}
-                  className='bg-zinc-900/50 border border-zinc-800 rounded-lg h-64 animate-pulse flex flex-col items-center justify-center p-6'
+                  className='bg-card border border-border rounded-xl h-64 animate-pulse flex flex-col items-center justify-center p-6 shadow-sm'
                 >
-                  <div className='h-20 w-20 rounded-full bg-zinc-800 mb-4'></div>
-                  <div className='h-6 w-3/4 rounded bg-zinc-800 mb-4'></div>
-                  <div className='h-10 w-2/4 rounded bg-zinc-800'></div>
+                  <div className='h-20 w-20 rounded-full bg-muted mb-4'></div>
+                  <div className='h-6 w-3/4 rounded bg-muted mb-4'></div>
+                  <div className='h-10 w-2/4 rounded bg-muted'></div>
                 </div>
               ))}
             </div>
           ) : scanners.length > 0 ? (
-            // Lista de escáneres (Ajuste visual leve)
+            // Lista de escáneres
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
               {scanners.map((scanner) => (
                 <motion.div
                   key={scanner.id}
-                  className={`relative bg-gradient-to-br from-zinc-900 to-zinc-950 border-2 ${
-                    // Gradiente sutil
+                  className={`group relative bg-card border-2 ${
                     scanner.status === 'online'
-                      ? 'border-zinc-700 hover:border-blue-500 cursor-pointer'
-                      : 'border-zinc-800 opacity-60 cursor-not-allowed'
+                      ? 'border-border hover:border-accent cursor-pointer hover:shadow-lg hover:shadow-accent/10'
+                      : 'border-border opacity-60 cursor-not-allowed'
                   }
-                  rounded-xl overflow-hidden transition-all duration-300 h-64 flex flex-col items-center justify-center p-6 shadow-md hover:shadow-blue-500/20`} // Sombra hover
+                  rounded-xl overflow-hidden transition-all duration-300 h-64 flex flex-col items-center justify-center p-6 shadow-sm`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                   whileHover={
-                    scanner.status === 'online' ? { scale: 1.02, y: -2 } : {}
-                  } // Efecto hover más pronunciado
+                    scanner.status === 'online' ? { scale: 1.02, y: -4 } : {}
+                  }
                   onClick={() => handleSelectScanner(scanner)}
                   role='button'
                   aria-label={`Seleccionar lector ${scanner.name}`}
                   aria-disabled={scanner.status !== 'online'}
                 >
-                  {/* Icono de estado (opcional pero útil si el backend pudiera devolver más estados) */}
-                  {/* <div className={`absolute top-3 right-3 w-3 h-3 rounded-full ${scanner.status === 'online' ? 'bg-green-500' : 'bg-zinc-600'}`}></div> */}
-                  <Fingerprint
-                    className={`h-24 w-24 mb-4 transition-colors ${
+                  {/* Indicador de estado */}
+                  <div
+                    className={`absolute top-4 right-4 w-3 h-3 rounded-full ${
                       scanner.status === 'online'
-                        ? 'text-blue-400 group-hover:text-blue-300' // Cambia en hover
-                        : 'text-zinc-600'
+                        ? 'bg-primary'
+                        : 'bg-muted-foreground'
+                    }`}
+                  ></div>
+
+                  <Fingerprint
+                    className={`h-24 w-24 mb-4 transition-all duration-300 ${
+                      scanner.status === 'online'
+                        ? 'text-accent group-hover:text-accent group-hover:scale-110'
+                        : 'text-muted-foreground'
                     }`}
                   />
-                  <h3 className='text-lg font-semibold mb-4 text-center text-zinc-100'>
+                  <h3
+                    className={`text-lg font-semibold mb-4 text-center transition-colors ${
+                      scanner.status === 'online'
+                        ? 'text-card-foreground group-hover:text-accent'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
                     {scanner.name}
                   </h3>
                   {scanner.status === 'online' && (
                     <Button
                       variant='outline'
-                      className='border-blue-600 text-blue-400 hover:bg-blue-900/30 hover:text-blue-300 pointer-events-none'
+                      className='border-accent/50 text-accent hover:bg-accent/10 hover:border-accent pointer-events-none transition-all duration-200'
                     >
                       Seleccionar Lector
                     </Button>
                   )}
                   {scanner.status !== 'online' && (
-                    <span className='text-zinc-500 text-sm'>No disponible</span>
+                    <span className='text-muted-foreground text-sm'>
+                      No disponible
+                    </span>
                   )}
                 </motion.div>
               ))}
             </div>
           ) : !errorMessage ? (
-            // Mensaje "No hay lectores" (sin cambios)
+            // Mensaje "No hay lectores"
             <div className='flex flex-col items-center justify-center h-96 text-center'>
-              {' '}
-              <AlertCircle className='h-24 w-24 text-zinc-700 mb-6' />{' '}
-              <h3 className='text-2xl font-bold text-zinc-400 mb-2'>
+              <div className='bg-muted/30 rounded-full p-6 mb-6'>
+                <AlertCircle className='h-24 w-24 text-muted-foreground' />
+              </div>
+              <h3 className='text-2xl font-bold text-foreground mb-2'>
                 No hay lectores disponibles
-              </h3>{' '}
-              <p className='text-zinc-500 mb-6 max-w-md'>
-                {' '}
+              </h3>
+              <p className='text-muted-foreground mb-6 max-w-md'>
                 Asegúrese de que los lectores estén conectados y el servicio de
-                huellas esté funcionando correctamente en el servidor.{' '}
-              </p>{' '}
+                huellas esté funcionando correctamente en el servidor.
+              </p>
               <Button
-                className='bg-blue-600 hover:bg-blue-700'
+                className='bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm'
                 onClick={handleRefreshScanners}
                 disabled={isLoading}
               >
-                {' '}
                 {isLoading ? (
                   <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                 ) : (
                   <RefreshCw className='h-5 w-5 mr-2' />
-                )}{' '}
-                Volver a intentar{' '}
-              </Button>{' '}
+                )}
+                Volver a intentar
+              </Button>
             </div>
           ) : null /* Si hay errorMessage, ya se muestra arriba */
         }

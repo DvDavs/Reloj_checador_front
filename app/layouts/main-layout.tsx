@@ -18,10 +18,10 @@ export default function MainLayout({
   // Si la autenticación todavía está cargando, muestra un spinner global
   if (isLoading) {
     return (
-      <div className='flex h-screen w-full items-center justify-center bg-black'>
+      <div className='flex h-screen w-full items-center justify-center bg-background'>
         <div className='flex flex-col items-center space-y-4'>
-          <Loader2 className='h-8 w-8 animate-spin text-blue-500' />
-          <p className='text-sm text-gray-400'>Cargando...</p>
+          <Loader2 className='h-8 w-8 animate-spin text-[hsl(var(--accent))]' />
+          <p className='text-sm text-muted-foreground'>Cargando...</p>
         </div>
       </div>
     );
@@ -36,7 +36,7 @@ export default function MainLayout({
 
   // El layout normal para el resto de las páginas
   return (
-    <div className='flex h-screen bg-black overflow-hidden'>
+    <div className='flex h-screen bg-background overflow-hidden'>
       <Sidebar />
       <main className='flex-1 main-content overflow-x-hidden'>
         <div className='min-h-full'>{children}</div>

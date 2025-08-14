@@ -208,10 +208,12 @@ export default function EditarEmpleadoPage() {
         backHref='/empleados'
       />
       <h1 className='text-2xl md:text-3xl font-bold mb-8'>Editar Empleado</h1>
-      <Card className='max-w-3xl mx-auto bg-zinc-900 border-zinc-800'>
+      <Card className='max-w-3xl mx-auto bg-card border-border shadow-sm'>
         <CardHeader>
-          <CardTitle>Información del Empleado</CardTitle>
-          <CardDescription>
+          <CardTitle className='text-foreground'>
+            Información del Empleado
+          </CardTitle>
+          <CardDescription className='text-muted-foreground'>
             Modifique los datos necesarios y guarde los cambios.
           </CardDescription>
         </CardHeader>
@@ -239,7 +241,7 @@ export default function EditarEmpleadoPage() {
             </Link>
             <Button
               type='submit'
-              className='bg-blue-600 hover:bg-blue-700'
+              className='bg-primary hover:bg-primary/90 text-primary-foreground'
               disabled={isSubmitting || isLoading}
             >
               {isSubmitting ? (

@@ -26,6 +26,7 @@ import { useAuth } from '../context/AuthContext';
 import { Tooltip, TooltipProvider } from './tooltip';
 import { CommandPalette } from './command-palette';
 import { Button } from '../../components/ui/button';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 // Estructura de datos dinámica para los elementos de navegación
 interface NavItemData {
@@ -200,18 +201,18 @@ const NavItem = ({
 
   const baseClasses = `
         w-full group relative flex items-center gap-3 py-2.5 rounded-lg transition-all duration-200 
-        focus:outline-none
+        focus:outline-none focus:ring-2 focus:ring-[hsl(var(--sidebar-accent))]/20
         ${level > 0 ? 'pl-10 pr-4' : 'px-4'}
         ${
           item.disabled
             ? 'opacity-50 cursor-not-allowed'
             : isActiveFixed
               ? level > 0
-                ? 'bg-[hsl(var(--sidebar-active))] text-[hsl(var(--sidebar-active-foreground))] shadow-inner'
-                : 'bg-[hsl(var(--sidebar-active))] text-[hsl(var(--sidebar-active-foreground))] shadow-inner border-l-4 border-[hsl(var(--sidebar-accent))]'
+                ? 'bg-[hsl(var(--sidebar-active))] text-[hsl(var(--sidebar-active-foreground))] shadow-md border border-[hsl(var(--sidebar-active))]/20'
+                : 'bg-[hsl(var(--sidebar-active))] text-[hsl(var(--sidebar-active-foreground))] shadow-md border-l-4 border-[hsl(var(--sidebar-accent))] border border-[hsl(var(--sidebar-active))]/20'
               : hasActiveChild && level === 0
-                ? 'text-[hsl(var(--sidebar-foreground))] border-b-2 border-[hsl(var(--sidebar-accent))] bg-[hsl(var(--sidebar-hover))/30]'
-                : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] hover:text-white'
+                ? 'text-[hsl(var(--sidebar-foreground))] border-b-2 border-[hsl(var(--sidebar-accent))] bg-[hsl(var(--sidebar-hover))]'
+                : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] hover:text-[hsl(var(--sidebar-foreground))] hover:shadow-sm hover:border hover:border-[hsl(var(--border))]'
         }
         ${isCollapsed ? 'justify-center' : ''}
     `;
@@ -373,17 +374,17 @@ export default function Sidebar() {
           className='h-screen bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))] flex flex-col shadow-lg'
         >
           {/* Header con logo institucional */}
-          <div className='p-4 border-b border-[hsl(var(--sidebar-border))] bg-gradient-to-r from-[hsl(var(--sidebar-background))] to-[hsl(var(--sidebar-background))/95]'>
+          <div className='p-4 border-b border-[hsl(var(--sidebar-border))] bg-gradient-to-br from-[hsl(var(--sidebar-background))] to-[hsl(var(--muted))/30]'>
             {!isCollapsed ? (
               <Link
                 href='/'
-                className='flex items-center gap-3 opacity-100 duration-200 hover:opacity-80 transition-all'
+                className='flex items-center gap-3 opacity-100 duration-200 hover:opacity-90 transition-all p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))]'
               >
                 <div className='flex-shrink-0'>
                   <img
                     src='/Logo_ITO.png'
                     alt='Logo ITO'
-                    className='w-10 h-10 object-contain rounded-lg shadow-sm'
+                    className='w-10 h-10 object-contain rounded-lg shadow-md border border-[hsl(var(--border))]'
                   />
                 </div>
                 <div className='flex-1 min-w-0'>
@@ -394,15 +395,21 @@ export default function Sidebar() {
                     TecNM Campus Oaxaca
                   </p>
                 </div>
+                <div className='ml-auto'>
+                  <ThemeToggle />
+                </div>
               </Link>
             ) : (
               <div className='flex justify-center opacity-100 duration-200'>
                 <Tooltip content='TecNM Campus Oaxaca - Sistema de Control'>
-                  <Link href='/' className='group cursor-pointer'>
+                  <Link
+                    href='/'
+                    className='group cursor-pointer p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))] transition-colors'
+                  >
                     <img
                       src='/Logo_ITO.png'
                       alt='Logo ITO'
-                      className='w-8 h-8 object-contain rounded-lg shadow-sm group-hover:scale-105 transition-transform duration-200'
+                      className='w-8 h-8 object-contain rounded-lg shadow-md border border-[hsl(var(--border))] group-hover:scale-105 transition-transform duration-200'
                     />
                   </Link>
                 </Tooltip>
@@ -415,7 +422,7 @@ export default function Sidebar() {
             <div className='p-4'>
               <button
                 onClick={() => setCommandPaletteOpen(true)}
-                className='w-full flex items-center gap-3 px-3 py-2 text-sm text-[hsl(var(--muted-foreground))] bg-[hsl(var(--sidebar-hover))] rounded-lg hover:bg-[hsl(var(--sidebar-hover))] transition-colors'
+                className='w-full flex items-center gap-3 px-3 py-2 text-sm text-[hsl(var(--muted-foreground))] bg-[hsl(var(--muted))] border border-[hsl(var(--border))] rounded-lg hover:bg-[hsl(var(--sidebar-hover))] hover:border-[hsl(var(--sidebar-accent))]/30 hover:shadow-sm transition-all duration-200'
               >
                 <Search size={16} />
                 <span>Buscar...</span>
@@ -468,10 +475,10 @@ export default function Sidebar() {
           </nav>
 
           {/* User Info & Logout Button */}
-          <div className='p-4 border-t border-[hsl(var(--sidebar-border))]'>
+          <div className='p-4 border-t border-[hsl(var(--sidebar-border))] bg-gradient-to-br from-[hsl(var(--sidebar-background))] to-[hsl(var(--muted))/20]'>
             {isAuthenticated && !isCollapsed ? (
-              <div className='flex items-center gap-3 transition-opacity duration-150'>
-                <div className='w-8 h-8 rounded-full bg-[hsl(var(--sidebar-accent))] flex items-center justify-center'>
+              <div className='flex items-center gap-3 transition-all duration-150 p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))] border border-transparent hover:border-[hsl(var(--border))]'>
+                <div className='w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--sidebar-accent))] to-[hsl(var(--accent))] flex items-center justify-center shadow-sm'>
                   <Users
                     size={16}
                     className='text-[hsl(var(--sidebar-accent-foreground))]'
@@ -492,7 +499,7 @@ export default function Sidebar() {
                   size='icon'
                   onClick={logout}
                   title='Cerrar Sesión'
-                  className='text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] transition-colors'
+                  className='text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--destructive))]/10 hover:text-[hsl(var(--destructive))] transition-colors border border-transparent hover:border-[hsl(var(--destructive))]/20'
                 >
                   <LogOut size={16} />
                 </Button>
@@ -503,25 +510,25 @@ export default function Sidebar() {
                   variant='ghost'
                   size='icon'
                   onClick={logout}
-                  className='w-full text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] transition-colors'
+                  className='w-full text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--destructive))]/10 hover:text-[hsl(var(--destructive))] transition-colors border border-transparent hover:border-[hsl(var(--destructive))]/20'
                 >
                   <LogOut size={16} />
                 </Button>
               </Tooltip>
             ) : (
-              <div className='flex items-center gap-3 transition-opacity duration-150'>
-                <div className='w-8 h-8 rounded-full bg-[hsl(var(--sidebar-accent))] flex items-center justify-center'>
+              <div className='flex items-center gap-3 transition-all duration-150 p-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/30'>
+                <div className='w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--muted-foreground))]/20 to-[hsl(var(--muted-foreground))]/10 flex items-center justify-center'>
                   <Users
                     size={16}
-                    className='text-[hsl(var(--sidebar-accent-foreground))]'
+                    className='text-[hsl(var(--muted-foreground))]'
                   />
                 </div>
                 {!isCollapsed && (
                   <div className='flex-1 min-w-0'>
-                    <p className='text-sm font-medium text-[hsl(var(--sidebar-foreground))] truncate'>
+                    <p className='text-sm font-medium text-[hsl(var(--muted-foreground))] truncate'>
                       No autenticado
                     </p>
-                    <p className='text-xs text-[hsl(var(--muted-foreground))] truncate'>
+                    <p className='text-xs text-[hsl(var(--muted-foreground))]/70 truncate'>
                       Inicia sesión
                     </p>
                   </div>
