@@ -147,7 +147,7 @@ export function EmployeeSearch({
                     {employees.map((employee) => (
                       <CommandItem
                         key={employee.id}
-                        value={`${employee.nombreCompleto} ${employee.rfc || ''} ${employee.curp || ''}`}
+                        value={`${employee.nombreCompleto} ${employee.rfc || ''} ${employee.curp || ''} ${employee.numTarjetaTrabajador || ''}`}
                         onSelect={() => {
                           onChange(employee);
                           setOpen(false);
@@ -167,8 +167,20 @@ export function EmployeeSearch({
                           <span className='font-semibold text-foreground text-base'>
                             {employee.nombreCompleto}
                           </span>
-                          {(employee.rfc || employee.curp) && (
+                          {(employee.rfc ||
+                            employee.curp ||
+                            employee.numTarjetaTrabajador) && (
                             <span className='text-sm text-muted-foreground font-medium'>
+                              {employee.numTarjetaTrabajador && (
+                                <span>
+                                  Tarjeta: {employee.numTarjetaTrabajador}
+                                </span>
+                              )}
+                              {employee.rfc &&
+                                (employee.curp ||
+                                  employee.numTarjetaTrabajador) && (
+                                  <span className='mx-1'>•</span>
+                                )}
                               {employee.rfc && <span>RFC: {employee.rfc}</span>}
                               {employee.rfc && employee.curp && (
                                 <span className='mx-1'>•</span>

@@ -65,6 +65,7 @@ import { CompletionStep } from './components/CompletionStep';
 import { WizardStepper } from '@/app/components/shared/wizard-stepper';
 import SchedulePreview from '@/app/components/shared/SchedulePreview';
 import { ErrorWithLinks } from '@/app/components/shared/error-with-links';
+import { apiClient } from '@/lib/apiClient';
 
 const wizardReducer = (
   state: WizardState,
@@ -177,39 +178,84 @@ function Step2_SelectSchedule({
     }
   }, [state.scheduleSelectionType, dispatch]);
 
-  // Forzar la generación del nombre cuando se llega al step 2
+  // Enriquecer empleado seleccionado con número de tarjeta si no estuviera presente
   React.useEffect(() => {
-    if (state.selectedEmployee && state.newScheduleData.nombre === '') {
-      // Trigger name generation by calling the form's effect
-      handleNewScheduleDataChange({});
+    const enrichEmployeeWithCard = async () => {
+      if (
+        !state.selectedEmployee ||
+        state.selectedEmployee.numTarjetaTrabajador
+      )
+        return;
+      try {
+        const resp = await apiClient.get(
+          `/api/empleados/${state.selectedEmployee.id}`
+        );
+        const tarjeta: number | null | undefined = resp.data?.tarjeta;
+        if (tarjeta !== null && tarjeta !== undefined) {
+          dispatch({
+            type: 'SET_STATE',
+            payload: {
+              selectedEmployee: {
+                ...state.selectedEmployee,
+                numTarjetaTrabajador: String(tarjeta),
+              },
+            },
+          });
+          // Prefijar nombre si aún no existe
+          const currentName = state.newScheduleData.nombre.trim();
+          if (
+            currentName === '' ||
+            /^h_tarjeta_[^_]+_[A-Z0-9]{3}$/.test(currentName) ||
+            /^[A-Z0-9]{3} - [A-Z0-9]+ - (\s*)$/.test(currentName)
+          ) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let suf = '';
+            for (let i = 0; i < 3; i++)
+              suf += chars.charAt(Math.floor(Math.random() * chars.length));
+            dispatch({
+              type: 'UPDATE_NEW_SCHEDULE_DATA',
+              payload: { nombre: `h_tarjeta_${String(tarjeta)}_${suf}` },
+            });
+          }
+        }
+      } catch (_) {
+        // Silencioso: si falla, el usuario puede escribir el nombre manualmente
+      }
+    };
+    enrichEmployeeWithCard();
+  }, [state.selectedEmployee, dispatch]);
+
+  // Si ya tenemos numTarjetaTrabajador en el empleado seleccionado, prellenar inmediatamente
+  React.useEffect(() => {
+    const card = state.selectedEmployee?.numTarjetaTrabajador;
+    if (!card) return;
+    const currentName = state.newScheduleData.nombre.trim();
+    const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const desiredPrefix = `h_tarjeta_${card}_`;
+    const desiredRegex = new RegExp(`^${escapeRe(desiredPrefix)}[A-Z0-9]{3}$`);
+    if (desiredRegex.test(currentName)) return;
+    if (
+      currentName === '' ||
+      /^h_tarjeta_[^_]+_[A-Z0-9]{3}$/.test(currentName) ||
+      /^[A-Z0-9]{3} - [A-Z0-9]+ - (\s*)$/.test(currentName)
+    ) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let suf = '';
+      for (let i = 0; i < 3; i++)
+        suf += chars.charAt(Math.floor(Math.random() * chars.length));
+      dispatch({
+        type: 'UPDATE_NEW_SCHEDULE_DATA',
+        payload: { nombre: `h_tarjeta_${card}_${suf}` },
+      });
     }
   }, [
-    state.selectedEmployee,
+    state.selectedEmployee?.numTarjetaTrabajador,
     state.newScheduleData.nombre,
-    handleNewScheduleDataChange,
+    dispatch,
   ]);
 
   return (
     <div className='space-y-6'>
-      {/* Mensaje informativo sobre la creación automática */}
-      <div className='bg-primary/5 border border-primary/20 rounded-lg p-4'>
-        <div className='flex items-start gap-3'>
-          <div className='w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5'>
-            <FilePlus2 className='h-4 w-4 text-primary' />
-          </div>
-          <div>
-            <h3 className='font-semibold text-foreground mb-1'>
-              Crear Nuevo Horario
-            </h3>
-            <p className='text-sm text-muted-foreground'>
-              Se creará automáticamente un nuevo horario personalizado para este
-              empleado. El nombre se generará con un ID único para evitar
-              duplicados.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <NewScheduleTemplateForm
         scheduleData={state.newScheduleData}
         onDataChange={handleNewScheduleDataChange}

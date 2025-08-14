@@ -79,22 +79,33 @@ export function NewScheduleTemplateForm({
     return result;
   }, []);
 
-  // Preset the schedule name with unique ID and employee's RFC when component mounts or employee changes
+  // Preset del nombre con numTarjetaTrabajador y un ID único cuando cambia el empleado o al montar
   React.useEffect(() => {
-    if (selectedEmployee?.rfc) {
-      // Only preset if the field is empty or contains a previous RFC preset format
-      const currentName = scheduleData.nombre.trim();
-      const isEmptyOrPreset =
-        currentName === '' ||
-        /^[A-Z0-9]{3} - [A-Z0-9]+ - (\s*)$/.test(currentName);
+    const cardNumber = selectedEmployee?.numTarjetaTrabajador;
+    if (!cardNumber) return;
 
-      if (isEmptyOrPreset) {
-        const uniqueId = generateUniqueId();
-        onDataChange({ nombre: `${uniqueId} - ${selectedEmployee.rfc} - ` });
-      }
+    const currentName = scheduleData.nombre.trim();
+
+    // Si ya coincide con el patrón correcto para este empleado, no hacer nada
+    const desiredPrefix = `h_tarjeta_${cardNumber}_`;
+    const matchesDesired = new RegExp(
+      `^${desiredPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[A-Z0-9]{3}$`
+    ).test(currentName);
+    if (matchesDesired) return;
+
+    // Si está vacío, contiene un preset previo (RFC) o un preset antiguo de tarjeta de otro empleado, regenerar
+    const isEmpty = currentName === '';
+    const isOldRfcPreset = /^[A-Z0-9]{3} - [A-Z0-9]+ - (\s*)$/.test(
+      currentName
+    );
+    const isOldCardPreset = /^h_tarjeta_[^_]+_[A-Z0-9]{3}$/.test(currentName);
+
+    if (isEmpty || isOldRfcPreset || isOldCardPreset) {
+      const uniqueId = generateUniqueId();
+      onDataChange({ nombre: `h_tarjeta_${cardNumber}_${uniqueId}` });
     }
   }, [
-    selectedEmployee?.rfc,
+    selectedEmployee?.numTarjetaTrabajador,
     scheduleData.nombre,
     onDataChange,
     generateUniqueId,
@@ -147,9 +158,9 @@ export function NewScheduleTemplateForm({
             <Input
               id='templateName'
               placeholder={
-                selectedEmployee?.rfc
-                  ? `Se preseteará con: XXX - ${selectedEmployee.rfc} - `
-                  : 'Ej: ABC - EMPLEADO123 - Turno Matutino'
+                selectedEmployee?.numTarjetaTrabajador
+                  ? `Se preseteará con: h_tarjeta_${selectedEmployee.numTarjetaTrabajador}_XXX`
+                  : 'Ej: h_tarjeta_12345_ABC'
               }
               value={scheduleData.nombre}
               onChange={(e) => onDataChange({ nombre: e.target.value })}
@@ -160,17 +171,17 @@ export function NewScheduleTemplateForm({
                   : 'border-primary/30 focus:border-primary'
               )}
             />
-            {selectedEmployee?.rfc && (
+            {selectedEmployee?.numTarjetaTrabajador && (
               <div className='mt-2 p-2 bg-primary/5 border border-primary/20 rounded text-xs'>
                 <p className='text-primary font-medium'>
                   💡 Formato automático:{' '}
                   <code className='bg-primary/10 px-1 rounded'>
-                    ID-RFC-Descripción
+                    h_tarjeta_{selectedEmployee.numTarjetaTrabajador}_XXX
                   </code>
                 </p>
                 <p className='text-muted-foreground mt-1'>
-                  Se genera con ID único + RFC para evitar duplicados. Edita
-                  libremente después del segundo guión.
+                  Se genera con número de tarjeta + sufijo único de 3
+                  caracteres. Puedes editarlo si lo deseas.
                 </p>
               </div>
             )}
