@@ -13,7 +13,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { Copy, Trash2, X } from 'lucide-react';
+import { Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CopySchedulePopover } from './CopySchedulePopover';
 
@@ -141,6 +141,8 @@ export default function InteractiveWeeklySchedule({
   } | null>(null);
   const [hoveredSlot, setHoveredSlot] = useState<TimeSlot | null>(null);
   const [didDrag, setDidDrag] = useState(false);
+  const [hoveredDay, setHoveredDay] = useState<DayOfWeek | null>(null);
+  const [hoveredTime, setHoveredTime] = useState<string | null>(null);
 
   const daysToRender = useMemo(() => {
     if (!showDayHeaders) {
@@ -310,22 +312,31 @@ export default function InteractiveWeeklySchedule({
     const info = cellMap.get(`${day}-${time}`);
     setHoveredSlot(info ? info.slot : null);
 
-    if (action === 'painting' || action === 'resizing') {
-      setDidDrag(true);
-    }
-
     if (action === 'painting' && selection?.day === day) {
-      setSelection({ ...selection, end: timeToMinutes(time) });
+      const newEnd = timeToMinutes(time);
+      if (newEnd !== selection.end) {
+        setDidDrag(true);
+        setSelection({ ...selection, end: newEnd });
+      }
     }
     if (action === 'resizing' && resizeInfo) {
+      const newTime = timeToMinutes(time);
       if (resizeInfo.edge === 'start') {
-        setSelection((prev) =>
-          prev ? { ...prev, start: timeToMinutes(time) } : prev
-        );
+        setSelection((prev) => {
+          if (prev && prev.start !== newTime) {
+            setDidDrag(true);
+            return { ...prev, start: newTime };
+          }
+          return prev;
+        });
       } else {
-        setSelection((prev) =>
-          prev ? { ...prev, end: timeToMinutes(time) } : prev
-        );
+        setSelection((prev) => {
+          if (prev && prev.end !== newTime) {
+            setDidDrag(true);
+            return { ...prev, end: newTime };
+          }
+          return prev;
+        });
       }
     }
   };
@@ -354,15 +365,30 @@ export default function InteractiveWeeklySchedule({
     <div
       className='grid grid-cols-[auto_repeat(var(--days),minmax(0,1fr))] bg-border'
       style={{ '--days': days.length } as React.CSSProperties}
-      onMouseLeave={() => setHoveredSlot(null)}
+      onMouseLeave={() => {
+        setHoveredSlot(null);
+        setHoveredDay(null);
+        setHoveredTime(null);
+      }}
     >
-      <div className='bg-card sticky top-0 left-0 z-10' />
+      <div
+        className='bg-card sticky top-0 left-0 z-10 border-b border-border/50'
+        onMouseEnter={() => {
+          setHoveredDay(null);
+          setHoveredTime(null);
+        }}
+      />
       {days.map((day) => (
         <div
           key={day}
           className={cn(
-            'bg-card p-2 text-center font-medium sticky top-0 z-10 flex items-center justify-center gap-2 transition-all duration-150'
+            'bg-card p-2 text-center font-medium sticky top-0 z-10 flex items-center justify-center gap-2 transition-all duration-150 border-b border-border/50',
+            hoveredDay === day && 'bg-muted/60 z-5'
           )}
+          onMouseEnter={() => {
+            setHoveredDay(day);
+            setHoveredTime(null);
+          }}
         >
           <span className='hidden md:inline'>
             {day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()}
@@ -384,14 +410,26 @@ export default function InteractiveWeeklySchedule({
       ))}
       {times.map((time) => (
         <React.Fragment key={time}>
-          <div className='bg-card p-1 text-xs text-muted-foreground text-right sticky left-0 z-5 select-none whitespace-nowrap'>
+          <div
+            className={cn(
+              'bg-card p-1 text-xs text-muted-foreground text-right sticky left-0 z-5 select-none whitespace-nowrap border-r border-b border-border/50',
+              hoveredTime === time && 'bg-muted/60 z-5'
+            )}
+            onMouseEnter={() => {
+              setHoveredTime(time);
+              // No fijamos hoveredDay aquí para resaltar solo la fila si se pasa por la etiqueta de hora
+            }}
+          >
             {`${time} - ${minutesToTime(timeToMinutes(time) + interval)}`}
           </div>
           {days.map((day) => {
             const key = `${day}-${time}`;
             const info = cellMap.get(key);
             const isOccupied = !!info;
-            const isHoveredForDelete = editable && hoveredSlot === info?.slot;
+            const isHoveredForDelete =
+              editable && action === 'none' && hoveredSlot === info?.slot;
+            const isRowHighlighted = hoveredTime === time;
+            const isColHighlighted = hoveredDay === day;
             const inSelection =
               (action === 'painting' || action === 'resizing') &&
               selection?.day === day &&
@@ -399,18 +437,31 @@ export default function InteractiveWeeklySchedule({
               timeToMinutes(time) <
                 Math.max(selection.start, selection.end) +
                   (action === 'resizing' ? interval : 0);
+            // Solo mostrar highlight si no estamos en una selección activa
+            const isHighlighted =
+              (isRowHighlighted || isColHighlighted) && action === 'none';
 
             return (
               <motion.div
                 key={key}
                 layout
                 className={cn(
-                  'h-8 relative group transition-colors duration-75 border-b border-r border-border/20',
+                  'h-8 relative group transition-colors duration-75 border-b border-r border-border/50',
                   'bg-background',
+                  // Estilos base
                   editable && !isOccupied && 'hover:bg-muted/50',
-                  isOccupied && 'bg-primary text-primary-foreground',
-                  inSelection && !isOccupied && 'bg-primary/50',
-                  isHoveredForDelete && 'bg-destructive',
+                  isHighlighted && !isOccupied && 'bg-muted/40',
+                  isHighlighted && isOccupied && 'bg-primary/80',
+                  // Estilos de ocupado (mayor prioridad)
+                  isOccupied && 'bg-primary text-primary-foreground z-10',
+                  // Estilos de selección (máxima prioridad)
+                  inSelection &&
+                    !isOccupied &&
+                    'bg-primary/70 text-primary-foreground z-20',
+                  inSelection && isOccupied && 'bg-primary/95 z-20',
+                  // Estilo de eliminación (prioridad absoluta)
+                  isHoveredForDelete && 'bg-destructive z-30',
+                  // Bordes redondeados
                   info?.isFirst && 'rounded-t-md',
                   info?.isLast && 'rounded-b-md'
                 )}
@@ -418,7 +469,12 @@ export default function InteractiveWeeklySchedule({
                   cursor: isOccupied && editable ? 'row-resize' : 'default',
                 }}
                 onMouseDown={(e) => handleCellMouseDown(day, time, e)}
-                onMouseEnter={() => handleCellMouseEnter(day, time)}
+                onMouseEnter={() => {
+                  setHoveredDay(day);
+                  setHoveredTime(time);
+                  handleCellMouseEnter(day, time);
+                }}
+                onMouseLeave={() => setHoveredSlot(null)}
                 onClick={() => handleCellClick(day, time)}
               >
                 {isOccupied && info.isFirst && (

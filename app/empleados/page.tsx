@@ -28,6 +28,7 @@ import type { EmpleadoDto } from '@/app/lib/types/timeClockTypes';
 
 interface EmployeeDisplayData {
   id: number;
+  tarjeta: number | string;
   nombre: string;
   rfc: string;
   curp: string;
@@ -65,7 +66,7 @@ export default function EmpleadosPage() {
     data: allEmployees,
     itemsPerPage: ITEMS_PER_PAGE,
     searchFields: [
-      'id',
+      'tarjeta',
       'primerNombre',
       'segundoNombre',
       'primerApellido',
@@ -76,7 +77,7 @@ export default function EmpleadosPage() {
       'departamentoNombre',
       'academiaNombre',
     ],
-    defaultSortField: 'id',
+    defaultSortField: 'tarjeta',
   });
 
   const getFullName = useCallback(
@@ -116,6 +117,7 @@ export default function EmpleadosPage() {
 
       return {
         id: emp.id,
+        tarjeta: emp.tarjeta ?? 'N/A',
         nombre: getFullName(emp),
         rfc: emp.rfc ?? 'N/A',
         curp: emp.curp ?? 'N/A',
@@ -159,7 +161,7 @@ export default function EmpleadosPage() {
         <SearchInput
           value={searchTerm}
           onChange={handleSearch}
-          placeholder='Buscar por ID, nombre, RFC, departamento...'
+          placeholder='Buscar por No. Tarjeta, nombre, RFC, departamento...'
         />
         {isLoading && <LoadingState message='Cargando empleados...' />}
         {error && <ErrorState message={error} />}
@@ -170,12 +172,12 @@ export default function EmpleadosPage() {
                 <TableHeader>
                   <TableRow>
                     <SortableHeader
-                      field='id'
+                      field='tarjeta'
                       sortField={sortField}
                       sortDirection={sortDirection}
                       onSort={handleSort}
                     >
-                      ID
+                      No. Tarjeta
                     </SortableHeader>
                     <SortableHeader
                       field='primerNombre'
@@ -219,7 +221,7 @@ export default function EmpleadosPage() {
                       return (
                         <TableRow key={employee.id}>
                           <TableCell className='font-medium'>
-                            {displayData.id}
+                            {displayData.tarjeta}
                           </TableCell>
                           <TableCell>{displayData.nombre}</TableCell>
                           <TableCell>{displayData.rfc}</TableCell>
@@ -233,8 +235,8 @@ export default function EmpleadosPage() {
                               }
                               className={
                                 displayData.estado === 'Activo'
-                                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                                  : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
+                                  ? 'bg-primary/10 text-primary border-primary/20'
+                                  : 'bg-muted text-muted-foreground border-border'
                               }
                             >
                               {displayData.estado}
@@ -247,7 +249,7 @@ export default function EmpleadosPage() {
                                 size='icon'
                                 onClick={() => handleViewDetails(employee)}
                                 title='Ver Detalles'
-                                className='text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
+                                className='text-muted-foreground hover:text-foreground hover:bg-muted'
                               >
                                 <Eye className='h-4 w-4' />
                               </Button>
@@ -256,7 +258,7 @@ export default function EmpleadosPage() {
                                 size='icon'
                                 onClick={() => handleEdit(employee.id)}
                                 title='Editar Empleado'
-                                className='text-green-400 hover:text-green-300 hover:bg-green-500/10'
+                                className='text-primary hover:text-primary/80 hover:bg-primary/10'
                               >
                                 <Edit className='h-4 w-4' />
                               </Button>
@@ -267,7 +269,7 @@ export default function EmpleadosPage() {
                                   variant='ghost'
                                   size='icon'
                                   title='Asignar Huella'
-                                  className='text-purple-400 hover:text-purple-300 hover:bg-purple-500/10'
+                                  className='text-accent hover:text-accent/80 hover:bg-accent/10'
                                 >
                                   <Fingerprint className='h-4 w-4' />
                                 </Button>

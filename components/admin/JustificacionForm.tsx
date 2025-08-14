@@ -3,7 +3,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   CalendarIcon,
   Loader2,
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -78,6 +79,7 @@ interface JustificacionFormData {
   fechaFin: Date | null;
   fecha: Date | null;
   motivo: string;
+  numOficio?: string;
 }
 
 interface JustificacionExitosa {
@@ -98,6 +100,7 @@ const initialState: JustificacionFormData = {
   fechaFin: null,
   fecha: null,
   motivo: '',
+  numOficio: '',
 };
 
 export function JustificacionForm() {
@@ -109,6 +112,51 @@ export function JustificacionForm() {
   );
   const [formData, setFormData] = useState<JustificacionFormData>(initialState);
   const [isConfirmOpen, setConfirmOpen] = useState(false);
+
+  // Empleados por departamento (para flujo departamental)
+  const [deptEmployees, setDeptEmployees] = useState<EmpleadoSimpleDTO[]>([]);
+  const [selectedDeptIds, setSelectedDeptIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    const fetchDeptEmployees = async () => {
+      if (formData.tipo !== 'departamental' || !formData.departamento) {
+        setDeptEmployees([]);
+        setSelectedDeptIds([]);
+        return;
+      }
+      try {
+        const claveInt = parseInt(formData.departamento.clave, 10);
+        if (Number.isNaN(claveInt)) return;
+        const resp = await apiClient.get(
+          `/api/empleados/departamento/${claveInt}`
+        );
+        const empleados: any[] = resp.data || [];
+        // Map to simple
+        const mapped: EmpleadoSimpleDTO[] = empleados.map((e: any) => ({
+          id: e.id,
+          nombreCompleto:
+            e.nombreCompleto ||
+            [
+              e.primerNombre,
+              e.segundoNombre,
+              e.primerApellido,
+              e.segundoApellido,
+            ]
+              .filter(Boolean)
+              .join(' '),
+          rfc: e.rfc,
+          curp: e.curp,
+        }));
+        setDeptEmployees(mapped);
+        setSelectedDeptIds(mapped.map((m) => m.id)); // seleccionar todos por defecto
+      } catch (err) {
+        // ignore
+        setDeptEmployees([]);
+        setSelectedDeptIds([]);
+      }
+    };
+    fetchDeptEmployees();
+  }, [formData.tipo, formData.departamento]);
 
   const handleTipoChange = (tipo: TipoJustificacion) => {
     setFormData({ ...initialState, tipo });
@@ -124,11 +172,25 @@ export function JustificacionForm() {
     setError(null);
   };
 
+  const handleToggleEmployee = (id: number) => {
+    setSelectedDeptIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedDeptIds(deptEmployees.map((e) => e.id));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedDeptIds([]);
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.motivo.trim() || formData.motivo.trim().length < 10) {
+    if (!formData.motivo.trim() || formData.motivo.trim().length < 5) {
       newErrors.motivo =
-        'El motivo es requerido y debe tener al menos 10 caracteres.';
+        'El motivo es requerido y debe tener al menos 5 caracteres.';
     }
     switch (formData.tipo) {
       case 'individual':
@@ -148,10 +210,31 @@ export function JustificacionForm() {
       case 'departamental':
         if (!formData.departamento)
           newErrors.departamento = 'Debe seleccionar un departamento.';
-        if (!formData.fecha) newErrors.fecha = 'La fecha es requerida.';
+        if (!formData.fechaInicio)
+          newErrors.fechaInicio = 'La fecha de inicio es requerida.';
+        if (
+          formData.fechaInicio &&
+          formData.fechaFin &&
+          formData.fechaFin < formData.fechaInicio
+        ) {
+          newErrors.fechaFin =
+            'La fecha de fin debe ser posterior a la de inicio.';
+        }
+        if (deptEmployees.length > 0 && selectedDeptIds.length === 0) {
+          newErrors.empleado = 'Seleccione al menos un empleado de la lista.';
+        }
         break;
       case 'masiva':
-        if (!formData.fecha) newErrors.fecha = 'La fecha es requerida.';
+        if (!formData.fechaInicio)
+          newErrors.fechaInicio = 'La fecha de inicio es requerida.';
+        if (
+          formData.fechaInicio &&
+          formData.fechaFin &&
+          formData.fechaFin < formData.fechaInicio
+        ) {
+          newErrors.fechaFin =
+            'La fecha de fin debe ser posterior a la de inicio.';
+        }
         break;
     }
     setError(Object.values(newErrors).join(' '));
@@ -198,7 +281,7 @@ export function JustificacionForm() {
             totalConsolidados += res.data?.totalConsolidados ?? 0;
             totalFaltas += res.data?.totalFaltas ?? 0;
           } catch (e) {
-            // No interrumpir el flujo por fallo de consolidación; continuar con el siguiente día
+            // continuar
           }
           cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
         }
@@ -206,7 +289,7 @@ export function JustificacionForm() {
       };
 
       switch (formData.tipo) {
-        case 'individual':
+        case 'individual': {
           const individualData: JustificacionIndividualData = {
             empleadoId: formData.empleado!.id,
             fechaInicio: format(formData.fechaInicio!, 'yyyy-MM-dd'),
@@ -215,11 +298,12 @@ export function JustificacionForm() {
               'yyyy-MM-dd'
             ),
             motivo: formData.motivo.trim(),
+            numOficio: formData.numOficio?.trim() || undefined,
           };
           response = await createJustificacionIndividual(individualData);
           successPayload.empleadoNombre = formData.empleado?.nombreCompleto;
           successPayload.fechasAfectadas = `${format(formData.fechaInicio!, 'dd/MM/yyyy')} - ${format(formData.fechaFin || formData.fechaInicio!, 'dd/MM/yyyy')}`;
-          // Obtener totales de consolidación para el rango afectado
+          // Consolidar
           if (formData.fechaInicio) {
             const { totalConsolidados, totalFaltas } =
               await consolidarYObtenerTotales(
@@ -230,48 +314,81 @@ export function JustificacionForm() {
             successPayload.totalFaltas = totalFaltas;
           }
           break;
+        }
 
-        case 'departamental':
-          const departamentalData: JustificacionDepartamentalData = {
-            departamentoClave: formData.departamento!.clave,
-            fecha: format(formData.fecha!, 'yyyy-MM-dd'),
-            motivo: formData.motivo.trim(),
-          };
-          response = await createJustificacionDepartamental(departamentalData);
+        case 'departamental': {
+          // Loop por empleados seleccionados y fechas
+          const selectedIds =
+            selectedDeptIds.length > 0
+              ? selectedDeptIds
+              : deptEmployees.map((e) => e.id);
+          const start = formData.fechaInicio!;
+          const end = formData.fechaFin || formData.fechaInicio!;
+          let empleadosAfectados = 0;
+
+          for (const empId of selectedIds) {
+            let cursor = new Date(start);
+            const last = new Date(end);
+            while (cursor <= last) {
+              const fechaStr = format(cursor, 'yyyy-MM-dd');
+              const payload: JustificacionIndividualData = {
+                empleadoId: empId,
+                fechaInicio: fechaStr,
+                fechaFin: fechaStr,
+                motivo: formData.motivo.trim(),
+                numOficio: formData.numOficio?.trim() || undefined,
+              };
+              try {
+                await createJustificacionIndividual(payload);
+                empleadosAfectados += 1;
+              } catch (_) {
+                // continuar
+              }
+              cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
+            }
+          }
+
           successPayload.departamentoNombre = formData.departamento?.nombre;
-          successPayload.fechasAfectadas = format(
-            formData.fecha!,
-            'dd/MM/yyyy'
-          );
-          successPayload.empleadosAfectados = response.empleadosAfectados;
-          // Obtener totales de consolidación para la fecha afectada
-          if (formData.fecha) {
-            const { totalConsolidados, totalFaltas } =
-              await consolidarYObtenerTotales(formData.fecha);
-            successPayload.totalConsolidados = totalConsolidados;
-            successPayload.totalFaltas = totalFaltas;
-          }
+          successPayload.fechasAfectadas = `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`;
+          successPayload.empleadosAfectados = empleadosAfectados;
+          // Consolidar
+          const { totalConsolidados, totalFaltas } =
+            await consolidarYObtenerTotales(start, end);
+          successPayload.totalConsolidados = totalConsolidados;
+          successPayload.totalFaltas = totalFaltas;
           break;
+        }
 
-        case 'masiva':
-          const masivaData: JustificacionMasivaData = {
-            fecha: format(formData.fecha!, 'yyyy-MM-dd'),
-            motivo: formData.motivo.trim(),
-          };
-          response = await createJustificacionMasiva(masivaData);
-          successPayload.fechasAfectadas = format(
-            formData.fecha!,
-            'dd/MM/yyyy'
-          );
-          successPayload.empleadosAfectados = response.empleadosAfectados;
-          // Obtener totales de consolidación para la fecha afectada
-          if (formData.fecha) {
-            const { totalConsolidados, totalFaltas } =
-              await consolidarYObtenerTotales(formData.fecha);
-            successPayload.totalConsolidados = totalConsolidados;
-            successPayload.totalFaltas = totalFaltas;
+        case 'masiva': {
+          // Soporta rango: ejecutar masivo por día
+          const start = formData.fechaInicio || formData.fecha!;
+          const end = formData.fechaFin || start;
+          let empleadosAfectados = 0;
+          let cursor = new Date(start);
+          const last = new Date(end);
+          while (cursor <= last) {
+            const payload: JustificacionMasivaData = {
+              fecha: format(cursor, 'yyyy-MM-dd'),
+              motivo: formData.motivo.trim(),
+            };
+            try {
+              const res = await createJustificacionMasiva(payload);
+              empleadosAfectados += res.empleadosAfectados || 0;
+            } catch (_) {
+              // continuar
+            }
+            cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
           }
+
+          successPayload.fechasAfectadas = `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`;
+          successPayload.empleadosAfectados = empleadosAfectados;
+          // Consolidar
+          const { totalConsolidados, totalFaltas } =
+            await consolidarYObtenerTotales(start, end);
+          successPayload.totalConsolidados = totalConsolidados;
+          successPayload.totalFaltas = totalFaltas;
           break;
+        }
       }
 
       setSuccessInfo(successPayload as JustificacionExitosa);
@@ -280,6 +397,8 @@ export function JustificacionForm() {
         description: 'La operación se completó exitosamente.',
       });
       setFormData(initialState);
+      setDeptEmployees([]);
+      setSelectedDeptIds([]);
     } catch (err) {
       setError(getApiErrorMessage(err));
       toast({
@@ -292,9 +411,7 @@ export function JustificacionForm() {
     }
   };
 
-  // --- INICIO DE LA CORRECCIÓN ---
   const getConfirmationDescription = () => {
-    // Se agregan validaciones para asegurar que las fechas no sean nulas antes de formatear
     switch (formData.tipo) {
       case 'individual':
         if (formData.empleado && formData.fechaInicio) {
@@ -309,14 +426,22 @@ export function JustificacionForm() {
         return 'Por favor, complete los detalles de la justificación individual.';
 
       case 'departamental':
-        if (formData.departamento && formData.fecha) {
-          return `Se creará una justificación para TODOS los empleados del departamento ${formData.departamento.nombre} para la fecha ${format(formData.fecha, 'PPP', { locale: es })}.`;
+        if (formData.departamento && formData.fechaInicio) {
+          const startDate = format(formData.fechaInicio, 'PPP', { locale: es });
+          const endDate = format(
+            formData.fechaFin || formData.fechaInicio,
+            'PPP',
+            { locale: es }
+          );
+          return `Se creará una justificación para los empleados seleccionados del departamento ${formData.departamento.nombre} del ${startDate} al ${endDate}.`;
         }
         return 'Por favor, complete los detalles de la justificación departamental.';
 
       case 'masiva':
-        if (formData.fecha) {
-          return `Se creará una justificación masiva para TODOS los empleados del sistema para la fecha ${format(formData.fecha, 'PPP', { locale: es })}. Esta acción es de alto impacto.`;
+        if (formData.fechaInicio || formData.fecha) {
+          const start = formData.fechaInicio || formData.fecha!;
+          const end = formData.fechaFin || start;
+          return `Se creará una justificación masiva para TODOS los empleados del sistema del ${format(start, 'PPP', { locale: es })} al ${format(end, 'PPP', { locale: es })}.`;
         }
         return 'Por favor, complete los detalles de la justificación masiva.';
 
@@ -324,13 +449,12 @@ export function JustificacionForm() {
         return '¿Está seguro de realizar esta acción?';
     }
   };
-  // --- FIN DE LA CORRECCIÓN ---
 
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Crear Justificación</CardTitle>
+          <CardTitle>Crear Justificación del día</CardTitle>
           <CardDescription>
             Seleccione el tipo de justificación y complete los campos
             requeridos.
@@ -411,81 +535,68 @@ export function JustificacionForm() {
             )}
 
             {formData.tipo === 'departamental' && (
-              <div className='space-y-2'>
-                <Label>Departamento</Label>
-                <DepartmentSearch
-                  value={formData.departamento}
-                  onChange={(dep) =>
-                    setFormData((f) => ({ ...f, departamento: dep }))
-                  }
-                  disabled={loading}
-                />
+              <div className='space-y-4'>
+                <div className='space-y-2'>
+                  <Label>Departamento</Label>
+                  <DepartmentSearch
+                    value={formData.departamento}
+                    onChange={(dep) =>
+                      setFormData((f) => ({ ...f, departamento: dep }))
+                    }
+                    disabled={loading}
+                  />
+                </div>
+
+                {deptEmployees.length > 0 && (
+                  <div className='space-y-2'>
+                    <div className='flex items-center justify-between'>
+                      <Label>Empleados del Departamento</Label>
+                      <div className='flex gap-2'>
+                        <Button
+                          type='button'
+                          variant='outline'
+                          size='sm'
+                          onClick={handleSelectAll}
+                          disabled={loading}
+                        >
+                          Seleccionar todos
+                        </Button>
+                        <Button
+                          type='button'
+                          variant='outline'
+                          size='sm'
+                          onClick={handleClearSelection}
+                          disabled={loading}
+                        >
+                          Limpiar
+                        </Button>
+                      </div>
+                    </div>
+                    <div className='max-h-56 overflow-auto rounded border p-2'>
+                      {deptEmployees.map((emp) => (
+                        <label
+                          key={emp.id}
+                          className='flex items-center gap-2 py-1'
+                        >
+                          <input
+                            type='checkbox'
+                            className='h-4 w-4'
+                            checked={selectedDeptIds.includes(emp.id)}
+                            onChange={() => handleToggleEmployee(emp.id)}
+                          />
+                          <span className='text-sm'>{emp.nombreCompleto}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {formData.tipo === 'individual' ? (
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div className='space-y-2'>
-                  <Label>Fecha de Inicio</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant='outline'
-                        className='w-full justify-start text-left font-normal'
-                        disabled={loading}
-                      >
-                        <CalendarIcon className='mr-2 h-4 w-4' />
-                        {formData.fechaInicio ? (
-                          format(formData.fechaInicio, 'PPP', { locale: es })
-                        ) : (
-                          <span>Seleccione fecha</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className='w-auto p-0'>
-                      <Calendar
-                        mode='single'
-                        selected={formData.fechaInicio ?? undefined}
-                        onSelect={(d) => handleDateChange('fechaInicio', d)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className='space-y-2'>
-                  <Label>Fecha de Fin (Opcional)</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant='outline'
-                        className='w-full justify-start text-left font-normal'
-                        disabled={loading}
-                      >
-                        <CalendarIcon className='mr-2 h-4 w-4' />
-                        {formData.fechaFin ? (
-                          format(formData.fechaFin, 'PPP', { locale: es })
-                        ) : (
-                          <span>Igual a fecha de inicio</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className='w-auto p-0'>
-                      <Calendar
-                        mode='single'
-                        selected={formData.fechaFin ?? undefined}
-                        onSelect={(d) => handleDateChange('fechaFin', d)}
-                        disabled={{
-                          before: formData.fechaInicio ?? new Date(0),
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-            ) : (
+            {/* Fecha(s) - rango para todos los tipos */}
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div className='space-y-2'>
-                <Label>Fecha</Label>
+                <Label>Fecha de Inicio</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -494,8 +605,8 @@ export function JustificacionForm() {
                       disabled={loading}
                     >
                       <CalendarIcon className='mr-2 h-4 w-4' />
-                      {formData.fecha ? (
-                        format(formData.fecha, 'PPP', { locale: es })
+                      {formData.fechaInicio ? (
+                        format(formData.fechaInicio, 'PPP', { locale: es })
                       ) : (
                         <span>Seleccione fecha</span>
                       )}
@@ -504,14 +615,42 @@ export function JustificacionForm() {
                   <PopoverContent className='w-auto p-0'>
                     <Calendar
                       mode='single'
-                      selected={formData.fecha ?? undefined}
-                      onSelect={(d) => handleDateChange('fecha', d)}
+                      selected={formData.fechaInicio ?? undefined}
+                      onSelect={(d) => handleDateChange('fechaInicio', d)}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
               </div>
-            )}
+              <div className='space-y-2'>
+                <Label>Fecha de Fin (Opcional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant='outline'
+                      className='w-full justify-start text-left font-normal'
+                      disabled={loading}
+                    >
+                      <CalendarIcon className='mr-2 h-4 w-4' />
+                      {formData.fechaFin ? (
+                        format(formData.fechaFin, 'PPP', { locale: es })
+                      ) : (
+                        <span>Igual a fecha de inicio</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className='w-auto p-0'>
+                    <Calendar
+                      mode='single'
+                      selected={formData.fechaFin ?? undefined}
+                      onSelect={(d) => handleDateChange('fechaFin', d)}
+                      disabled={{ before: formData.fechaInicio ?? new Date(0) }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
 
             <div className='space-y-2'>
               <Label>Motivo</Label>
@@ -526,13 +665,25 @@ export function JustificacionForm() {
               />
             </div>
 
+            <div className='space-y-2'>
+              <Label>Número de Oficio (opcional)</Label>
+              <Input
+                placeholder='Ej. OF/1234/2025'
+                value={formData.numOficio}
+                onChange={(e) =>
+                  setFormData((f) => ({ ...f, numOficio: e.target.value }))
+                }
+                disabled={loading}
+              />
+            </div>
+
             <Button type='submit' disabled={loading} className='w-full'>
               {loading ? (
                 <Loader2 className='mr-2 h-4 w-4 animate-spin' />
               ) : (
                 <Send className='mr-2 h-4 w-4' />
               )}
-              {loading ? 'Procesando...' : 'Crear Justificación'}
+              {loading ? 'Procesando...' : 'Aplicar Justificación'}
             </Button>
           </form>
         </CardContent>
@@ -541,7 +692,7 @@ export function JustificacionForm() {
       <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+            <AlertDialogTitle>¿Confirmar acción?</AlertDialogTitle>
             <AlertDialogDescription>
               {getConfirmationDescription()}
             </AlertDialogDescription>

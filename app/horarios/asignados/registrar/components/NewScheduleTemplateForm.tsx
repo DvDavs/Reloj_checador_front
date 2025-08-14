@@ -12,6 +12,7 @@ import InteractiveWeeklySchedule, {
 } from '@/app/components/shared/WeeklyScheduleGrid';
 import { NewScheduleData, EmpleadoSimpleDTO } from '../types';
 import { AlertCircle, Clock, ClipboardCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NewScheduleTemplateFormProps {
   scheduleData: NewScheduleData;
@@ -68,19 +69,47 @@ export function NewScheduleTemplateForm({
     detallesToWeeklySchedule(scheduleData.detalles)
   );
 
-  // Preset the schedule name with employee's RFC when component mounts or employee changes
-  React.useEffect(() => {
-    if (selectedEmployee?.rfc) {
-      // Only preset if the field is empty or contains a previous RFC preset format
-      const currentName = scheduleData.nombre.trim();
-      const isEmptyOrPreset =
-        currentName === '' || /^[A-Z0-9]+ - (\s*)$/.test(currentName);
-
-      if (isEmptyOrPreset) {
-        onDataChange({ nombre: `${selectedEmployee.rfc} - ` });
-      }
+  // Generar ID único de 3 caracteres
+  const generateUniqueId = React.useCallback(() => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 3; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-  }, [selectedEmployee?.rfc, scheduleData.nombre, onDataChange]);
+    return result;
+  }, []);
+
+  // Preset del nombre con numTarjetaTrabajador y un ID único cuando cambia el empleado o al montar
+  React.useEffect(() => {
+    const cardNumber = selectedEmployee?.numTarjetaTrabajador;
+    if (!cardNumber) return;
+
+    const currentName = scheduleData.nombre.trim();
+
+    // Si ya coincide con el patrón correcto para este empleado, no hacer nada
+    const desiredPrefix = `h_tarjeta_${cardNumber}_`;
+    const matchesDesired = new RegExp(
+      `^${desiredPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[A-Z0-9]{3}$`
+    ).test(currentName);
+    if (matchesDesired) return;
+
+    // Si está vacío, contiene un preset previo (RFC) o un preset antiguo de tarjeta de otro empleado, regenerar
+    const isEmpty = currentName === '';
+    const isOldRfcPreset = /^[A-Z0-9]{3} - [A-Z0-9]+ - (\s*)$/.test(
+      currentName
+    );
+    const isOldCardPreset = /^h_tarjeta_[^_]+_[A-Z0-9]{3}$/.test(currentName);
+
+    if (isEmpty || isOldRfcPreset || isOldCardPreset) {
+      const uniqueId = generateUniqueId();
+      onDataChange({ nombre: `h_tarjeta_${cardNumber}_${uniqueId}` });
+    }
+  }, [
+    selectedEmployee?.numTarjetaTrabajador,
+    scheduleData.nombre,
+    onDataChange,
+    generateUniqueId,
+  ]);
 
   React.useEffect(() => {
     setWeeklySchedule(detallesToWeeklySchedule(scheduleData.detalles));
@@ -99,16 +128,18 @@ export function NewScheduleTemplateForm({
       transition={{ duration: 0.4 }}
     >
       <motion.div
-        className='space-y-4 rounded-lg border border-zinc-800 p-5 bg-zinc-900/50'
+        className='space-y-4 rounded-lg border p-5 bg-card'
         initial={{ y: 20 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
         <div className='flex items-center gap-3 mb-4'>
-          <div className='w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center'>
-            <ClipboardCheck className='h-4 w-4 text-blue-500' />
+          <div className='w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center'>
+            <ClipboardCheck className='h-4 w-4 text-primary' />
           </div>
-          <h3 className='font-semibold text-lg'>Datos de la Nueva Plantilla</h3>
+          <h3 className='font-semibold text-lg text-foreground'>
+            Datos del Nuevo Horario
+          </h3>
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
@@ -127,23 +158,32 @@ export function NewScheduleTemplateForm({
             <Input
               id='templateName'
               placeholder={
-                selectedEmployee?.rfc
-                  ? `Se preseteará con: ${selectedEmployee.rfc} - `
-                  : 'Ej: Turno de Fin de Semana'
+                selectedEmployee?.numTarjetaTrabajador
+                  ? `Se preseteará con: h_tarjeta_${selectedEmployee.numTarjetaTrabajador}_XXX`
+                  : 'Ej: h_tarjeta_12345_ABC'
               }
               value={scheduleData.nombre}
               onChange={(e) => onDataChange({ nombre: e.target.value })}
-              className={
+              className={cn(
+                'text-lg font-medium', // Hacer el texto más grande y prominente
                 !isNameValid && scheduleData.nombre.length > 0
                   ? 'border-destructive'
-                  : ''
-              }
+                  : 'border-primary/30 focus:border-primary'
+              )}
             />
-            {selectedEmployee?.rfc && (
-              <p className='text-xs text-muted-foreground mt-1'>
-                💡 Se presetea automáticamente con el RFC del empleado para
-                evitar nombres duplicados. Puedes editarlo libremente.
-              </p>
+            {selectedEmployee?.numTarjetaTrabajador && (
+              <div className='mt-2 p-2 bg-primary/5 border border-primary/20 rounded text-xs'>
+                <p className='text-primary font-medium'>
+                  💡 Formato automático:{' '}
+                  <code className='bg-primary/10 px-1 rounded'>
+                    h_tarjeta_{selectedEmployee.numTarjetaTrabajador}_XXX
+                  </code>
+                </p>
+                <p className='text-muted-foreground mt-1'>
+                  Se genera con número de tarjeta + sufijo único de 3
+                  caracteres. Puedes editarlo si lo deseas.
+                </p>
+              </div>
             )}
           </div>
           <div className='space-y-2'>
@@ -158,17 +198,27 @@ export function NewScheduleTemplateForm({
             />
           </div>
         </div>
-        <div className='flex items-center space-x-2 pt-2'>
+        <div className='flex items-center space-x-3 pt-4 p-3 bg-accent/5 border border-accent/20 rounded-lg'>
           <Checkbox
             id='isJefe'
             checked={scheduleData.esHorarioJefe}
             onCheckedChange={(checked) =>
               onDataChange({ esHorarioJefe: !!checked })
             }
+            className='w-5 h-5'
           />
-          <Label htmlFor='isJefe' className='text-sm'>
-            Es un horario para Jefes
-          </Label>
+          <div className='flex-1'>
+            <Label
+              htmlFor='isJefe'
+              className='text-base font-medium text-foreground cursor-pointer'
+            >
+              Horario para Jefes
+            </Label>
+            <p className='text-sm text-muted-foreground mt-1'>
+              Marca esta opción si este horario está destinado para personal
+              directivo
+            </p>
+          </div>
         </div>
       </motion.div>
 
@@ -178,17 +228,19 @@ export function NewScheduleTemplateForm({
         transition={{ duration: 0.4, delay: 0.2 }}
       >
         <div className='flex items-center gap-3 mb-4'>
-          <div className='w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center'>
-            <Clock className='h-4 w-4 text-purple-500' />
+          <div className='w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center'>
+            <Clock className='h-4 w-4 text-accent' />
           </div>
           <div className='flex-1'>
-            <h3 className='font-semibold text-lg'>Definir Turnos</h3>
-            <p className='text-sm text-zinc-400'>
+            <h3 className='font-semibold text-lg text-foreground'>
+              Definir Turnos
+            </h3>
+            <p className='text-sm text-muted-foreground'>
               Configura los horarios para cada día de la semana
             </p>
           </div>
           {!hasDetails && (
-            <div className='text-xs text-amber-500 flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded'>
+            <div className='text-xs text-amber-700 flex items-center gap-1 bg-amber-100 px-2 py-1 rounded border border-amber-200'>
               <AlertCircle className='h-3 w-3' />
               <span>Se requiere al menos un turno</span>
             </div>

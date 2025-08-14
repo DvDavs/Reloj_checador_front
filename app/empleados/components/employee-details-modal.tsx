@@ -93,10 +93,12 @@ const InfoItem = ({
   if (!value && typeof value !== 'number') return null;
   return (
     <div className='flex items-start gap-3'>
-      {icon && <div className='mt-1 flex-shrink-0 text-zinc-400'>{icon}</div>}
+      {icon && (
+        <div className='mt-1 flex-shrink-0 text-muted-foreground'>{icon}</div>
+      )}
       <div className='space-y-1'>
-        <p className='text-sm font-medium text-zinc-400'>{label}</p>
-        <div className='text-lg text-zinc-100'>{value}</div>
+        <p className='text-sm font-medium text-muted-foreground'>{label}</p>
+        <div className='text-lg text-foreground'>{value}</div>
       </div>
     </div>
   );
@@ -205,10 +207,10 @@ export function EmployeeDetailsModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className='max-w-4xl max-h-[90vh] overflow-y-auto bg-zinc-900 border-zinc-800 text-white'>
+        <DialogContent className='max-w-4xl max-h-[90vh] overflow-y-auto bg-card border-border text-card-foreground'>
           <DialogHeader>
-            <DialogTitle className='text-2xl font-bold flex items-center gap-2'>
-              <User className='h-6 w-6' /> Detalles del Empleado
+            <DialogTitle className='text-2xl font-bold flex items-center gap-2 text-foreground'>
+              <User className='h-6 w-6 text-accent' /> Detalles del Empleado
             </DialogTitle>
           </DialogHeader>
 
@@ -230,8 +232,8 @@ export function EmployeeDetailsModal({
                     variant={employee.estatusId === 1 ? 'default' : 'secondary'}
                     className={
                       employee.estatusId === 1
-                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                        : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
+                        ? 'bg-primary/10 text-primary border-primary/20'
+                        : 'bg-muted text-muted-foreground border-border'
                     }
                   >
                     {employee.estatusId === 1 ? 'Activo' : 'Inactivo'}
@@ -240,11 +242,11 @@ export function EmployeeDetailsModal({
               />
             </div>
 
-            <Separator className='bg-zinc-700' />
+            <Separator className='bg-border' />
 
             <div className='space-y-4'>
-              <h3 className='text-xl font-semibold flex items-center gap-2'>
-                <Info className='h-5 w-5 text-blue-400' />
+              <h3 className='text-xl font-semibold flex items-center gap-2 text-foreground'>
+                <Info className='h-5 w-5 text-accent' />
                 Información Laboral
               </h3>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4'>
@@ -271,25 +273,25 @@ export function EmployeeDetailsModal({
               </div>
             </div>
 
-            <Separator className='bg-zinc-700' />
+            <Separator className='bg-border' />
 
             <div className='space-y-4'>
               <div className='flex items-center justify-between'>
-                <h3 className='text-xl font-semibold flex items-center gap-2'>
-                  <Fingerprint className='h-6 w-6 text-purple-400' />
+                <h3 className='text-xl font-semibold flex items-center gap-2 text-foreground'>
+                  <Fingerprint className='h-6 w-6 text-accent' />
                   Huellas Digitales
                 </h3>
                 {isLoadingFingerprints && (
-                  <Loader2 className='h-5 w-5 animate-spin text-purple-500' />
+                  <Loader2 className='h-5 w-5 animate-spin text-accent' />
                 )}
               </div>
               {error && (
-                <div className='text-red-400 p-3 text-center rounded-md bg-red-900/20 border border-red-800'>
+                <div className='text-destructive p-3 text-center rounded-md bg-destructive/10 border border-destructive/20'>
                   {error}
                 </div>
               )}
-              <div className='bg-zinc-800/50 p-4 rounded-lg'>
-                <div className='flex items-center gap-2 text-sm text-zinc-400 mb-4 p-2 bg-zinc-900/50 rounded-md'>
+              <div className='bg-muted/30 p-4 rounded-lg border border-border'>
+                <div className='flex items-center gap-2 text-sm text-muted-foreground mb-4 p-2 bg-muted/50 rounded-md'>
                   <Info className='h-5 w-5' />
                   <span>
                     Haz clic en un dedo para registrarlo o eliminarlo.
@@ -301,11 +303,11 @@ export function EmployeeDetailsModal({
                 />
               </div>
               <div className='space-y-2'>
-                <h4 className='font-semibold text-zinc-300'>
+                <h4 className='font-semibold text-foreground'>
                   Huellas Registradas{' '}
                   <Badge
                     variant='secondary'
-                    className='bg-purple-500/20 text-purple-400 border-purple-500/30'
+                    className='bg-accent/10 text-accent border-accent/20'
                   >
                     {huellas.length}
                   </Badge>
@@ -325,16 +327,16 @@ export function EmployeeDetailsModal({
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -20 }}
-                          className='flex items-center justify-between bg-zinc-800 p-3 rounded-md'
+                          className='flex items-center justify-between bg-muted p-3 rounded-md border border-border'
                         >
-                          <span className='font-medium capitalize'>
+                          <span className='font-medium capitalize text-foreground'>
                             {getFingerName(h).toLowerCase()}
                           </span>
                           <Button
                             variant='ghost'
                             size='sm'
                             onClick={() => setFingerprintToDelete(h)}
-                            className='text-red-400 hover:bg-red-500/10 hover:text-red-300'
+                            className='text-destructive hover:bg-destructive/10 hover:text-destructive'
                           >
                             <Trash2 className='h-4 w-4 mr-2' />
                             Eliminar
@@ -350,7 +352,7 @@ export function EmployeeDetailsModal({
                         animate={{ opacity: 1 }}
                         className='text-center py-6'
                       >
-                        <p className='text-zinc-500'>
+                        <p className='text-muted-foreground'>
                           Este empleado no tiene huellas registradas.
                         </p>
                       </motion.div>
@@ -364,13 +366,13 @@ export function EmployeeDetailsModal({
       </Dialog>
 
       <AlertDialog open={showFingerActions} onOpenChange={setShowFingerActions}>
-        <AlertDialogContent className='bg-zinc-900 border-zinc-800 text-white'>
+        <AlertDialogContent className='bg-card border-border text-card-foreground'>
           <AlertDialogHeader>
-            <AlertDialogTitle className='flex items-center gap-2'>
-              <Fingerprint className='h-6 w-6 text-blue-400' />
+            <AlertDialogTitle className='flex items-center gap-2 text-foreground'>
+              <Fingerprint className='h-6 w-6 text-accent' />
               {selectedFingerIndex && INDEX_TO_FINGER_NAME[selectedFingerIndex]}
             </AlertDialogTitle>
-            <AlertDialogDescription className='text-zinc-400'>
+            <AlertDialogDescription className='text-muted-foreground'>
               Selecciona una acción para este dedo:
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -384,7 +386,7 @@ export function EmployeeDetailsModal({
                     {!isRegistered && (
                       <Button
                         onClick={() => handleFingerAction('register')}
-                        className='w-full justify-start bg-green-600 hover:bg-green-700 text-white'
+                        className='w-full justify-start bg-primary hover:bg-primary/90 text-primary-foreground'
                       >
                         <Plus className='h-4 w-4 mr-2' />
                         Registrar Huella
@@ -393,7 +395,7 @@ export function EmployeeDetailsModal({
                     {isRegistered && (
                       <Button
                         onClick={() => handleFingerAction('delete')}
-                        className='w-full justify-start bg-red-600 hover:bg-red-700 text-white'
+                        className='w-full justify-start bg-destructive hover:bg-destructive/90 text-destructive-foreground'
                       >
                         <Trash2 className='h-4 w-4 mr-2' />
                         Eliminar Huella
@@ -409,7 +411,7 @@ export function EmployeeDetailsModal({
                 setShowFingerActions(false);
                 setSelectedFingerIndex(null);
               }}
-              className='border-zinc-700 hover:bg-zinc-800'
+              className='border-border hover:bg-muted'
             >
               Cancelar
             </AlertDialogCancel>
@@ -421,15 +423,15 @@ export function EmployeeDetailsModal({
         open={!!fingerprintToDelete}
         onOpenChange={(open) => !open && setFingerprintToDelete(null)}
       >
-        <AlertDialogContent className='bg-zinc-900 border-zinc-800 text-white'>
+        <AlertDialogContent className='bg-card border-border text-card-foreground'>
           <AlertDialogHeader>
-            <AlertDialogTitle className='flex items-center gap-2'>
-              <AlertCircle className='h-6 w-6 text-red-500' />
+            <AlertDialogTitle className='flex items-center gap-2 text-foreground'>
+              <AlertCircle className='h-6 w-6 text-destructive' />
               Confirmar Eliminación
             </AlertDialogTitle>
-            <AlertDialogDescription className='text-zinc-400 pt-2'>
+            <AlertDialogDescription className='text-muted-foreground pt-2'>
               ¿Estás seguro de que quieres eliminar la huella del dedo{' '}
-              <strong className='text-red-400'>
+              <strong className='text-destructive'>
                 {fingerprintToDelete
                   ? getFingerName(fingerprintToDelete).toLowerCase()
                   : 'seleccionado'}
@@ -444,7 +446,7 @@ export function EmployeeDetailsModal({
             <AlertDialogAction
               onClick={handleDeleteFingerprint}
               disabled={isDeletingFingerprint}
-              className='bg-red-600 hover:bg-red-700'
+              className='bg-destructive hover:bg-destructive/90 text-destructive-foreground'
             >
               {isDeletingFingerprint ? (
                 <Loader2 className='mr-2 h-4 w-4 animate-spin' />

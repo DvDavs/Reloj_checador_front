@@ -4,67 +4,86 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    /* Fondo principal más moderno - gris muy claro pero no blanco puro */
+    --background: 210 20% 98%; /* #FAFBFC - Blanco azulado muy sutil */
+    --foreground: 222 84% 4.9%; /* #020817 - Negro azulado profundo */
+    
+    /* Cards con contraste sutil */
+    --card: 0 0% 100%; /* Blanco puro para cards */
+    --card-foreground: 222 84% 4.9%;
+    
+    /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 222 84% 4.9%;
+    
+    /* Primary - Verde institucional mejorado */
     --primary: 142 76% 36%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    
+    /* Secondary - Gris moderno con más contraste */
+    --secondary: 210 40% 94%; /* #F1F5F9 - Gris azulado claro */
+    --secondary-foreground: 222 47% 11%; /* #1E293B - Gris azulado oscuro */
+    
+    /* Muted - Tonos neutros modernos */
+    --muted: 210 40% 96%; /* #F8FAFC - Gris azulado muy claro */
+    --muted-foreground: 215 16% 47%; /* #64748B - Gris medio con buen contraste */
+    
+    /* Accent - Naranja institucional */
+    --accent: 22 89% 54%; /* #F26E22 */
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
     
-    /* Sidebar specific variables */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 10% 3.9%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-accent: 142 76% 36%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-hover: 240 4.8% 95.9%;
-    --sidebar-active: 142 76% 36%;
-    --sidebar-active-foreground: 0 0% 98%;
+    /* Bordes y inputs con mejor definición */
+    --border: 214 32% 91%; /* #E2E8F0 - Gris azulado para bordes */
+    --input: 214 32% 91%;
+    --ring: 22 89% 54%;
+    --radius: 0.5rem;
+
+    /* Sidebar con esquema moderno y mejor contraste */
+    --sidebar-background: 0 0% 100%; /* Blanco puro para la sidebar */
+    --sidebar-foreground: 222 84% 4.9%; /* Negro azulado profundo */
+    --sidebar-border: 214 32% 91%; /* Borde sutil pero visible */
+    --sidebar-accent: 22 79% 36%; /* #A64914 - Naranja oscuro */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-hover: 210 40% 96%; /* #F8FAFC - Hover sutil pero perceptible */
+    --sidebar-active: 22 89% 54%; /* #F26E22 - Naranja vibrante */
+    --sidebar-active-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --background: 0 0% 5%;  /* #0D0D0D */
+    --foreground: 0 0% 98%; /* #F2F2F2 */
+    --card: 0 0% 5%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 0 0% 5%;
     --popover-foreground: 0 0% 98%;
+    /* Mantener primary en verde para confirmar */
     --primary: 142 76% 36%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 240 3.7% 15.9%;
+    --secondary: 0 0% 14%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 65%;
+    /* Naranja de marca como accent */
+    --accent: 22 89% 54%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    
-    /* Sidebar specific variables - Dark mode */
-    --sidebar-background: 240 5.9% 10%;
+    --border: 0 0% 15.9%;
+    --input: 0 0% 15.9%;
+    --ring: 22 89% 54%;
+
+    /* Sidebar - Modo oscuro */
+    --sidebar-background: 0 0% 10%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-accent: 142 76% 36%;
+    --sidebar-border: 0 0% 15.9%;
+    --sidebar-accent: 22 79% 36%; /* #A64914 */
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-hover: 240 3.7% 15.9%;
-    --sidebar-active: 142 76% 36%;
+    --sidebar-hover: 0 0% 15.9%;
+    --sidebar-active: 22 89% 54%; /* #F26E22 */
     --sidebar-active-foreground: 0 0% 98%;
   }
 }
@@ -77,6 +96,8 @@
     @apply bg-background text-foreground;
     height: 100%;
     overflow: hidden; /* Evitar scroll en el body */
+    /* Suavizar transiciones de tema */
+    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
   }
   #__next {
     height: 100%;
@@ -88,22 +109,69 @@
     overflow-y: scroll;
   }
   
-  /* Personalizar scrollbar para mejor apariencia */
+  /* Personalizar scrollbar para mejor apariencia en modo claro */
   .main-content::-webkit-scrollbar {
     width: 8px;
   }
   
   .main-content::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
+    background: hsl(var(--muted));
   }
   
   .main-content::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: hsl(var(--border));
     border-radius: 4px;
   }
   
   .main-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: hsl(var(--muted-foreground));
+  }
+
+  /* Mejorar el contraste de elementos interactivos */
+  .interactive-hover {
+    @apply transition-all duration-200 hover:shadow-sm hover:scale-[1.01];
+  }
+
+  /* Mejorar botones y elementos clickeables */
+  button:focus-visible,
+  a:focus-visible {
+    @apply outline-none ring-2 ring-accent/20 ring-offset-2 ring-offset-background;
+  }
+
+  /* Mejorar contraste de inputs */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply ring-2 ring-accent/20 border-accent/50;
+  }
+
+  /* Transiciones suaves durante cambio de tema */
+  html[data-theme-changing] * {
+    transition: background-color 0.15s ease-in-out, 
+                border-color 0.15s ease-in-out, 
+                color 0.15s ease-in-out,
+                fill 0.15s ease-in-out,
+                stroke 0.15s ease-in-out !important;
+  }
+
+  /* Evitar transiciones en elementos que no las necesitan */
+  html[data-theme-changing] .no-theme-transition,
+  html[data-theme-changing] .no-theme-transition * {
+    transition: none !important;
+  }
+
+  /* Arreglar overlap de colores en calendario */
+  .rdp-day_selected.rdp-day_today {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border: 2px solid hsl(var(--accent)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
+  }
+
+  .rdp-day_today:not(.rdp-day_selected) {
+    background: hsl(var(--accent) / 0.2) !important;
+    color: hsl(var(--accent-foreground)) !important;
+    border: 2px solid hsl(var(--accent)) !important;
   }
 }
 

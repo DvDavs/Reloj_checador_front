@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
@@ -31,6 +32,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
+    if (mounted) return; // Evitar re-inicialización
+
     setMounted(true);
 
     const initializeAuth = async () => {
@@ -70,7 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => clearTimeout(timeoutId);
-  }, []);
+  }, [mounted]);
 
   const login = async (credentials: LoginRequest) => {
     const response = await apiClient.post<LoginResponse>(
@@ -104,8 +107,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Configurar interceptores después de que logout esté definido
   useEffect(() => {
-    setupInterceptors(logout);
-  }, [logout]);
+    if (mounted) {
+      setupInterceptors(logout);
+    }
+  }, [logout, mounted]);
 
   const value = {
     isAuthenticated: !!token,

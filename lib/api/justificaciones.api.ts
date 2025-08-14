@@ -10,6 +10,7 @@ export interface JustificacionIndividualData {
   fechaInicio: string;
   fechaFin: string;
   motivo: string;
+  numOficio?: string;
 }
 
 export interface JustificacionDepartamentalData {

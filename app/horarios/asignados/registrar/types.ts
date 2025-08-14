@@ -7,6 +7,7 @@ export interface EmpleadoSimpleDTO {
   nombreCompleto: string;
   rfc?: string;
   curp?: string;
+  numTarjetaTrabajador?: string;
 }
 
 export interface HorarioTemplateDTO {
@@ -39,18 +40,23 @@ export interface TipoHorarioDTO {
 }
 
 export interface HorarioAsignadoCreateDto {
-    empleadoId: number;
-    horarioId: number;
-    tipoHorarioId: number;
-    fechaInicio: string;
-    fechaFin: string | null;
+  empleadoId: number;
+  horarioId: number;
+  tipoHorarioId: number;
+  fechaInicio: string;
+  fechaFin: string | null;
 }
 
 // -----------------------------------------------------------------------------
 // Tipos para el estado y la lógica del asistente
 // -----------------------------------------------------------------------------
 
-export type WizardStep = 'selectEmployee' | 'selectSchedule' | 'setDates' | 'summary' | 'completed';
+export type WizardStep =
+  | 'selectEmployee'
+  | 'selectSchedule'
+  | 'setDates'
+  | 'summary'
+  | 'completed';
 
 export interface NewScheduleData {
   nombre: string;
@@ -61,7 +67,7 @@ export interface NewScheduleData {
 
 export interface WizardState {
   step: WizardStep;
-  
+
   // Paso 1: Selección de empleado
   selectedEmployee: EmpleadoSimpleDTO | null;
 
@@ -74,9 +80,9 @@ export interface WizardState {
   assignmentStartDate: Date | null;
   assignmentEndDate: Date | null;
   selectedScheduleTypeId: number | null;
-  
+
   // Estado general
-  newlyCreatedTemplateId: number | null; 
+  newlyCreatedTemplateId: number | null;
   isSubmitting: boolean;
   error: string | null;
 }
@@ -87,11 +93,14 @@ export type WizardAction =
   | { type: 'SET_SCHEDULE_SELECTION_TYPE'; payload: 'existing' | 'new' | null }
   | { type: 'SELECT_EXISTING_TEMPLATE'; payload: number | null }
   | { type: 'UPDATE_NEW_SCHEDULE_DATA'; payload: Partial<NewScheduleData> }
-  | { type: 'SET_ASSIGNMENT_DATES'; payload: { startDate: Date | null; endDate: Date | null } }
+  | {
+      type: 'SET_ASSIGNMENT_DATES';
+      payload: { startDate: Date | null; endDate: Date | null };
+    }
   | { type: 'SELECT_SCHEDULE_TYPE'; payload: number | null }
   | { type: 'SET_NEWLY_CREATED_TEMPLATE_ID'; payload: number | null }
   | { type: 'SUBMIT_START' }
   | { type: 'SUBMIT_SUCCESS' }
   | { type: 'SUBMIT_ERROR'; payload: string }
   | { type: 'RESET' }
-  | { type: 'SET_STATE'; payload: Partial<WizardState> }; 
+  | { type: 'SET_STATE'; payload: Partial<WizardState> };
