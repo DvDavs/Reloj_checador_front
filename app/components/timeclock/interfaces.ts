@@ -87,6 +87,12 @@ export interface ScannerPanelProps {
   onStartPinInput: (initialDigit?: string) => void;
   onSubmitPin: (pin: string) => void | Promise<void>;
   onCancelPin: () => void;
+
+  // Attendance details (now rendered below the scanner)
+  employee?: EmpleadoDto | null;
+  showAttendance?: boolean;
+  nextRecommendedAction?: NextRecommendedAction;
+  dailyWorkSessions?: JornadaEstadoDto[];
 }
 
 // Props: AttendanceDetails (datos del empleado, acción recomendada)
