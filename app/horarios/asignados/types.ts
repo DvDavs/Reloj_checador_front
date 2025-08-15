@@ -2,6 +2,8 @@ export interface HorarioAsignadoDto {
   id: number;
   empleadoId: number;
   empleadoNombre: string;
+  // Número de tarjeta del trabajador (si está disponible)
+  numTarjetaTrabajador?: string | number | null;
   horarioId: number;
   horarioNombre: string;
   tipoHorarioId: number;

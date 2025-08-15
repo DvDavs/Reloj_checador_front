@@ -12,7 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getDepartamentos, DepartamentoDto } from '@/lib/api/schedule-api';
-import { DepartmentSearch } from '@/components/admin/DepartmentSearch';
+import { DepartmentSearchableSelect } from './department-searchable-select';
+import { SearchableSelect } from '@/app/components/shared/searchable-select';
 import { Loader2 } from 'lucide-react';
 
 interface EmployeeFormData {
@@ -59,6 +60,22 @@ export function EmployeeForm({
   >([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+
+  // Opciones para nombramiento
+  const nombramientoOptions = [
+    { value: 'DOCENTE', label: 'Docente' },
+    { value: 'ADMINISTRATIVO', label: 'Administrativo' },
+    { value: 'MANDO MEDIO', label: 'Mando Medio' },
+  ];
+
+  // Opciones para tipo nombramiento secundario
+  const tipoNombramientoSecundarioOptions = [
+    { value: 'BASE', label: 'Base' },
+    { value: 'HONORARIOS', label: 'Honorarios' },
+    { value: 'CONFIANZA', label: 'Confianza' },
+    { value: 'INTERINATO', label: 'Interinato' },
+    { value: 'JEFE', label: 'Jefe' },
+  ];
 
   useEffect(() => {
     const loadCatalog = async () => {
@@ -203,138 +220,81 @@ export function EmployeeForm({
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='nombramiento'>Nombramiento</Label>
-          <Select
-            value={formData.nombramiento || noneValue}
-            onValueChange={(value) => onSelectChange('nombramiento', value)}
+          <SearchableSelect
+            value={
+              formData.nombramiento === noneValue
+                ? null
+                : formData.nombramiento || null
+            }
+            onChange={(value: string | null) =>
+              onSelectChange('nombramiento', value || noneValue)
+            }
+            options={nombramientoOptions}
+            placeholder='Seleccionar nombramiento...'
             disabled={isSubmitting}
-          >
-            <SelectTrigger id='nombramiento'>
-              <SelectValue placeholder='Seleccionar...' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={noneValue}>(Ninguno)</SelectItem>
-              <SelectItem value='DOCENTE'>Docente</SelectItem>
-              <SelectItem value='ADMINISTRATIVO'>Administrativo</SelectItem>
-              <SelectItem value='MANDO MEDIO'>Mando Medio</SelectItem>
-            </SelectContent>
-          </Select>
+            allowClear={true}
+            emptyMessage='No se encontraron nombramientos.'
+          />
         </div>
         <div className='space-y-2'>
           <Label htmlFor='tipoNombramientoSecundario'>
             Tipo Nombramiento Secundario
           </Label>
-          <Select
-            value={formData.tipoNombramientoSecundario || noneValue}
-            onValueChange={(value) =>
-              onSelectChange('tipoNombramientoSecundario', value)
+          <SearchableSelect
+            value={
+              formData.tipoNombramientoSecundario === noneValue
+                ? null
+                : formData.tipoNombramientoSecundario || null
             }
+            onChange={(value: string | null) =>
+              onSelectChange('tipoNombramientoSecundario', value || noneValue)
+            }
+            options={tipoNombramientoSecundarioOptions}
+            placeholder='Seleccionar tipo nombramiento...'
             disabled={isSubmitting}
-          >
-            <SelectTrigger id='tipoNombramientoSecundario'>
-              <SelectValue placeholder='Seleccionar...' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={noneValue}>(Ninguno)</SelectItem>
-              <SelectItem value='BASE'>Base</SelectItem>
-              <SelectItem value='HONORARIOS'>Honorarios</SelectItem>
-              <SelectItem value='CONFIANZA'>Confianza</SelectItem>
-              <SelectItem value='INTERINATO'>Interinato</SelectItem>
-              <SelectItem value='JEFE'>Jefe</SelectItem>
-            </SelectContent>
-          </Select>
+            allowClear={true}
+            emptyMessage='No se encontraron tipos de nombramiento.'
+          />
         </div>
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <div className='space-y-2'>
           <Label htmlFor='departamento'>Departamento</Label>
-          {onDepartmentChange ? (
-            <DepartmentSearch
-              value={
-                departamentoOptions.find(
-                  (d) => d.clave === formData.departamento
-                ) || null
+          <DepartmentSearchableSelect
+            value={
+              departamentoOptions.find(
+                (d) => d.clave === formData.departamento
+              ) || null
+            }
+            onChange={(dept: DepartamentoDto | null) => {
+              if (onDepartmentChange) {
+                onDepartmentChange('departamento', dept);
+              } else {
+                onSelectChange('departamento', dept?.clave || noneValue);
               }
-              onChange={(dept) => onDepartmentChange('departamento', dept)}
-              placeholder='Buscar departamento...'
-              disabled={isSubmitting}
-            />
-          ) : (
-            // Fallback al select original si no se proporciona onDepartmentChange
-            <>
-              {isLoadingCatalog ? (
-                <div className='flex items-center justify-center h-10 border rounded-md bg-muted'>
-                  <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
-                </div>
-              ) : catalogError ? (
-                <div className='text-destructive text-sm'>{catalogError}</div>
-              ) : (
-                <Select
-                  value={formData.departamento || noneValue}
-                  onValueChange={(value) =>
-                    onSelectChange('departamento', value)
-                  }
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger id='departamento'>
-                    <SelectValue placeholder='Seleccionar departamento...' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={noneValue}>(Ninguno)</SelectItem>
-                    {departamentoOptions.map((option) => (
-                      <SelectItem key={option.clave} value={option.clave}>
-                        {option.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </>
-          )}
+            }}
+            placeholder='Buscar departamento...'
+            disabled={isSubmitting}
+          />
         </div>
         <div className='space-y-2'>
           <Label htmlFor='academia'>Academia</Label>
-          {onDepartmentChange ? (
-            <DepartmentSearch
-              value={
-                departamentoOptions.find(
-                  (d) => d.clave === formData.academia
-                ) || null
+          <DepartmentSearchableSelect
+            value={
+              departamentoOptions.find((d) => d.clave === formData.academia) ||
+              null
+            }
+            onChange={(dept: DepartamentoDto | null) => {
+              if (onDepartmentChange) {
+                onDepartmentChange('academia', dept);
+              } else {
+                onSelectChange('academia', dept?.clave || noneValue);
               }
-              onChange={(dept) => onDepartmentChange('academia', dept)}
-              placeholder='Buscar academia...'
-              disabled={isSubmitting}
-            />
-          ) : (
-            // Fallback al select original si no se proporciona onDepartmentChange
-            <>
-              {isLoadingCatalog ? (
-                <div className='flex items-center justify-center h-10 border rounded-md bg-muted'>
-                  <Loader2 className='h-4 w-4 animate-spin text-muted-foreground' />
-                </div>
-              ) : catalogError ? (
-                <div className='text-destructive text-sm'>{catalogError}</div>
-              ) : (
-                <Select
-                  value={formData.academia || noneValue}
-                  onValueChange={(value) => onSelectChange('academia', value)}
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger id='academia'>
-                    <SelectValue placeholder='Seleccionar academia...' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={noneValue}>(Ninguno)</SelectItem>
-                    {departamentoOptions.map((option) => (
-                      <SelectItem key={option.clave} value={option.clave}>
-                        {option.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </>
-          )}
+            }}
+            placeholder='Buscar academia...'
+            disabled={isSubmitting}
+          />
         </div>
       </div>
     </div>

@@ -89,26 +89,10 @@ const navItems: NavItemData[] = [
   // 4. Gestión de Horarios
   {
     id: 'horarios',
-    href: '/horarios',
+    href: '/horarios/asignados',
     icon: <Calendar size={20} />,
     text: 'Horarios',
     keywords: ['horarios', 'turnos', 'jornadas', 'calendario'],
-    submenu: [
-      {
-        id: 'horarios-plantillas',
-        href: '/horarios/plantillas',
-        icon: <ClipboardList size={18} />,
-        text: 'Plantillas de Horarios',
-        keywords: ['plantillas', 'templates', 'definir'],
-      },
-      {
-        id: 'horarios-asignados',
-        href: '/horarios/asignados',
-        icon: <ClipboardList size={18} />,
-        text: 'Horarios Asignados',
-        keywords: ['asignados', 'lista', 'ver', 'calendario'],
-      },
-    ],
   },
 
   // 7. Control de Asistencia (Nueva vista principal)
@@ -472,12 +456,14 @@ export default function Sidebar() {
                 </div>
                 <div className='flex-1 min-w-0'>
                   <p className='text-sm font-medium text-[hsl(var(--sidebar-foreground))] truncate'>
-                    Administrador
+                    {user?.username ?? 'Usuario autenticado'}
                   </p>
                   <p className='text-xs text-[hsl(var(--muted-foreground))] truncate'>
                     {user?.roles.has('ROLE_ADMIN')
                       ? 'Rol: Administrador'
-                      : 'Usuario'}
+                      : user?.roles.has('ROLE_DISPOSITIVO')
+                        ? 'Rol: Dispositivo'
+                        : 'Sesión activa'}
                   </p>
                 </div>
                 <Button

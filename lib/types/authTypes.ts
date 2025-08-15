@@ -8,4 +8,5 @@ export interface LoginResponse {
   type: string;
   expiresIn: number;
   roles: string[]; // Viene como un array de strings desde el backend
+  username: string;
 }

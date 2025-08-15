@@ -443,14 +443,14 @@ const getStatusIndicator = (
       };
     case 'EN_CURSO':
       return {
-        icon: <Timer className='h-4 w-4 text-yellow-400' />,
-        textColor: 'text-yellow-400',
-        bgColor: 'bg-yellow-900/30',
-        borderColor: 'border-yellow-600/50',
+        icon: <Timer className='h-4 w-4 text-blue-400' />,
+        textColor: 'text-blue-400',
+        bgColor: 'bg-blue-900/20',
+        borderColor: 'border-blue-600/30',
         gradientBg:
-          'linear-gradient(to right, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.05))',
-        statusBgColor: 'bg-yellow-600/40',
-        statusTextColor: 'text-yellow-300',
+          'linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05))',
+        statusBgColor: 'bg-blue-600/30',
+        statusTextColor: 'text-blue-300',
       };
     case 'RETARDO':
     case 'RETARDO_SIN_SALIDA':
@@ -542,7 +542,7 @@ const getTimeBoxColor = (
     case 'EN_CURSO':
       return action === 'entrada'
         ? 'border-green-600/50 bg-green-900/20 shadow-inner shadow-green-900/10' // Entrada registrada
-        : 'border-yellow-600/50 bg-yellow-900/20 shadow-inner shadow-yellow-900/10'; // Salida pendiente
+        : 'border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10'; // Salida pendiente (normal/tolerancia)
     case 'RETARDO':
     case 'RETARDO_SIN_SALIDA':
       return action === 'entrada'
@@ -835,7 +835,7 @@ export default function TimeClock({
 
             // Manejar caso específico donde todas las jornadas están completas
             if (event.nextRecommendedActionBackend === 'ALL_COMPLETE') {
-              setCustomMessage('Todas las jornadas del día completadas');
+              setCustomMessage('Asistencia registrada');
               // Asignar un código de tipo "información" para que el estilo sea adecuado
               setStatusCode('299'); // Código personalizado para estado "ALL_COMPLETE"
             }

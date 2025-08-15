@@ -35,7 +35,7 @@ import {
 import { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
 import { DepartamentoDto } from '@/lib/api/schedule-api';
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
-import { DepartmentSearch } from './DepartmentSearch';
+import { DepartmentSearchableSelect } from '@/app/components/shared/department-searchable-select';
 import { Label } from '@/components/ui/label';
 import {
   Popover,
@@ -97,7 +97,7 @@ export function CorreccionRegistrosForm() {
         return 'bg-green-500';
       case 'AR':
       case 'AT':
-        return 'bg-orange-500';
+        return 'bg-orange-700';
       case 'ST':
         return 'bg-yellow-500';
       case 'FR':
@@ -237,7 +237,7 @@ export function CorreccionRegistrosForm() {
               setEditOpen(true);
             }}
           >
-            Editar
+            + Justificar
           </Button>
         ),
       },
@@ -266,11 +266,13 @@ export function CorreccionRegistrosForm() {
 
   return (
     <>
-      <Card className='mb-6'>
-        <CardHeader>
-          <CardTitle>Filtros de Búsqueda Avanzada</CardTitle>
+      <Card className='elevated-card mb-8'>
+        <CardHeader className='bg-slate-50/50 border-b-2 border-border'>
+          <CardTitle className='text-xl font-bold text-slate-900'>
+            Filtros de Búsqueda Avanzada
+          </CardTitle>
         </CardHeader>
-        <CardContent className='space-y-4'>
+        <CardContent className='space-y-6 p-6'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div className='space-y-2'>
               <Label>Empleado</Label>
@@ -281,7 +283,7 @@ export function CorreccionRegistrosForm() {
             </div>
             <div className='space-y-2'>
               <Label>Departamento</Label>
-              <DepartmentSearch
+              <DepartmentSearchableSelect
                 value={filters.departamento}
                 onChange={(dep) =>
                   setFilters((f) => ({ ...f, departamento: dep }))
@@ -424,16 +426,6 @@ export function CorreccionRegistrosForm() {
             </Button>
             <Button variant='outline' onClick={handleClearFilters}>
               <X className='mr-2 h-4 w-4' /> Limpiar
-            </Button>
-            <Button
-              variant='default'
-              onClick={() => {
-                const el = document.getElementById('registro-manual');
-                if (el)
-                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-            >
-              <Plus className='mr-2 h-4 w-4' /> Añadir Nuevo Registro Manual
             </Button>
           </div>
         </CardContent>

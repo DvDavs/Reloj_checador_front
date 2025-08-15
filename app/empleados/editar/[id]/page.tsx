@@ -3,21 +3,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, Edit, User, Building, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
-import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
 import { LoadingState } from '@/app/components/shared/loading-state';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { EmployeeForm } from '@/app/components/shared/employee-form';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { FormLayout } from '@/app/components/shared/form-layout';
 
 interface EmpleadoApiData {
   rfc?: string | null;
@@ -192,73 +184,79 @@ export default function EditarEmpleadoPage() {
   };
 
   if (isLoading) {
-    return <LoadingState message='Cargando datos del empleado...' />;
+    return (
+      <div className='min-h-screen bg-background flex items-center justify-center'>
+        <LoadingState message='Cargando datos del empleado...' />
+      </div>
+    );
   }
+
   if (fetchError) {
-    return <ErrorState message={fetchError} onRetry={fetchEmpleadoData} />;
+    return (
+      <div className='min-h-screen bg-background flex items-center justify-center'>
+        <ErrorState message={fetchError} onRetry={fetchEmpleadoData} />
+      </div>
+    );
   }
 
   return (
-    <div className='p-6 md:p-8 pb-12'>
-      <BreadcrumbNav
-        items={[
-          { label: 'Empleados', href: '/empleados' },
-          { label: 'Editar Empleado' },
-        ]}
-        backHref='/empleados'
-      />
-      <h1 className='text-2xl md:text-3xl font-bold mb-8'>Editar Empleado</h1>
-      <Card className='max-w-3xl mx-auto bg-card border-border shadow-sm'>
-        <CardHeader>
-          <CardTitle className='text-foreground'>
-            Información del Empleado
-          </CardTitle>
-          <CardDescription className='text-muted-foreground'>
-            Modifique los datos necesarios y guarde los cambios.
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent>
-            {error && (
-              <div className='mb-4'>
-                <ErrorState message={error} />
-              </div>
-            )}
-            <EmployeeForm
-              formData={formData}
-              onChange={handleChange}
-              onSelectChange={handleSelectChange}
-              onSwitchChange={handleSwitchChange}
-              isSubmitting={isSubmitting}
-              noneValue={NONE_VALUE_SELECT}
-            />
-          </CardContent>
-          <CardFooter className='flex justify-between'>
-            <Link href='/empleados'>
-              <Button type='button' variant='outline' disabled={isSubmitting}>
-                Cancelar
-              </Button>
-            </Link>
+    <FormLayout
+      title='Editar Empleado'
+      description='Modifique los datos necesarios y guarde los cambios.'
+      breadcrumbs={[
+        { label: 'Empleados', href: '/empleados' },
+        { label: 'Editar Empleado' },
+      ]}
+      backHref='/empleados'
+      formIcon={<Edit className='h-5 w-5 text-primary' />}
+      formTitle='Información del Empleado'
+      formDescription='Actualice los campos que necesite modificar.'
+      error={error}
+      isSubmitting={isSubmitting}
+      footerNote='Los campos marcados con * son obligatorios'
+      actions={
+        <>
+          <Link href='/empleados'>
             <Button
-              type='submit'
-              className='bg-primary hover:bg-primary/90 text-primary-foreground'
-              disabled={isSubmitting || isLoading}
+              type='button'
+              variant='outline'
+              disabled={isSubmitting}
+              className='border-2 border-border hover:border-primary hover:bg-primary/5'
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                  Actualizando...
-                </>
-              ) : (
-                <>
-                  <Save className='mr-2 h-4 w-4' />
-                  Guardar Cambios
-                </>
-              )}
+              Cancelar
             </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
+          </Link>
+          <Button
+            type='submit'
+            form='employee-edit-form'
+            className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+            disabled={isSubmitting || isLoading}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                Actualizando...
+              </>
+            ) : (
+              <>
+                <Save className='mr-2 h-4 w-4' />
+                Guardar Cambios
+              </>
+            )}
+          </Button>
+        </>
+      }
+    >
+      <form id='employee-edit-form' onSubmit={handleSubmit}>
+        <EmployeeForm
+          formData={formData}
+          onChange={handleChange}
+          onSelectChange={handleSelectChange}
+          onSwitchChange={handleSwitchChange}
+          isSubmitting={isSubmitting}
+          noneValue={NONE_VALUE_SELECT}
+        />
+      </form>
+    </FormLayout>
   );
 }
