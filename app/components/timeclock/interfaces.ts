@@ -64,6 +64,9 @@ export type NextRecommendedAction =
 export interface ShiftsPanelProps {
   jornadas: JornadaEstadoDto[];
   activeSessionId: number | null;
+  expandedTurnoId: number | null;
+  onTurnoClick: (turnoId: number | null) => void;
+  currentTime: Date;
   justCompletedSessionId?: number | null;
   nextRecommendedAction: NextRecommendedAction;
   isLoading: boolean;

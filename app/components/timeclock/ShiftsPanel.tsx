@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -99,12 +99,14 @@ function TurnoItem({
   isActive = false,
   isExpanded = false,
   size = 'medium',
+  currentTime,
   onClick,
 }: {
   jornada: ShiftsPanelProps['jornadas'][number];
   isActive?: boolean;
   isExpanded?: boolean;
   size?: TurnoSize;
+  currentTime: Date;
   onClick?: () => void;
 }) {
   const isCompleted = jornada.estatusJornada === 'COMPLETADA';
@@ -115,7 +117,7 @@ function TurnoItem({
     jornada.minutosRetardoPreliminar !== null &&
     jornada.minutosRetardoPreliminar > 0;
 
-  const currentTimeStr = new Date().toTimeString().substring(0, 8);
+  const currentTimeStr = currentTime.toTimeString().substring(0, 8);
   const shouldShowAsAbsent =
     isAbsent && currentTimeStr > jornada.horaSalidaProgramada;
 
@@ -401,12 +403,13 @@ function getItemSize(total: number, isCurrent: boolean): TurnoSize {
 export function ShiftsPanel({
   jornadas,
   activeSessionId,
+  expandedTurnoId,
+  onTurnoClick,
+  currentTime,
   justCompletedSessionId = null,
   nextRecommendedAction,
   isLoading,
 }: ShiftsPanelProps) {
-  const [expandedTurnoId, setExpandedTurnoId] = useState<number | null>(null);
-
   // Ordenar jornadas por hora de entrada programada para una visualización consistente
   const sortedJornadas = useMemo(
     () =>
@@ -415,22 +418,6 @@ export function ShiftsPanel({
       ),
     [jornadas]
   );
-
-  // Elegir el turno más relevante para expandir por defecto
-  useEffect(() => {
-    if (justCompletedSessionId) {
-      setExpandedTurnoId(justCompletedSessionId);
-      return;
-    }
-    if (activeSessionId) {
-      setExpandedTurnoId(activeSessionId);
-      return;
-    }
-    // Si no hay sesion activa, expandir el primero (si existe)
-    setExpandedTurnoId(
-      sortedJornadas.length > 0 ? sortedJornadas[0].detalleHorarioId : null
-    );
-  }, [activeSessionId, justCompletedSessionId, sortedJornadas]);
 
   if (isLoading) {
     return (
@@ -478,12 +465,9 @@ export function ShiftsPanel({
                 isActive={isActive}
                 isExpanded={isExpanded}
                 size={size}
+                currentTime={currentTime}
                 onClick={() =>
-                  setExpandedTurnoId((prev) =>
-                    prev === jornada.detalleHorarioId
-                      ? null
-                      : jornada.detalleHorarioId
-                  )
+                  onTurnoClick(isExpanded ? null : jornada.detalleHorarioId)
                 }
               />
             );
