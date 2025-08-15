@@ -1,12 +1,6 @@
 'use client';
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { HeaderClock } from './HeaderClock';
 import { ShiftsPanel } from './ShiftsPanel';
@@ -93,6 +87,7 @@ export function TimeClock({
       document.exitFullscreen();
     }
   }, []);
+  const onReload = useCallback(() => window.location.reload(), []);
   useEffect(() => {
     const onFs = () => setIsFullScreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', onFs);
@@ -273,9 +268,16 @@ export function TimeClock({
       selectedReader,
       isFullScreen,
       onToggleFullScreen: toggleFullScreen,
-      onReload: () => window.location.reload(),
+      onReload,
     }),
-    [currentTime, isConnected, selectedReader, isFullScreen, toggleFullScreen]
+    [
+      currentTime,
+      isConnected,
+      selectedReader,
+      isFullScreen,
+      toggleFullScreen,
+      onReload,
+    ]
   );
 
   const scannerProps: ScannerPanelProps = {
@@ -292,12 +294,21 @@ export function TimeClock({
     onCancelPin,
   };
 
+  const onToggleSound = useCallback(
+    (value: boolean) => setSoundEnabled(value),
+    []
+  );
+
   const historyProps: HistoryPanelProps = {
     items: scanHistory,
     soundEnabled,
-    onToggleSound: setSoundEnabled,
+    onToggleSound,
     inactiveTimeSeconds,
   };
+  const onTurnoClick = useCallback(
+    (turnoId: number | null) => setExpandedTurnoId(turnoId),
+    []
+  );
 
   return (
     <div className='min-h-screen w-full bg-black text-white p-4'>
@@ -312,7 +323,7 @@ export function TimeClock({
               jornadas={jornadasDelDia}
               activeSessionId={activeSessionId}
               expandedTurnoId={expandedTurnoId}
-              onTurnoClick={setExpandedTurnoId}
+              onTurnoClick={onTurnoClick}
               currentTime={currentTime || new Date()}
               justCompletedSessionId={justCompletedSessionId}
               nextRecommendedAction={nextRecommendedAction}
