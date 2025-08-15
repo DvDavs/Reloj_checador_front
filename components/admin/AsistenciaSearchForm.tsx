@@ -24,7 +24,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
-import { DepartmentSearch } from './DepartmentSearch';
+import { DepartmentSearchableSelect } from '@/app/components/shared/department-searchable-select';
 import { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
 import { DepartamentoDto } from '@/lib/api/schedule-api';
 import { AsistenciaFilters, EstatusDisponible } from '@/lib/api/asistencia.api';
@@ -130,7 +130,7 @@ export function AsistenciaSearchForm({
           </div>
           <div className='space-y-2'>
             <Label>Departamento (Opcional)</Label>
-            <DepartmentSearch
+            <DepartmentSearchableSelect
               value={departamento}
               onChange={setDepartamento}
               disabled={loading}

@@ -4,11 +4,11 @@
 
 @layer base {
   :root {
-    /* Fondo principal más moderno - gris muy claro pero no blanco puro */
-    --background: 210 20% 98%; /* #FAFBFC - Blanco azulado muy sutil */
+    /* Fondo principal con mejor contraste */
+    --background: 210 25% 97%; /* #F8FAFC - Gris azulado muy claro */
     --foreground: 222 84% 4.9%; /* #020817 - Negro azulado profundo */
     
-    /* Cards con contraste sutil */
+    /* Cards con contraste mejorado y sombra sutil */
     --card: 0 0% 100%; /* Blanco puro para cards */
     --card-foreground: 222 84% 4.9%;
     
@@ -16,41 +16,52 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 4.9%;
     
-    /* Primary - Verde institucional mejorado */
-    --primary: 142 76% 36%;
-    --primary-foreground: 0 0% 98%;
+    /* Primary - Verde institucional más vibrante */
+    --primary: 142 76% 32%; /* Verde más oscuro para mejor contraste */
+    --primary-foreground: 0 0% 100%;
     
-    /* Secondary - Gris moderno con más contraste */
-    --secondary: 210 40% 94%; /* #F1F5F9 - Gris azulado claro */
-    --secondary-foreground: 222 47% 11%; /* #1E293B - Gris azulado oscuro */
+    /* Secondary - Gris con mucho más contraste */
+    --secondary: 210 40% 88%; /* #E2E8F0 - Gris azulado medio */
+    --secondary-foreground: 222 47% 15%; /* #1E293B - Gris azulado muy oscuro */
     
-    /* Muted - Tonos neutros modernos */
-    --muted: 210 40% 96%; /* #F8FAFC - Gris azulado muy claro */
-    --muted-foreground: 215 16% 47%; /* #64748B - Gris medio con buen contraste */
+    /* Muted - Tonos neutros con mejor separación */
+    --muted: 210 40% 92%; /* #F1F5F9 - Gris azulado claro */
+    --muted-foreground: 215 25% 35%; /* #475569 - Gris oscuro con excelente contraste */
     
-    /* Accent - Naranja institucional */
-    --accent: 22 89% 54%; /* #F26E22 */
+    /* Accent - Naranja institucional más vibrante */
+    --accent: 22 89% 50%; /* #E85D04 - Naranja más intenso */
     --accent-foreground: 0 0% 100%;
     
-    /* Destructive */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    /* Destructive con mejor contraste */
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
     
-    /* Bordes y inputs con mejor definición */
-    --border: 214 32% 91%; /* #E2E8F0 - Gris azulado para bordes */
-    --input: 214 32% 91%;
-    --ring: 22 89% 54%;
+    /* Bordes más definidos */
+    --border: 214 32% 85%; /* #CBD5E1 - Gris azulado más oscuro para bordes */
+    --input: 214 32% 88%; /* #E2E8F0 - Input con mejor definición */
+    --ring: 22 89% 50%;
     --radius: 0.5rem;
 
     /* Sidebar con esquema moderno y mejor contraste */
     --sidebar-background: 0 0% 100%; /* Blanco puro para la sidebar */
     --sidebar-foreground: 222 84% 4.9%; /* Negro azulado profundo */
-    --sidebar-border: 214 32% 91%; /* Borde sutil pero visible */
+    --sidebar-border: 214 32% 85%; /* Borde más visible */
     --sidebar-accent: 22 79% 36%; /* #A64914 - Naranja oscuro */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-hover: 210 40% 96%; /* #F8FAFC - Hover sutil pero perceptible */
-    --sidebar-active: 22 89% 54%; /* #F26E22 - Naranja vibrante */
+    --sidebar-hover: 210 40% 92%; /* #F1F5F9 - Hover más perceptible */
+    --sidebar-active: 22 89% 50%; /* #E85D04 - Naranja vibrante */
     --sidebar-active-foreground: 0 0% 100%;
+    
+    /* Nuevas variables para mejor diferenciación */
+    --table-header: 210 40% 94%; /* #F8FAFC - Header de tabla más claro */
+    --table-row-hover: 210 40% 96%; /* #FAFBFC - Hover en filas */
+    --card-shadow: 210 40% 85%; /* Sombra para cards */
+    --success: 142 76% 32%; /* Verde para estados exitosos */
+    --success-foreground: 0 0% 100%;
+    --warning: 45 93% 47%; /* Amarillo para advertencias */
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 60%; /* Azul para información */
+    --info-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -129,20 +140,137 @@
 
   /* Mejorar el contraste de elementos interactivos */
   .interactive-hover {
-    @apply transition-all duration-200 hover:shadow-sm hover:scale-[1.01];
+    @apply transition-all duration-200 hover:shadow-md hover:scale-[1.02];
+  }
+
+  /* Cards con mejor elevación y contraste - Compatible con modo oscuro */
+  .elevated-card {
+    @apply bg-card border-2 border-border shadow-lg rounded-xl;
+    box-shadow: 0 10px 15px -3px hsl(var(--border) / 0.1), 0 4px 6px -2px hsl(var(--border) / 0.05);
+  }
+
+  .elevated-card:hover {
+    @apply shadow-xl border-border/80;
+    box-shadow: 0 20px 25px -5px hsl(var(--border) / 0.15), 0 10px 10px -5px hsl(var(--border) / 0.1);
+  }
+
+  /* Asegurar que las tablas se vean perfectas en modo oscuro */
+  .dark table,
+  .dark .enhanced-table-container,
+  .dark .enhanced-table-row {
+    background-color: hsl(var(--card)) !important;
+  }
+
+  .dark .enhanced-table-header {
+    background-color: hsl(var(--muted) / 0.5) !important;
+  }
+
+  /* Mejorar contraste de texto en tablas para modo oscuro */
+  .dark table th,
+  .dark table td {
+    color: hsl(var(--foreground));
+  }
+
+  .dark table th {
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Asegurar que los bordes de tabla sean visibles en modo oscuro */
+  .dark table tr {
+    border-color: hsl(var(--border));
+  }
+
+  /* Mejoras específicas para tablas - Compatible con modo oscuro */
+  .enhanced-table-container {
+    @apply bg-card rounded-xl shadow-lg border-2 border-border overflow-hidden;
+  }
+
+  .enhanced-table-header {
+    @apply bg-muted/50 border-b-2 border-border;
+  }
+
+  .enhanced-table-row {
+    @apply border-b border-border/60 hover:bg-muted/30 transition-colors duration-150;
+  }
+
+  .enhanced-table-row:nth-child(even) {
+    @apply bg-muted/10;
+  }
+
+  /* Botones de acción mejorados - Compatible con modo oscuro */
+  .action-button-view {
+    @apply h-9 w-9 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all duration-200;
+  }
+
+  .dark .action-button-view {
+    @apply text-blue-400 hover:text-blue-300 hover:bg-blue-950/50 hover:border-blue-800;
+  }
+
+  .action-button-edit {
+    @apply h-9 w-9 text-amber-600 hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200 transition-all duration-200;
+  }
+
+  .dark .action-button-edit {
+    @apply text-amber-400 hover:text-amber-300 hover:bg-amber-950/50 hover:border-amber-800;
+  }
+
+  .action-button-delete {
+    @apply h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all duration-200;
+  }
+
+  .dark .action-button-delete {
+    @apply text-red-400 hover:text-red-300 hover:bg-red-950/50 hover:border-red-800;
+  }
+
+  .action-button-fingerprint {
+    @apply h-9 w-9 text-purple-600 hover:text-purple-700 hover:bg-purple-50 border border-transparent hover:border-purple-200 transition-all duration-200;
+  }
+
+  .dark .action-button-fingerprint {
+    @apply text-purple-400 hover:text-purple-300 hover:bg-purple-950/50 hover:border-purple-800;
   }
 
   /* Mejorar botones y elementos clickeables */
   button:focus-visible,
   a:focus-visible {
-    @apply outline-none ring-2 ring-accent/20 ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-accent/30 ring-offset-2 ring-offset-background;
   }
 
   /* Mejorar contraste de inputs */
   input:focus,
   textarea:focus,
   select:focus {
-    @apply ring-2 ring-accent/20 border-accent/50;
+    @apply ring-2 ring-accent/30 border-accent/60 shadow-sm;
+  }
+
+  /* Tabla con mejor contraste */
+  .enhanced-table {
+    @apply bg-card border-2 border-border shadow-lg rounded-lg overflow-hidden;
+  }
+
+  .enhanced-table-header {
+    @apply bg-slate-50 border-b-2 border-border;
+  }
+
+  .enhanced-table-row:hover {
+    @apply bg-slate-50/80;
+  }
+
+  /* Estados mejorados para badges */
+  .badge-success {
+    @apply bg-green-100 text-green-800 border-green-200 font-medium;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800 border-yellow-200 font-medium;
+  }
+
+  .badge-error {
+    @apply bg-red-100 text-red-800 border-red-200 font-medium;
+  }
+
+  .badge-info {
+    @apply bg-blue-100 text-blue-800 border-blue-200 font-medium;
   }
 
   /* Transiciones suaves durante cambio de tema */

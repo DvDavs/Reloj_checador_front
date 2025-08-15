@@ -15,7 +15,7 @@ import { apiClient, setupInterceptors } from '@/lib/apiClient';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: { roles: Set<string> } | null;
+  user: { roles: Set<string>; username?: string } | null;
   token: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
@@ -25,7 +25,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<{ roles: Set<string> } | null>(null);
+  const [user, setUser] = useState<{
+    roles: Set<string>;
+    username?: string;
+  } | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -42,10 +45,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (typeof window !== 'undefined') {
           const storedToken = Cookies.get('authToken');
           const storedRoles = localStorage.getItem('userRoles');
+          const storedUsername = localStorage.getItem('username');
 
           if (storedToken && storedRoles) {
             setToken(storedToken);
-            setUser({ roles: new Set(JSON.parse(storedRoles)) });
+            setUser({
+              roles: new Set(JSON.parse(storedRoles)),
+              username: storedUsername || undefined,
+            });
             apiClient.defaults.headers.common['Authorization'] =
               `Bearer ${storedToken}`;
           }
@@ -56,6 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (typeof window !== 'undefined') {
           Cookies.remove('authToken');
           localStorage.removeItem('userRoles');
+          localStorage.removeItem('username');
         }
       } finally {
         setIsLoading(false);
@@ -80,16 +88,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       '/api/auth/login',
       credentials
     );
-    const { token: authToken, roles } = response.data;
+    const { token: authToken, roles, username } = response.data;
 
     localStorage.setItem('userRoles', JSON.stringify(roles));
+    if (username) {
+      localStorage.setItem('username', username);
+    }
     Cookies.set('authToken', authToken, {
       expires: 1,
       secure: process.env.NODE_ENV === 'production',
     });
 
     setToken(authToken);
-    setUser({ roles: new Set(roles) });
+    setUser({ roles: new Set(roles), username });
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
 
     router.push('/');

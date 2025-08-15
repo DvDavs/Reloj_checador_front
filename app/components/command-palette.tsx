@@ -146,7 +146,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             className='fixed top-1/4 left-1/2 transform -translate-x-1/2 w-full max-w-lg z-[9999]'
           >
-            <Command className='bg-white dark:bg-zinc-900 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-800'>
+            <Command className='bg-card rounded-lg shadow-2xl border border-border'>
               <div className='flex items-center border-b border-zinc-200 dark:border-zinc-800 px-3'>
                 <Search className='mr-2 h-4 w-4 shrink-0 text-zinc-500' />
                 <Command.Input

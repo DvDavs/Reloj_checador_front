@@ -10,9 +10,15 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
-} from 'lucide-react'; // Añadir iconos
+  Monitor,
+} from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 import { getBrowserSessionId } from '@/lib/sessionId';
+
+// Componentes mejorados
+import { EnhancedCard } from '@/app/components/shared/enhanced-card';
+import { LoadingState } from '@/app/components/shared/loading-state';
+import { ErrorState } from '@/app/components/shared/error-state';
 
 // Tipos (Mantener simple aquí)
 type ScannerStatus = 'online' | 'offline' | 'error' | 'reserved'; // 'reserved' es informativo aquí
@@ -126,208 +132,250 @@ export default function AdminDashboard() {
     fetchAvailableReaders();
   };
 
-  // --- Renderizado (Ajustes menores en UI) ---
+  // --- Renderizado mejorado ---
   return (
-    <div className='p-8 bg-background min-h-screen'>
-      <div className='max-w-7xl mx-auto'>
-        <header className='mb-10 flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold text-foreground mb-2'>
-              Iniciar Sesión de Reloj Checador
-            </h1>
-            <p className='text-muted-foreground'>
-              Seleccione un lector de huellas disponible para iniciar una nueva
-              sesión
-            </p>
-          </div>
-          <Button
-            variant='outline'
-            size='icon'
-            className='rounded-full border-border hover:bg-muted hover:border-accent/50 transition-all duration-200'
-            onClick={handleRefreshScanners}
-            disabled={isLoading || isLaunching}
-            aria-label='Refrescar lista de lectores'
-          >
-            {isLoading ? (
-              <Loader2 className='h-5 w-5 animate-spin text-accent' />
-            ) : (
-              <RefreshCw className='h-5 w-5' />
-            )}
-          </Button>
-        </header>
-
-        {/* Mensaje de Error General */}
-        {errorMessage && !isLoading && (
-          <div className='mb-6 p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-center gap-3 shadow-sm'>
-            <AlertCircle className='h-5 w-5 flex-shrink-0' />
-            <p className='text-sm'>{errorMessage}</p>
-          </div>
-        )}
-
-        {/* Diálogo de Confirmación */}
-        {showConfirmation && selectedScanner && (
-          <motion.div
-            className='fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4'
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className='bg-card border border-border rounded-xl p-6 max-w-md w-full shadow-2xl'
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-            >
-              <h3 className='text-xl font-bold mb-4 flex items-center gap-2 text-card-foreground'>
-                <Fingerprint className='h-6 w-6 text-accent' />
-                Confirmar Inicio
-              </h3>
-              <p className='text-muted-foreground mb-6'>
-                ¿Desea iniciar una nueva ventana de Reloj Checador con el lector{' '}
-                <strong className='text-foreground font-semibold'>
-                  {selectedScanner.name}
-                </strong>
-                ?
-              </p>
-              {errorMessage && (
-                <div className='mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-sm'>
-                  {errorMessage}
-                </div>
-              )}
-              <div className='flex gap-3 justify-end'>
+    <div className='min-h-screen bg-background'>
+      <div className='p-6 md:p-8'>
+        <div className='max-w-7xl mx-auto space-y-6'>
+          {/* Header mejorado */}
+          <EnhancedCard variant='elevated' padding='lg'>
+            <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+              <div className='space-y-1'>
+                <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
+                  Reloj Checador - Panel de Control
+                </h1>
+                <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
+              </div>
+              <div className='flex items-center gap-3'>
                 <Button
                   variant='outline'
-                  onClick={handleCancelSelection}
-                  disabled={isLaunching}
-                  className='border-border hover:bg-muted'
+                  size='icon'
+                  className='h-10 w-10 border-2 border-border hover:border-primary hover:bg-primary/5 transition-all duration-200 shadow-sm'
+                  onClick={handleRefreshScanners}
+                  disabled={isLoading || isLaunching}
+                  aria-label='Refrescar lista de lectores'
                 >
-                  Cancelar
+                  {isLoading ? (
+                    <Loader2 className='h-4 w-4 animate-spin text-primary' />
+                  ) : (
+                    <RefreshCw className='h-4 w-4 text-muted-foreground' />
+                  )}
                 </Button>
+              </div>
+            </div>
+          </EnhancedCard>
+
+          {/* Mensaje de Error General */}
+          {errorMessage && !isLoading && (
+            <EnhancedCard
+              variant='elevated'
+              padding='lg'
+              className='border-red-200/60 dark:border-red-800'
+            >
+              <ErrorState
+                message={errorMessage}
+                onRetry={handleRefreshScanners}
+              />
+            </EnhancedCard>
+          )}
+
+          {/* Diálogo de Confirmación */}
+          {showConfirmation && selectedScanner && (
+            <motion.div
+              className='fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4'
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className='bg-card border-2 border-border rounded-xl p-6 max-w-md w-full shadow-2xl'
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+              >
+                <h3 className='text-xl font-bold mb-4 flex items-center gap-2 text-foreground'>
+                  <Fingerprint className='h-6 w-6 text-primary' />
+                  Confirmar Inicio
+                </h3>
+                <p className='text-muted-foreground mb-6'>
+                  ¿Desea iniciar una nueva ventana de Reloj Checador con el
+                  lector{' '}
+                  <strong className='text-foreground font-semibold'>
+                    {selectedScanner.name}
+                  </strong>
+                  ?
+                </p>
+                {errorMessage && (
+                  <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm dark:bg-red-950/30 dark:border-red-800 dark:text-red-400'>
+                    <AlertCircle className='h-4 w-4 inline mr-2' />
+                    {errorMessage}
+                  </div>
+                )}
+                <div className='flex gap-3 justify-end'>
+                  <Button
+                    variant='outline'
+                    onClick={handleCancelSelection}
+                    disabled={isLaunching}
+                    className='border-2 border-border hover:border-primary hover:bg-primary/5'
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleConfirmSelection}
+                    className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+                    disabled={isLaunching}
+                  >
+                    {isLaunching ? (
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    ) : (
+                      <CheckCircle className='mr-2 h-4 w-4' />
+                    )}
+                    {isLaunching ? 'Lanzando...' : 'Confirmar e Iniciar'}
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Contenido principal */}
+          {isLoading ? (
+            // Estado de carga mejorado
+            <EnhancedCard variant='elevated' padding='xl'>
+              <LoadingState message='Cargando lectores de huellas disponibles...' />
+            </EnhancedCard>
+          ) : scanners.length > 0 ? (
+            // Lista de escáneres mejorada
+            <EnhancedCard variant='elevated' padding='lg'>
+              <div className='space-y-6'>
+                <div>
+                  <h2 className='text-lg font-semibold text-foreground'>
+                    Lectores Disponibles
+                  </h2>
+                  <p className='text-muted-foreground text-sm'>
+                    Seleccione un lector para iniciar una nueva sesión de reloj
+                    checador
+                  </p>
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                  {scanners.map((scanner) => (
+                    <motion.div
+                      key={scanner.id}
+                      className={`group relative ${
+                        scanner.status === 'online'
+                          ? 'cursor-pointer'
+                          : 'opacity-60 cursor-not-allowed'
+                      }`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      whileHover={
+                        scanner.status === 'online'
+                          ? { scale: 1.02, y: -4 }
+                          : {}
+                      }
+                      onClick={() => handleSelectScanner(scanner)}
+                      role='button'
+                      aria-label={`Seleccionar lector ${scanner.name}`}
+                      aria-disabled={scanner.status !== 'online'}
+                    >
+                      <EnhancedCard
+                        variant='bordered'
+                        padding='lg'
+                        hover={scanner.status === 'online'}
+                        className={`h-64 flex flex-col items-center justify-center transition-all duration-300 ${
+                          scanner.status === 'online'
+                            ? 'hover:border-primary hover:shadow-lg hover:shadow-primary/10'
+                            : ''
+                        }`}
+                      >
+                        {/* Indicador de estado */}
+                        <div
+                          className={`absolute top-4 right-4 w-3 h-3 rounded-full ${
+                            scanner.status === 'online'
+                              ? 'bg-green-500 shadow-sm shadow-green-500/50'
+                              : 'bg-muted-foreground'
+                          }`}
+                        ></div>
+
+                        <div
+                          className={`p-4 rounded-full mb-4 transition-all duration-300 ${
+                            scanner.status === 'online'
+                              ? 'bg-primary/10 group-hover:bg-primary/20'
+                              : 'bg-muted/30'
+                          }`}
+                        >
+                          <Fingerprint
+                            className={`h-16 w-16 transition-all duration-300 ${
+                              scanner.status === 'online'
+                                ? 'text-primary group-hover:scale-110'
+                                : 'text-muted-foreground'
+                            }`}
+                          />
+                        </div>
+
+                        <h3
+                          className={`text-lg font-semibold mb-4 text-center transition-colors ${
+                            scanner.status === 'online'
+                              ? 'text-foreground group-hover:text-primary'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          {scanner.name}
+                        </h3>
+
+                        {scanner.status === 'online' ? (
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            className='border-primary/50 text-primary hover:bg-primary/10 hover:border-primary pointer-events-none transition-all duration-200'
+                          >
+                            <Monitor className='mr-2 h-4 w-4' />
+                            Seleccionar Lector
+                          </Button>
+                        ) : (
+                          <span className='text-muted-foreground text-sm bg-muted px-3 py-1 rounded-full'>
+                            No disponible
+                          </span>
+                        )}
+                      </EnhancedCard>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </EnhancedCard>
+          ) : !errorMessage ? (
+            // Mensaje "No hay lectores" mejorado
+            <EnhancedCard variant='elevated' padding='xl'>
+              <div className='flex flex-col items-center justify-center text-center space-y-6'>
+                <div className='bg-muted/30 rounded-full p-6'>
+                  <AlertCircle className='h-16 w-16 text-muted-foreground' />
+                </div>
+                <div className='space-y-2'>
+                  <h3 className='text-xl font-bold text-foreground'>
+                    No hay lectores disponibles
+                  </h3>
+                  <p className='text-muted-foreground max-w-md'>
+                    Asegúrese de que los lectores estén conectados y el servicio
+                    de huellas esté funcionando correctamente en el servidor.
+                  </p>
+                </div>
                 <Button
-                  onClick={handleConfirmSelection}
-                  className='bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm'
-                  disabled={isLaunching}
+                  className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+                  onClick={handleRefreshScanners}
+                  disabled={isLoading}
                 >
-                  {isLaunching ? (
+                  {isLoading ? (
                     <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                   ) : (
-                    <CheckCircle className='mr-2 h-4 w-4' />
+                    <RefreshCw className='h-4 w-4 mr-2' />
                   )}
-                  {isLaunching ? 'Lanzando...' : 'Confirmar e Iniciar'}
+                  Volver a intentar
                 </Button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* Contenido principal */}
-        {
-          isLoading ? (
-            // Esqueletos de carga
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={`skeleton-${index}`}
-                  className='bg-card border border-border rounded-xl h-64 animate-pulse flex flex-col items-center justify-center p-6 shadow-sm'
-                >
-                  <div className='h-20 w-20 rounded-full bg-muted mb-4'></div>
-                  <div className='h-6 w-3/4 rounded bg-muted mb-4'></div>
-                  <div className='h-10 w-2/4 rounded bg-muted'></div>
-                </div>
-              ))}
-            </div>
-          ) : scanners.length > 0 ? (
-            // Lista de escáneres
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-              {scanners.map((scanner) => (
-                <motion.div
-                  key={scanner.id}
-                  className={`group relative bg-card border-2 ${
-                    scanner.status === 'online'
-                      ? 'border-border hover:border-accent cursor-pointer hover:shadow-lg hover:shadow-accent/10'
-                      : 'border-border opacity-60 cursor-not-allowed'
-                  }
-                  rounded-xl overflow-hidden transition-all duration-300 h-64 flex flex-col items-center justify-center p-6 shadow-sm`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  whileHover={
-                    scanner.status === 'online' ? { scale: 1.02, y: -4 } : {}
-                  }
-                  onClick={() => handleSelectScanner(scanner)}
-                  role='button'
-                  aria-label={`Seleccionar lector ${scanner.name}`}
-                  aria-disabled={scanner.status !== 'online'}
-                >
-                  {/* Indicador de estado */}
-                  <div
-                    className={`absolute top-4 right-4 w-3 h-3 rounded-full ${
-                      scanner.status === 'online'
-                        ? 'bg-primary'
-                        : 'bg-muted-foreground'
-                    }`}
-                  ></div>
-
-                  <Fingerprint
-                    className={`h-24 w-24 mb-4 transition-all duration-300 ${
-                      scanner.status === 'online'
-                        ? 'text-accent group-hover:text-accent group-hover:scale-110'
-                        : 'text-muted-foreground'
-                    }`}
-                  />
-                  <h3
-                    className={`text-lg font-semibold mb-4 text-center transition-colors ${
-                      scanner.status === 'online'
-                        ? 'text-card-foreground group-hover:text-accent'
-                        : 'text-muted-foreground'
-                    }`}
-                  >
-                    {scanner.name}
-                  </h3>
-                  {scanner.status === 'online' && (
-                    <Button
-                      variant='outline'
-                      className='border-accent/50 text-accent hover:bg-accent/10 hover:border-accent pointer-events-none transition-all duration-200'
-                    >
-                      Seleccionar Lector
-                    </Button>
-                  )}
-                  {scanner.status !== 'online' && (
-                    <span className='text-muted-foreground text-sm'>
-                      No disponible
-                    </span>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          ) : !errorMessage ? (
-            // Mensaje "No hay lectores"
-            <div className='flex flex-col items-center justify-center h-96 text-center'>
-              <div className='bg-muted/30 rounded-full p-6 mb-6'>
-                <AlertCircle className='h-24 w-24 text-muted-foreground' />
-              </div>
-              <h3 className='text-2xl font-bold text-foreground mb-2'>
-                No hay lectores disponibles
-              </h3>
-              <p className='text-muted-foreground mb-6 max-w-md'>
-                Asegúrese de que los lectores estén conectados y el servicio de
-                huellas esté funcionando correctamente en el servidor.
-              </p>
-              <Button
-                className='bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm'
-                onClick={handleRefreshScanners}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                ) : (
-                  <RefreshCw className='h-5 w-5 mr-2' />
-                )}
-                Volver a intentar
-              </Button>
-            </div>
-          ) : null /* Si hay errorMessage, ya se muestra arriba */
-        }
+            </EnhancedCard>
+          ) : null}
+        </div>
       </div>
     </div>
   );

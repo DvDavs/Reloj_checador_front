@@ -1,21 +1,18 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { format, parse, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, Plus, Filter } from 'lucide-react';
-import type { DateRange } from 'react-day-picker';
+import {
+  Eye,
+  Plus,
+  Filter,
+  Search,
+  Calendar as CalendarIcon,
+} from 'lucide-react';
 
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -24,9 +21,16 @@ import {
   PopoverContent,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+
+// Componentes mejorados
+import { PageLayout } from '@/app/components/shared/page-layout';
+import { EnhancedCard } from '@/app/components/shared/enhanced-card';
+import { EnhancedTable } from '@/app/components/shared/enhanced-table';
+import { EnhancedBadge } from '@/app/components/shared/enhanced-badge';
+import { ActionButtons } from '@/app/components/shared/action-buttons';
 
 import {
   AsistenciaRecord,
@@ -35,20 +39,20 @@ import {
   getEstatusDisponibles,
   EstatusDisponible,
 } from '@/lib/api/asistencia.api';
-import { DepartmentSearch } from '@/components/admin/DepartmentSearch';
-import { ConsolidacionManualForm } from '@/components/admin/ConsolidacionManualForm';
+import { DepartmentSearchableSelect } from '@/app/components/shared/department-searchable-select';
+import { RegistroManualForm } from '@/components/admin/RegistroManualForm';
 import { useTableState } from '@/app/hooks/use-table-state';
 import { DataTable } from '@/app/components/shared/data-table';
-import { useToast } from '@/components/ui/use-toast';
 import { InlineJustificacionModal } from './components/InlineJustificacionModal';
+import { EmployeeSearch } from '@/app/components/shared/employee-search';
+import type { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
 
 export default function ControlAsistenciaPage() {
-  const { toast } = useToast();
   // Estado de filtros
   const [fechaDesde, setFechaDesde] = useState<Date | undefined>(undefined);
   const [fechaHasta, setFechaHasta] = useState<Date | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [personaQuery, setPersonaQuery] = useState<string>(''); // nombre o tarjeta
+  const [empleado, setEmpleado] = useState<EmpleadoSimpleDTO | null>(null);
+  const [tarjeta, setTarjeta] = useState<string>('');
   const [departamento, setDepartamento] = useState<{
     clave: string;
     nombre: string;
@@ -81,24 +85,17 @@ export default function ControlAsistenciaPage() {
   });
 
   // Carga estatus disponibles una vez
-  useEffect(() => {
-    (async () => {
-      try {
-        const estatus = await getEstatusDisponibles();
-        setEstatusDisponibles(estatus);
-      } catch (e) {
-        // noop
-      }
-    })();
-  }, []);
+  const loadEstatusDisponibles = useCallback(async () => {
+    if (estatusDisponibles.length > 0) return;
+    try {
+      const estatus = await getEstatusDisponibles();
+      setEstatusDisponibles(estatus);
+    } catch (e) {
+      // noop
+    }
+  }, [estatusDisponibles.length]);
 
-  // Carga por defecto: registros de ayer
-  useEffect(() => {
-    const yesterday = subDays(new Date(), 1);
-    setFechaDesde(yesterday);
-    setFechaHasta(yesterday);
-    setDateRange({ from: yesterday, to: yesterday });
-  }, []);
+  // No cargar por defecto: esperar a que el usuario presione Buscar
 
   const runSearch = useCallback(async () => {
     try {
@@ -111,23 +108,13 @@ export default function ControlAsistenciaPage() {
         estatusClave: estatusSeleccionado?.clave,
       };
 
-      // Resolver filtro por persona (nombre o tarjeta)
-      const q = personaQuery.trim();
-      if (q) {
-        const isNumeric = /^\d+$/.test(q);
+      // Resolver filtros de Empleado y Tarjeta separados
+      if (empleado?.id) {
+        filters.empleadoId = empleado.id;
+      } else if (tarjeta.trim()) {
+        const isNumeric = /^\d+$/.test(tarjeta.trim());
         if (isNumeric) {
-          filters.numeroTarjeta = q;
-        } else if (q.length >= 3) {
-          try {
-            // Buscar empleado por nombre y, si hay coincidencia única, usar su ID
-            const { searchEmployees } = await import('@/lib/api');
-            const results = await searchEmployees(q);
-            if (results.length === 1) {
-              filters.empleadoId = results[0].id;
-            }
-          } catch (_) {
-            // ignorar errores de búsqueda de empleado
-          }
+          filters.numeroTarjeta = tarjeta.trim();
         }
       }
       const result = await buscarAsistenciasConsolidadas(filters);
@@ -144,35 +131,34 @@ export default function ControlAsistenciaPage() {
     fechaHasta,
     departamento,
     estatusSeleccionado,
-    personaQuery,
+    empleado,
+    tarjeta,
     handlePageChange,
   ]);
 
-  // Ejecutar búsqueda inicial cuando se setean fechas por defecto
-  useEffect(() => {
-    if (fechaDesde && fechaHasta) {
-      runSearch();
-    }
-  }, [fechaDesde, fechaHasta, runSearch]);
+  // No ejecutar búsqueda inicial automática
 
-  // Columnas de la tabla según requerimientos
+  // Columnas de la tabla mejoradas
   const columns = useMemo(
     () => [
       {
         key: 'fecha',
         label: 'Fecha',
         sortable: true,
-        render: (item: AsistenciaRecord) => (
-          <div className='whitespace-nowrap'>
-            <div>
+        className: 'font-medium text-foreground',
+        render: (value: any, item: AsistenciaRecord) => (
+          <div className='space-y-1'>
+            <div className='font-semibold'>
               {format(
                 parse(item.fecha, 'yyyy-MM-dd', new Date()),
                 'dd/MM/yyyy',
                 { locale: es }
               )}
             </div>
-            <div className='text-xs text-muted-foreground'>
-              Tarjeta: {item.empleadoTarjeta ?? 'N/A'}
+            <div className='text-xs'>
+              <span className='bg-muted px-2 py-1 rounded-full text-muted-foreground font-mono'>
+                #{item.empleadoTarjeta ?? 'N/A'}
+              </span>
             </div>
           </div>
         ),
@@ -181,25 +167,30 @@ export default function ControlAsistenciaPage() {
         key: 'empleadoNombre',
         label: 'Empleado',
         sortable: true,
-        render: (item: AsistenciaRecord) => (
-          <div className='whitespace-nowrap'>{item.empleadoNombre}</div>
-        ),
+        className: 'font-medium text-foreground',
+        render: (value: any) => <div className='font-medium'>{value}</div>,
       },
       {
         key: 'horaEntradaReal',
         label: 'Hora Entrada',
         sortable: true,
-        render: (item: AsistenciaRecord) => {
+        className: 'text-center',
+        render: (value: any, item: AsistenciaRecord) => {
           const raw = item.horaEntradaReal || item.horaEntrada;
-          if (!raw) return '--:--';
+          if (!raw) return <span className='text-muted-foreground'>--:--</span>;
           const normalized = raw.replace(' ', 'T');
           try {
-            return format(
+            const time = format(
               parse(normalized, "yyyy-MM-dd'T'HH:mm:ss", new Date()),
               'HH:mm'
             );
+            return (
+              <span className='font-mono font-semibold text-green-600 dark:text-green-400'>
+                {time}
+              </span>
+            );
           } catch (_) {
-            return '--:--';
+            return <span className='text-muted-foreground'>--:--</span>;
           }
         },
       },
@@ -207,17 +198,23 @@ export default function ControlAsistenciaPage() {
         key: 'horaSalidaReal',
         label: 'Hora Salida',
         sortable: true,
-        render: (item: AsistenciaRecord) => {
+        className: 'text-center',
+        render: (value: any, item: AsistenciaRecord) => {
           const raw = item.horaSalidaReal || item.horaSalida;
-          if (!raw) return '--:--';
+          if (!raw) return <span className='text-muted-foreground'>--:--</span>;
           const normalized = raw.replace(' ', 'T');
           try {
-            return format(
+            const time = format(
               parse(normalized, "yyyy-MM-dd'T'HH:mm:ss", new Date()),
               'HH:mm'
             );
+            return (
+              <span className='font-mono font-semibold text-red-600 dark:text-red-400'>
+                {time}
+              </span>
+            );
           } catch (_) {
-            return '--:--';
+            return <span className='text-muted-foreground'>--:--</span>;
           }
         },
       },
@@ -225,247 +222,350 @@ export default function ControlAsistenciaPage() {
         key: 'estatusAsistenciaNombre',
         label: 'Estatus',
         sortable: true,
-        render: (item: AsistenciaRecord) => (
-          <Badge variant='outline'>{item.estatusAsistenciaNombre}</Badge>
+        render: (value: any) => (
+          <EnhancedBadge
+            variant={
+              value?.toLowerCase().includes('presente')
+                ? 'success'
+                : value?.toLowerCase().includes('falta')
+                  ? 'error'
+                  : value?.toLowerCase().includes('retardo')
+                    ? 'warning'
+                    : 'info'
+            }
+            size='sm'
+          >
+            {value}
+          </EnhancedBadge>
         ),
       },
       {
         key: 'justificacion',
         label: 'Justificación',
-        render: () => 'N/A',
+        className: 'text-muted-foreground',
+        render: () => <span className='text-muted-foreground'>N/A</span>,
       },
       {
         key: 'observaciones',
         label: 'Observaciones',
-        render: (item: AsistenciaRecord) => item.observaciones || '',
+        className: 'text-muted-foreground max-w-32 truncate',
+        render: (value: any) => (
+          <span className='text-muted-foreground' title={value || ''}>
+            {value || '--'}
+          </span>
+        ),
       },
       {
         key: 'acciones',
         label: 'Acciones',
-        render: (item: AsistenciaRecord) => (
-          <div className='flex gap-2'>
-            <Button variant='ghost' size='icon' title='Ver Detalle'>
-              <Eye className='h-4 w-4' />
-            </Button>
-            <Button
-              variant='ghost'
-              size='icon'
-              title='Agregar Justificación'
-              onClick={() => {
-                setSelectedForJust(item);
-                setJustModalOpen(true);
-              }}
-            >
-              <Plus className='h-4 w-4' />
-            </Button>
-          </div>
+        className: 'text-right',
+        render: (value: any, item: AsistenciaRecord) => (
+          <ActionButtons
+            buttons={[
+              {
+                icon: <Eye className='h-4 w-4' />,
+                onClick: () => {}, // TODO: Implementar ver detalle
+                variant: 'view',
+                title: 'Ver Detalle',
+              },
+              {
+                icon: <Plus className='h-4 w-4' />,
+                onClick: () => {
+                  setSelectedForJust(item);
+                  setJustModalOpen(true);
+                },
+                variant: 'edit',
+                title: 'Agregar Justificación',
+              },
+            ]}
+          />
         ),
       },
     ],
-    []
+    [setSelectedForJust, setJustModalOpen]
   );
 
   return (
-    <div className='p-8'>
-      <div className='max-w-7xl mx-auto space-y-8'>
-        <header className='mb-2'>
-          <BreadcrumbNav items={[{ label: 'Control de Asistencia' }]} />
-          <h1 className='text-3xl font-bold'>Control de Asistencia</h1>
-          <p className='text-muted-foreground'>
-            Visualice resultados de asistencia procesados y ejecute
-            consolidaciones.
-          </p>
-        </header>
+    <div className='min-h-screen bg-background'>
+      <div className='p-6 md:p-8'>
+        <div className='max-w-7xl mx-auto space-y-6'>
+          {/* Header mejorado */}
+          <EnhancedCard variant='elevated' padding='lg'>
+            <div className='space-y-1 mb-4'>
+              <BreadcrumbNav items={[{ label: 'Control de Asistencia' }]} />
+            </div>
+            <div className='space-y-1'>
+              <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
+                Control de Asistencia
+              </h1>
+              <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
+              <p className='text-muted-foreground mt-2'>
+                Visualice resultados de asistencia procesados y ejecute
+                consolidaciones.
+              </p>
+            </div>
+          </EnhancedCard>
 
-        {/* Submenú: Acciones rápidas */}
-        <section className='space-y-4'>
-          <Tabs defaultValue='busqueda'>
-            <TabsList className='grid w-full grid-cols-2'>
-              <TabsTrigger value='busqueda'>
-                Resultados de Asistencia
-              </TabsTrigger>
-              <TabsTrigger value='generacion'>
-                Generación de Asistencias
-              </TabsTrigger>
-            </TabsList>
+          {/* Submenú: Acciones rápidas */}
+          <EnhancedCard variant='default' padding='md'>
+            <Tabs defaultValue='gestion'>
+              <TabsList className='w-full'>
+                <TabsTrigger className='flex-1' value='gestion'>
+                  Gestión de Asistencias
+                </TabsTrigger>
+                <TabsTrigger className='flex-1' value='manual'>
+                  Registro Manual
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value='busqueda' className='space-y-4'>
-              {/* Filtros de Búsqueda */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className='flex items-center gap-2'>
-                    <Filter className='h-5 w-5' />
-                    Filtros de Búsqueda
-                  </CardTitle>
-                  <CardDescription>
-                    Filtre por rango de fechas, nombre o tarjeta, departamento y
-                    estatus.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className='space-y-4'>
-                  {error && (
-                    <Alert variant='destructive'>
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
+              <TabsContent value='gestion' className='space-y-6 mt-6'>
+                {/* Filtros de Búsqueda */}
+                <EnhancedCard variant='bordered' padding='lg'>
+                  <div className='space-y-4'>
+                    <div className='flex items-center gap-2 mb-4'>
+                      <Filter className='h-5 w-5 text-primary' />
+                      <h3 className='text-lg font-semibold text-foreground'>
+                        Filtros de Búsqueda
+                      </h3>
+                    </div>
+                    <p className='text-muted-foreground text-sm mb-6'>
+                      Filtre por fechas, empleado o tarjeta, departamento y
+                      estatus.
+                    </p>
+                    {error && (
+                      <Alert variant='destructive'>
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
 
-                  <div className='grid grid-cols-1 lg:grid-cols-12 gap-4 items-end'>
-                    {/* Rango de Fechas compacto */}
-                    <div className='lg:col-span-3'>
-                      <Label>Rango de Fechas</Label>
-                      <div className='flex items-center gap-2'>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant='outline'
-                              size='icon'
-                              className='h-10 w-10'
-                            >
-                              <CalendarIcon className='h-4 w-4' />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className='w-auto p-0' align='start'>
-                            <Calendar
-                              mode='range'
-                              selected={dateRange}
-                              onSelect={(r) => {
-                                setDateRange(r || undefined);
-                                const from = r?.from;
-                                const to = r?.to || r?.from;
-                                setFechaDesde(from || undefined);
-                                setFechaHasta(to || undefined);
-                              }}
-                              numberOfMonths={2}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <div className='text-sm text-muted-foreground'>
-                          {fechaDesde && fechaHasta
-                            ? `${format(fechaDesde, 'dd/MM/yyyy')} - ${format(fechaHasta, 'dd/MM/yyyy')}`
-                            : 'Seleccione rango'}
-                        </div>
+                    {/* Fila 1: Empleado / Departamento */}
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                      <div className='space-y-2'>
+                        <Label>Empleado</Label>
+                        <EmployeeSearch
+                          value={empleado}
+                          onChange={setEmpleado}
+                        />
+                      </div>
+                      <div className='space-y-2'>
+                        <Label>Departamento</Label>
+                        <DepartmentSearchableSelect
+                          value={departamento}
+                          onChange={setDepartamento as any}
+                        />
                       </div>
                     </div>
 
-                    {/* Nombre o Tarjeta */}
-                    <div className='lg:col-span-3'>
-                      <Label>Nombre o No. Tarjeta</Label>
-                      <Input
-                        placeholder='Ej. Juan Pérez o 6001'
-                        value={personaQuery}
-                        onChange={(e) => setPersonaQuery(e.target.value)}
-                      />
+                    {/* Fila 2: Fecha Inicio / Fecha Fin */}
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                      <div className='space-y-2'>
+                        <Label>Fecha Inicio</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'w-full justify-start text-left font-normal',
+                                !fechaDesde && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className='mr-2 h-4 w-4' />
+                              {fechaDesde ? (
+                                format(fechaDesde, 'PPP', { locale: es })
+                              ) : (
+                                <span>Seleccionar fecha</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className='w-auto p-0'>
+                            <Calendar
+                              mode='single'
+                              selected={fechaDesde}
+                              onSelect={(d) => setFechaDesde(d || undefined)}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className='space-y-2'>
+                        <Label>Fecha Fin</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'w-full justify-start text-left font-normal',
+                                !fechaHasta && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className='mr-2 h-4 w-4' />
+                              {fechaHasta ? (
+                                format(fechaHasta, 'PPP', { locale: es })
+                              ) : (
+                                <span>Seleccionar fecha</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className='w-auto p-0'>
+                            <Calendar
+                              mode='single'
+                              selected={fechaHasta}
+                              onSelect={(d) => setFechaHasta(d || undefined)}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     </div>
 
-                    {/* Departamento */}
-                    <div className='lg:col-span-3'>
-                      <Label>Departamento</Label>
-                      <DepartmentSearch
-                        value={departamento}
-                        onChange={setDepartamento as any}
-                      />
+                    {/* Fila 3: Tarjeta / Estatus */}
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                      <div className='space-y-2'>
+                        <Label>Número de Tarjeta</Label>
+                        <Input
+                          placeholder='Ej. 6001'
+                          inputMode='numeric'
+                          pattern='[0-9]*'
+                          value={tarjeta}
+                          onChange={(e) => setTarjeta(e.target.value)}
+                        />
+                      </div>
+                      <div className='space-y-2'>
+                        <Label>Estatus</Label>
+                        <select
+                          className='w-full border rounded-md h-10 px-3 bg-background'
+                          value={estatusSeleccionado?.id?.toString() || 'ALL'}
+                          onFocus={loadEstatusDisponibles}
+                          onChange={(e) => {
+                            if (e.target.value === 'ALL')
+                              setEstatusSeleccionado(null);
+                            else {
+                              const found =
+                                estatusDisponibles.find(
+                                  (x) => x.id.toString() === e.target.value
+                                ) || null;
+                              setEstatusSeleccionado(found);
+                            }
+                          }}
+                        >
+                          <option value='ALL'>Todos</option>
+                          {estatusDisponibles.map((e) => (
+                            <option key={e.id} value={e.id.toString()}>
+                              {e.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
-                    {/* Estatus */}
-                    <div className='lg:col-span-3'>
-                      <Label>Estatus</Label>
-                      <select
-                        className='w-full border rounded-md h-10 px-3 bg-background'
-                        value={estatusSeleccionado?.id?.toString() || 'ALL'}
-                        onChange={(e) => {
-                          if (e.target.value === 'ALL')
-                            setEstatusSeleccionado(null);
-                          else {
-                            const found =
-                              estatusDisponibles.find(
-                                (x) => x.id.toString() === e.target.value
-                              ) || null;
-                            setEstatusSeleccionado(found);
-                          }
-                        }}
+                    <div className='flex gap-3'>
+                      <Button
+                        onClick={runSearch}
+                        disabled={loading}
+                        className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
                       >
-                        <option value='ALL'>Todos</option>
-                        {estatusDisponibles.map((e) => (
-                          <option key={e.id} value={e.id.toString()}>
-                            {e.nombre}
-                          </option>
-                        ))}
-                      </select>
+                        <Search className='mr-2 h-4 w-4' />
+                        {loading ? 'Buscando...' : 'Buscar'}
+                      </Button>
+                      <Button
+                        variant='outline'
+                        onClick={() => {
+                          setFechaDesde(undefined);
+                          setFechaHasta(undefined);
+                          setEmpleado(null);
+                          setTarjeta('');
+                          setDepartamento(null);
+                          setEstatusSeleccionado(null);
+                        }}
+                        disabled={loading}
+                        className='border-2 border-border hover:border-primary hover:bg-primary/5'
+                      >
+                        Limpiar
+                      </Button>
                     </div>
                   </div>
+                </EnhancedCard>
 
-                  <div className='flex gap-3'>
-                    <Button onClick={runSearch} disabled={loading}>
-                      {loading ? 'Buscando...' : 'Buscar'}
-                    </Button>
-                    <Button
-                      variant='outline'
-                      onClick={() => {
-                        const yesterday = subDays(new Date(), 1);
-                        setFechaDesde(yesterday);
-                        setFechaHasta(yesterday);
-                        setDateRange({ from: yesterday, to: yesterday });
-                        setPersonaQuery('');
-                        setDepartamento(null);
-                        setEstatusSeleccionado(null);
+                {/* Tabla de Resultados */}
+                <EnhancedCard variant='elevated' padding='lg'>
+                  <div className='space-y-4'>
+                    <div>
+                      <h3 className='text-lg font-semibold text-foreground'>
+                        Resultados de Asistencia
+                      </h3>
+                      <p className='text-muted-foreground text-sm'>
+                        Mostrando registros{' '}
+                        {asistencias.length > 0
+                          ? `${(currentPage - 1) * 50 + 1}-${Math.min(currentPage * 50, asistencias.length)}`
+                          : '0-0'}{' '}
+                        de {asistencias.length}
+                      </p>
+                    </div>
+
+                    <EnhancedTable
+                      columns={columns}
+                      data={paginatedData}
+                      sortField={sortField}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                      emptyState={{
+                        icon: <Search className='h-8 w-8' />,
+                        title: 'No hay asistencias para mostrar',
+                        description:
+                          'Utiliza los filtros de búsqueda para encontrar registros de asistencia',
                       }}
-                      disabled={loading}
-                    >
-                      Limpiar
-                    </Button>
+                    />
+
+                    {totalPages > 1 && (
+                      <div className='mt-6 flex justify-center'>
+                        <div className='flex items-center space-x-2'>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                          >
+                            Anterior
+                          </Button>
+                          <span className='text-sm text-muted-foreground'>
+                            Página {currentPage} de {totalPages}
+                          </span>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                          >
+                            Siguiente
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                </EnhancedCard>
+              </TabsContent>
 
-              {/* Tabla de Resultados */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resultados de Asistencia</CardTitle>
-                  <CardDescription>
-                    Mostrando registros{' '}
-                    {asistencias.length > 0
-                      ? `${(currentPage - 1) * 50 + 1}-${Math.min(currentPage * 50, asistencias.length)}`
-                      : '0-0'}{' '}
-                    de {asistencias.length}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <DataTable
-                    data={paginatedData}
-                    columns={columns}
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    sortField={sortField}
-                    sortDirection={sortDirection}
-                    onSort={handleSort}
-                    onPageChange={handlePageChange}
-                    emptyMessage='No hay asistencias para los filtros seleccionados.'
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value='generacion'>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Generación de Asistencias</CardTitle>
-                  <CardDescription>
-                    Procese o reprocese las checadas de una fecha específica
-                    para generar resultados de asistencia.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ConsolidacionManualForm
-                    titleOverride='Generación de Asistencias por Fecha'
-                    descriptionOverride='Seleccione una fecha para generar o regenerar asistencias diarias.'
-                    actionLabelOverride='Generar Asistencias'
-                    confirmTitleOverride='¿Confirmar Generación?'
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </section>
+              <TabsContent value='manual' className='mt-6'>
+                <EnhancedCard
+                  variant='elevated'
+                  padding='lg'
+                  id='registro-manual'
+                >
+                  <div className='space-y-4'>
+                    <div>
+                      <h3 className='text-lg font-semibold text-foreground'>
+                        Nuevo Registro Manual
+                      </h3>
+                      <p className='text-muted-foreground text-sm'>
+                        Agregue una entrada o salida cuando haya omisiones o
+                        correcciones necesarias.
+                      </p>
+                    </div>
+                    <RegistroManualForm />
+                  </div>
+                </EnhancedCard>
+              </TabsContent>
+            </Tabs>
+          </EnhancedCard>
+        </div>
 
         <InlineJustificacionModal
           open={justModalOpen}

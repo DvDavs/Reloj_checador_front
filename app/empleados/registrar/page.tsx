@@ -4,20 +4,23 @@ import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Save, Loader2 } from 'lucide-react';
+  Save,
+  Loader2,
+  UserPlus,
+  ArrowLeft,
+  User,
+  Building,
+  FileText,
+} from 'lucide-react';
 import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { PostRegistrationDialog } from '../components/post-registration-dialog';
 import { EmployeeForm } from '@/app/components/shared/employee-form';
+
+// Componentes mejorados
+import { FormLayout } from '@/app/components/shared/form-layout';
 
 interface EmpleadoBackend {
   id: number;
@@ -147,70 +150,65 @@ export default function RegistrarEmpleadoPage() {
 
   return (
     <>
-      <div className='p-6 md:p-8 pb-12'>
-        <BreadcrumbNav
-          items={[
-            { label: 'Empleados', href: '/empleados' },
-            { label: 'Registrar Nuevo Empleado' },
-          ]}
-          backHref='/empleados'
-        />
-        <h1 className='text-2xl md:text-3xl font-bold mb-8'>
-          Registrar Nuevo Empleado
-        </h1>
-        <Card className='max-w-3xl mx-auto bg-card border-border shadow-sm'>
-          <CardHeader>
-            <CardTitle className='text-foreground'>
-              Información del Empleado
-            </CardTitle>
-            <CardDescription className='text-muted-foreground'>
-              Ingrese los datos básicos. La asignación de huella se realizará en
-              el siguiente paso.
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent>
-              {error && (
-                <div className='mb-4'>
-                  <ErrorState message={error} />
-                </div>
-              )}
-              <EmployeeForm
-                formData={formData}
-                onChange={handleChange}
-                onSelectChange={handleSelectChange}
-                onSwitchChange={handleSwitchChange}
-                isSubmitting={isSubmitting}
-                noneValue={NONE_VALUE_SELECT}
-              />
-            </CardContent>
-            <CardFooter className='flex justify-between'>
-              <Link href='/empleados'>
-                <Button type='button' variant='outline' disabled={isSubmitting}>
-                  Cancelar
-                </Button>
-              </Link>
+      <FormLayout
+        title='Registrar Nuevo Empleado'
+        description='Complete la información básica del empleado. La asignación de huella se realizará después.'
+        breadcrumbs={[
+          { label: 'Empleados', href: '/empleados' },
+          { label: 'Registrar Nuevo Empleado' },
+        ]}
+        backHref='/empleados'
+        formIcon={<UserPlus className='h-5 w-5 text-primary' />}
+        formTitle='Información del Empleado'
+        formDescription='Complete todos los campos requeridos para registrar el nuevo empleado.'
+        error={error}
+        isSubmitting={isSubmitting}
+        footerNote='Los campos marcados con * son obligatorios'
+        actions={
+          <>
+            <Link href='/empleados'>
               <Button
-                type='submit'
-                className='bg-primary hover:bg-primary/90 text-primary-foreground'
+                type='button'
+                variant='outline'
                 disabled={isSubmitting}
+                className='border-2 border-border hover:border-primary hover:bg-primary/5'
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />{' '}
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className='mr-2 h-4 w-4' />
-                    Guardar Empleado
-                  </>
-                )}
+                Cancelar
               </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
+            </Link>
+            <Button
+              type='submit'
+              form='employee-form'
+              className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className='mr-2 h-4 w-4' />
+                  Guardar Empleado
+                </>
+              )}
+            </Button>
+          </>
+        }
+      >
+        <form id='employee-form' onSubmit={handleSubmit}>
+          <EmployeeForm
+            formData={formData}
+            onChange={handleChange}
+            onSelectChange={handleSelectChange}
+            onSwitchChange={handleSwitchChange}
+            isSubmitting={isSubmitting}
+            noneValue={NONE_VALUE_SELECT}
+          />
+        </form>
+      </FormLayout>
+
       {createdEmployee && (
         <PostRegistrationDialog
           isOpen={isDialogOpen}

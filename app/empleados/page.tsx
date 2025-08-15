@@ -4,25 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { UserPlus, Edit, Eye, Fingerprint } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 import { EmployeeDetailsModal } from './components/employee-details-modal';
 import { useToast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/app/components/shared/page-header';
-import { SearchInput } from '@/app/components/shared/search-input';
-import { LoadingState } from '@/app/components/shared/loading-state';
-import { ErrorState } from '@/app/components/shared/error-state';
-import { SortableHeader } from '@/app/components/shared/sortable-header';
-import { PaginationWrapper } from '@/app/components/shared/pagination-wrapper';
+import { PageLayout } from '@/app/components/shared/page-layout';
+import { EnhancedTable } from '@/app/components/shared/enhanced-table';
+import { EnhancedBadge } from '@/app/components/shared/enhanced-badge';
+import { ActionButtons } from '@/app/components/shared/action-buttons';
 import { useTableState } from '@/app/hooks/use-table-state';
 import type { EmpleadoDto } from '@/app/lib/types/timeClockTypes';
 
@@ -142,161 +131,130 @@ export default function EmpleadosPage() {
     setSelectedEmployee(null);
   };
 
+  // Definir las columnas de la tabla
+  const columns = [
+    {
+      key: 'tarjeta',
+      label: 'No. Tarjeta',
+      sortable: true,
+      className: 'font-semibold text-foreground',
+      render: (value: any) => (
+        <span className='bg-muted px-3 py-1 rounded-full text-sm font-mono text-muted-foreground'>
+          {value ?? 'N/A'}
+        </span>
+      ),
+    },
+    {
+      key: 'nombreCompleto',
+      label: 'Nombre Completo',
+      sortable: true,
+      className: 'font-medium text-foreground',
+      render: (value: any, row: EmpleadoDto) => getFullName(row),
+    },
+    {
+      key: 'rfc',
+      label: 'RFC',
+      sortable: true,
+      className: 'text-muted-foreground font-mono text-sm',
+      render: (value: any) => value ?? 'N/A',
+    },
+    {
+      key: 'departamentoNombre',
+      label: 'Departamento',
+      sortable: true,
+      className: 'text-muted-foreground',
+      render: (value: any, row: EmpleadoDto) => (
+        <EnhancedBadge variant='info' size='sm'>
+          {value || 'N/A'}
+        </EnhancedBadge>
+      ),
+    },
+    {
+      key: 'estatusId',
+      label: 'Estado',
+      sortable: true,
+      render: (value: any) => (
+        <EnhancedBadge
+          variant={value === 1 ? 'success' : 'secondary'}
+          size='md'
+        >
+          {value === 1 ? 'Activo' : 'Inactivo'}
+        </EnhancedBadge>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Acciones',
+      className: 'text-right',
+      render: (value: any, row: EmpleadoDto) => (
+        <ActionButtons
+          buttons={[
+            {
+              icon: <Eye className='h-4 w-4' />,
+              onClick: () => handleViewDetails(row),
+              variant: 'view',
+              title: 'Ver Detalles',
+            },
+            {
+              icon: <Edit className='h-4 w-4' />,
+              onClick: () => handleEdit(row.id),
+              variant: 'edit',
+              title: 'Editar Empleado',
+            },
+            {
+              icon: <Fingerprint className='h-4 w-4' />,
+              onClick: () =>
+                router.push(
+                  `/empleados/asignar-huella?id=${row.id}&nombre=${encodeURIComponent(getFullName(row))}`
+                ),
+              variant: 'custom',
+              title: 'Asignar Huella',
+              className: 'action-button-fingerprint',
+            },
+          ]}
+        />
+      ),
+    },
+  ];
+
   return (
     <>
-      <div className='p-6 md:p-8 pb-12'>
-        <PageHeader
-          title='Gestión de Empleados'
-          isLoading={isLoading}
-          onRefresh={fetchEmployees}
-          actions={
-            <Link href='/empleados/registrar'>
-              <Button className='h-9'>
-                <UserPlus className='mr-2 h-4 w-4' />
-                Registrar
-              </Button>
-            </Link>
-          }
+      <PageLayout
+        title='Gestión de Empleados'
+        isLoading={isLoading}
+        error={error}
+        onRefresh={fetchEmployees}
+        searchValue={searchTerm}
+        onSearchChange={handleSearch}
+        searchPlaceholder='Buscar por No. Tarjeta, nombre, RFC, departamento...'
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        actions={
+          <Link href='/empleados/registrar'>
+            <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
+              <UserPlus className='mr-2 h-4 w-4' />
+              Registrar
+            </Button>
+          </Link>
+        }
+      >
+        <EnhancedTable
+          columns={columns}
+          data={paginatedData}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+          emptyState={{
+            icon: <UserPlus className='h-8 w-8' />,
+            title: 'No se encontraron empleados',
+            description:
+              'Intenta ajustar los filtros de búsqueda o registra un nuevo empleado',
+          }}
+          className='mb-6'
         />
-        <SearchInput
-          value={searchTerm}
-          onChange={handleSearch}
-          placeholder='Buscar por No. Tarjeta, nombre, RFC, departamento...'
-        />
-        {isLoading && <LoadingState message='Cargando empleados...' />}
-        {error && <ErrorState message={error} />}
-        {!isLoading && !error && (
-          <>
-            <div className='overflow-x-auto rounded-lg border'>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortableHeader
-                      field='tarjeta'
-                      sortField={sortField}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                    >
-                      No. Tarjeta
-                    </SortableHeader>
-                    <SortableHeader
-                      field='primerNombre'
-                      sortField={sortField}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                    >
-                      Nombre Completo
-                    </SortableHeader>
-                    <SortableHeader
-                      field='rfc'
-                      sortField={sortField}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                    >
-                      RFC
-                    </SortableHeader>
-                    <SortableHeader
-                      field='departamentoNombre'
-                      sortField={sortField}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                    >
-                      Departamento
-                    </SortableHeader>
-                    <SortableHeader
-                      field='estatusId'
-                      sortField={sortField}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                    >
-                      Estado
-                    </SortableHeader>
-                    <TableHead className='text-right'>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedData.length > 0 ? (
-                    paginatedData.map((employee) => {
-                      const displayData = mapEmployeeToDisplay(employee);
-                      return (
-                        <TableRow key={employee.id}>
-                          <TableCell className='font-medium'>
-                            {displayData.tarjeta}
-                          </TableCell>
-                          <TableCell>{displayData.nombre}</TableCell>
-                          <TableCell>{displayData.rfc}</TableCell>
-                          <TableCell>{displayData.departamento}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                displayData.estado === 'Activo'
-                                  ? 'default'
-                                  : 'secondary'
-                              }
-                              className={
-                                displayData.estado === 'Activo'
-                                  ? 'bg-primary/10 text-primary border-primary/20'
-                                  : 'bg-muted text-muted-foreground border-border'
-                              }
-                            >
-                              {displayData.estado}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className='text-right'>
-                            <div className='flex justify-end items-center gap-1'>
-                              <Button
-                                variant='ghost'
-                                size='icon'
-                                onClick={() => handleViewDetails(employee)}
-                                title='Ver Detalles'
-                                className='text-muted-foreground hover:text-foreground hover:bg-muted'
-                              >
-                                <Eye className='h-4 w-4' />
-                              </Button>
-                              <Button
-                                variant='ghost'
-                                size='icon'
-                                onClick={() => handleEdit(employee.id)}
-                                title='Editar Empleado'
-                                className='text-primary hover:text-primary/80 hover:bg-primary/10'
-                              >
-                                <Edit className='h-4 w-4' />
-                              </Button>
-                              <Link
-                                href={`/empleados/asignar-huella?id=${employee.id}&nombre=${encodeURIComponent(displayData.nombre)}`}
-                              >
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  title='Asignar Huella'
-                                  className='text-accent hover:text-accent/80 hover:bg-accent/10'
-                                >
-                                  <Fingerprint className='h-4 w-4' />
-                                </Button>
-                              </Link>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className='text-center h-24'>
-                        No se encontraron empleados.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            <PaginationWrapper
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </>
-        )}
-      </div>
+      </PageLayout>
+
       {selectedEmployee && (
         <EmployeeDetailsModal
           employee={selectedEmployee}

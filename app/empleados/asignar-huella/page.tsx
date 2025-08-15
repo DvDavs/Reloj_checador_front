@@ -67,6 +67,10 @@ import { WizardStepper } from '@/app/components/shared/wizard-stepper';
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
 import { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
 
+// Componentes mejorados
+import { EnhancedCard } from '@/app/components/shared/enhanced-card';
+import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
+
 type ScannerStatus =
   | 'online'
   | 'offline'
@@ -1092,17 +1096,28 @@ function AsignarHuellaContent() {
   const renderStepContent = () => {
     if (currentStep === 1) {
       return (
-        <Card className='max-w-3xl mx-auto'>
-          <CardHeader>
-            <CardTitle>Paso 1: Selección de Empleado</CardTitle>
-            <CardDescription>
-              Seleccione o busque el empleado al que desea asignar la huella.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <EnhancedCard
+          variant='elevated'
+          padding='none'
+          className='max-w-4xl mx-auto'
+        >
+          <div className='p-6 md:p-8'>
+            <div className='flex items-center gap-2 mb-6'>
+              <Users className='h-6 w-6 text-primary' />
+              <div>
+                <h2 className='text-xl font-semibold text-foreground'>
+                  Paso 1: Selección de Empleado
+                </h2>
+                <p className='text-muted-foreground text-sm'>
+                  Seleccione o busque el empleado al que desea asignar la
+                  huella.
+                </p>
+              </div>
+            </div>
+
             <div className='space-y-6'>
-              <div className='space-y-2'>
-                <Label className='text-sm font-medium text-muted-foreground'>
+              <div className='space-y-3'>
+                <Label className='text-sm font-medium text-foreground'>
                   Buscar empleado
                 </Label>
                 <EmployeeSearch
@@ -1111,35 +1126,57 @@ function AsignarHuellaContent() {
                   showAllOnOpen={true}
                 />
               </div>
+
               {selectedEmployee && (
-                <div className='p-4 bg-primary/10 border border-primary/20 rounded-lg'>
+                <EnhancedCard
+                  variant='bordered'
+                  padding='md'
+                  className='bg-primary/5 border-primary/20'
+                >
                   <div className='flex items-center gap-4'>
-                    <div className='h-16 w-16 bg-muted rounded-full flex items-center justify-center'>
+                    <div className='h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center border-2 border-primary/20'>
                       <Users className='h-8 w-8 text-primary' />
                     </div>
-                    <div>
-                      <h2 className='text-xl font-bold text-foreground'>
+                    <div className='flex-1'>
+                      <h3 className='text-xl font-bold text-foreground'>
                         {selectedEmployee.nombreCompleto}
-                      </h2>
+                      </h3>
                       <p className='text-muted-foreground'>
                         ID interno: {selectedEmployee.id}
                       </p>
+                      <div className='mt-2'>
+                        <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'>
+                          ✓ Empleado seleccionado
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </EnhancedCard>
               )}
             </div>
-          </CardContent>
-          <CardFooter className='flex justify-between'>
-            <Link href='/empleados'>
-              <Button variant='outline'>Cancelar</Button>
-            </Link>
-            <Button onClick={goToNextStep} disabled={!selectedEmployee}>
-              Continuar
-              <ArrowRight className='ml-2 h-4 w-4' />
-            </Button>
-          </CardFooter>
-        </Card>
+          </div>
+
+          <div className='border-t border-border bg-muted/30 px-6 md:px-8 py-4'>
+            <div className='flex justify-between items-center'>
+              <Link href='/empleados'>
+                <Button
+                  variant='outline'
+                  className='border-2 border-border hover:border-primary hover:bg-primary/5'
+                >
+                  Cancelar
+                </Button>
+              </Link>
+              <Button
+                onClick={goToNextStep}
+                disabled={!selectedEmployee}
+                className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+              >
+                Continuar
+                <ArrowRight className='ml-2 h-4 w-4' />
+              </Button>
+            </div>
+          </div>
+        </EnhancedCard>
       );
     }
 
@@ -1757,67 +1794,98 @@ function AsignarHuellaContent() {
   ];
 
   return (
-    <div className='p-6 md:p-8'>
-      {/* Encabezado */}
-      <div className='flex items-center gap-2 mb-6'>
-        <Link href='/empleados' aria-label='Volver'>
-          <Button
-            variant='outline'
-            size='icon'
-            className='h-8 w-8 rounded-full flex-shrink-0'
-          >
-            <ArrowLeft />
-          </Button>
-        </Link>
-        <h1 className='text-2xl md:text-3xl font-bold truncate'>
-          Asignar Huella Digital
-        </h1>
-      </div>
+    <div className='min-h-screen bg-background'>
+      <div className='p-6 md:p-8'>
+        <div className='max-w-6xl mx-auto space-y-6'>
+          {/* Header mejorado */}
+          <EnhancedCard variant='elevated' padding='lg'>
+            <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+              <div className='space-y-1'>
+                <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
+                  Asignar Huella Digital
+                </h1>
+                <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
+              </div>
+            </div>
+          </EnhancedCard>
 
-      {/* Stepper (diseño V2) */}
-      <WizardStepper steps={STEPS} currentStep={currentStep} className='mb-8' />
+          {/* Stepper (diseño V2) */}
+          <WizardStepper
+            steps={STEPS}
+            currentStep={currentStep}
+            className='mb-8'
+          />
 
-      {/* Mensaje de error general */}
-      {generalError && currentStep !== 4 && (
-        <div className='mb-4 max-w-4xl mx-auto p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-sm'>
-          <AlertCircle className='text-destructive' />{' '}
-          <span className='text-destructive'>{generalError}</span>
-          <button
-            className='ml-auto text-destructive hover:text-destructive/80'
-            onClick={() => setGeneralError(null)}
-            title='Cerrar'
-          >
-            <XCircle className='h-5 w-5' />
-          </button>
+          {/* Mensaje de error general */}
+          {generalError && currentStep !== 4 && (
+            <EnhancedCard
+              variant='elevated'
+              padding='md'
+              className='border-red-200/60 dark:border-red-800'
+            >
+              <div className='flex items-center gap-3'>
+                <div className='p-2 bg-red-100 rounded-lg dark:bg-red-900/30'>
+                  <AlertCircle className='h-5 w-5 text-red-600 dark:text-red-400' />
+                </div>
+                <div className='flex-1'>
+                  <p className='text-red-800 dark:text-red-300 font-medium'>
+                    Error
+                  </p>
+                  <p className='text-red-700 dark:text-red-400 text-sm'>
+                    {generalError}
+                  </p>
+                </div>
+                <button
+                  className='text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors'
+                  onClick={() => setGeneralError(null)}
+                  title='Cerrar'
+                >
+                  <XCircle className='h-5 w-5' />
+                </button>
+              </div>
+            </EnhancedCard>
+          )}
+
+          {/* Mensaje cuando no hay lectores disponibles */}
+          {currentStep === 2 &&
+            availableReaders.length === 0 &&
+            !isLoading &&
+            !generalError && (
+              <EnhancedCard
+                variant='elevated'
+                padding='md'
+                className='border-yellow-200/60 dark:border-yellow-800'
+              >
+                <div className='flex items-center gap-3'>
+                  <div className='p-2 bg-yellow-100 rounded-lg dark:bg-yellow-900/30'>
+                    <AlertCircle className='h-5 w-5 text-yellow-600 dark:text-yellow-400' />
+                  </div>
+                  <div>
+                    <p className='text-yellow-800 dark:text-yellow-300 font-medium'>
+                      Sin lectores disponibles
+                    </p>
+                    <p className='text-yellow-700 dark:text-yellow-400 text-sm'>
+                      Conecte un lector y presione el botón de refrescar.
+                    </p>
+                  </div>
+                </div>
+              </EnhancedCard>
+            )}
+
+          {/* Transición de paso */}
+          <AnimatePresence mode='wait'>
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderStepContent()}
+            </motion.div>
+          </AnimatePresence>
         </div>
-      )}
-
-      {/* Mensaje cuando no hay lectores disponibles */}
-      {currentStep === 2 &&
-        availableReaders.length === 0 &&
-        !isLoading &&
-        !generalError && (
-          <div className='mb-4 max-w-4xl mx-auto p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-sm'>
-            <AlertCircle className='text-yellow-600' />
-            <span className='text-yellow-800'>
-              No se encontraron lectores disponibles. Conecte un lector y
-              presione el botón de refrescar.
-            </span>
-          </div>
-        )}
-
-      {/* Transición de paso */}
-      <AnimatePresence mode='wait'>
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.3 }}
-        >
-          {renderStepContent()}
-        </motion.div>
-      </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -1829,9 +1897,23 @@ export default function AsignarHuellaPage() {
   return (
     <Suspense
       fallback={
-        <div className='p-8 text-center'>
-          <Loader2 className='h-8 w-8 animate-spin mx-auto text-primary' />
-          <p className='mt-2 text-muted-foreground'>Cargando...</p>
+        <div className='min-h-screen bg-background flex items-center justify-center'>
+          <EnhancedCard variant='elevated' padding='xl'>
+            <div className='flex flex-col items-center space-y-4'>
+              <div className='relative'>
+                <div className='absolute inset-0 rounded-full bg-primary/30 animate-ping'></div>
+                <Loader2 className='relative h-10 w-10 animate-spin text-primary' />
+              </div>
+              <div className='text-center space-y-1'>
+                <p className='text-lg font-medium text-foreground'>
+                  Cargando sistema de huellas...
+                </p>
+                <p className='text-sm text-muted-foreground'>
+                  Preparando el entorno de captura
+                </p>
+              </div>
+            </div>
+          </EnhancedCard>
         </div>
       }
     >

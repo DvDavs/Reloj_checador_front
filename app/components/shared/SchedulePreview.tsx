@@ -119,10 +119,8 @@ export default function SchedulePreview({
   const workingDays = Object.keys(scheduleByDay).length;
 
   return (
-    <Card
-      className={cn('w-full bg-white border-gray-200 shadow-sm', className)}
-    >
-      <CardHeader className='pb-4 bg-gray-50/50 border-b border-gray-100'>
+    <Card className={cn('w-full bg-card border-border shadow-sm', className)}>
+      <CardHeader className='pb-4 bg-muted/30 border-b border-border'>
         <div className='flex items-start justify-between'>
           <div className='space-y-2'>
             <CardTitle className='text-xl font-semibold flex items-center gap-3 text-gray-900'>
@@ -192,7 +190,7 @@ export default function SchedulePreview({
                         {calculateDuration(shift.horaEntrada, shift.horaSalida)}
                       </div>
                       {dayShifts.length > 1 && (
-                        <Badge className='bg-gray-100 text-gray-700 border-gray-200 text-xs font-medium px-2 py-1'>
+                        <Badge className='bg-muted text-muted-foreground border-border text-xs font-medium px-2 py-1'>
                           Turno {shift.turno}
                         </Badge>
                       )}

@@ -54,7 +54,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
-import { DepartmentSearch } from './DepartmentSearch';
+import { DepartmentSearchableSelect } from '@/app/components/shared/department-searchable-select';
 import { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
 import { DepartamentoDto } from '@/lib/api/schedule-api';
 import {
@@ -303,16 +303,8 @@ export function JustificacionForm() {
           response = await createJustificacionIndividual(individualData);
           successPayload.empleadoNombre = formData.empleado?.nombreCompleto;
           successPayload.fechasAfectadas = `${format(formData.fechaInicio!, 'dd/MM/yyyy')} - ${format(formData.fechaFin || formData.fechaInicio!, 'dd/MM/yyyy')}`;
-          // Consolidar
-          if (formData.fechaInicio) {
-            const { totalConsolidados, totalFaltas } =
-              await consolidarYObtenerTotales(
-                formData.fechaInicio,
-                formData.fechaFin || formData.fechaInicio
-              );
-            successPayload.totalConsolidados = totalConsolidados;
-            successPayload.totalFaltas = totalFaltas;
-          }
+          // Nota: La re-consolidación por empleado ya la realiza el backend automáticamente
+          //       después de crear la justificación individual. No disparamos consolidación global aquí.
           break;
         }
 
@@ -351,11 +343,8 @@ export function JustificacionForm() {
           successPayload.departamentoNombre = formData.departamento?.nombre;
           successPayload.fechasAfectadas = `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`;
           successPayload.empleadosAfectados = empleadosAfectados;
-          // Consolidar
-          const { totalConsolidados, totalFaltas } =
-            await consolidarYObtenerTotales(start, end);
-          successPayload.totalConsolidados = totalConsolidados;
-          successPayload.totalFaltas = totalFaltas;
+          // Nota: La re-consolidación por empleado ya la realiza el backend
+          //       para cada empleado justificado del departamento. No disparamos consolidación global.
           break;
         }
 
@@ -538,7 +527,7 @@ export function JustificacionForm() {
               <div className='space-y-4'>
                 <div className='space-y-2'>
                   <Label>Departamento</Label>
-                  <DepartmentSearch
+                  <DepartmentSearchableSelect
                     value={formData.departamento}
                     onChange={(dep) =>
                       setFormData((f) => ({ ...f, departamento: dep }))

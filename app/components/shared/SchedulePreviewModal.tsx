@@ -48,7 +48,7 @@ export function SchedulePreviewModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className='max-w-4xl max-h-[90vh] overflow-y-auto bg-zinc-900 border-zinc-800 text-white'>
+      <DialogContent className='max-w-4xl max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle className='text-2xl font-bold flex items-center gap-2'>
             <Calendar className='h-6 w-6' />

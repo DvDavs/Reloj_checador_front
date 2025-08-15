@@ -835,7 +835,7 @@ export default function TimeClock({
 
             // Manejar caso específico donde todas las jornadas están completas
             if (event.nextRecommendedActionBackend === 'ALL_COMPLETE') {
-              setCustomMessage('Todas las jornadas del día completadas');
+              setCustomMessage('Asistencia registrada');
               // Asignar un código de tipo "información" para que el estilo sea adecuado
               setStatusCode('299'); // Código personalizado para estado "ALL_COMPLETE"
             }
