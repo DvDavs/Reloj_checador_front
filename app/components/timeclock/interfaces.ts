@@ -44,9 +44,8 @@ export type ScanAction =
 
 // Props: HeaderClock (hora/fecha, estado de conexión, controles)
 export interface HeaderClockProps {
-  currentTime: Date;
+  currentTime: Date | null;
   isConnected: boolean;
-  isReaderReady: boolean;
   selectedReader: string | null;
   isFullScreen: boolean;
   onToggleFullScreen: () => void;

@@ -23,7 +23,6 @@ import type { HeaderClockProps } from './interfaces';
 function HeaderClockComponent({
   currentTime,
   isConnected,
-  isReaderReady,
   selectedReader,
   isFullScreen,
   onToggleFullScreen,
@@ -48,27 +47,6 @@ function HeaderClockComponent({
       </div>
 
       <div className='flex items-center gap-3'>
-        {/* Estado del lector */}
-        <div
-          className={
-            'flex items-center gap-2 px-2 py-1 rounded-md border ' +
-            (isReaderReady
-              ? 'bg-emerald-900/30 border-emerald-800'
-              : 'bg-zinc-800 border-zinc-700')
-          }
-          title={isReaderReady ? 'Lector listo' : 'Lector no listo'}
-        >
-          <div
-            className={
-              'h-2.5 w-2.5 rounded-full ' +
-              (isReaderReady ? 'bg-emerald-400' : 'bg-zinc-500')
-            }
-          />
-          <span className='text-xs text-zinc-300'>
-            {isReaderReady ? 'Ready' : 'Idle'}
-          </span>
-        </div>
-
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

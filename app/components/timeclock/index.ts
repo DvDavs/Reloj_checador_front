@@ -1,4 +1,5 @@
 export * from './interfaces';
 export * from './useScanStateReducer';
 export * from './HeaderClock';
-export { MemoShiftsPanel as ShiftsPanel } from './ShiftsPanel';
+export * from './ShiftsPanel';
+export * from './ScannerPanel';

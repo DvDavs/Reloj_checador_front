@@ -400,7 +400,7 @@ function getItemSize(total: number, isCurrent: boolean): TurnoSize {
   return 'xsmall';
 }
 
-export function ShiftsPanel({
+function ShiftsPanelComponent({
   jornadas,
   activeSessionId,
   expandedTurnoId,
@@ -478,4 +478,4 @@ export function ShiftsPanel({
   );
 }
 
-export const MemoShiftsPanel = React.memo(ShiftsPanel);
+export const ShiftsPanel = React.memo(ShiftsPanelComponent);
