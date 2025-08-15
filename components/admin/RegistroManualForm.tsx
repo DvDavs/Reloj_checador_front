@@ -205,7 +205,8 @@ export function RegistroManualForm() {
         <CardHeader>
           <CardTitle>Crear Registro Manual</CardTitle>
           <CardDescription>
-            Esta herramienta crea un registro de checada retroactivo.
+            Agregue una entrada o salida cuando haya omisiones o correcciones
+            necesarias.
           </CardDescription>
         </CardHeader>
         <CardContent>

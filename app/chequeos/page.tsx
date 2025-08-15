@@ -18,18 +18,11 @@ export default function ChequeosPage() {
         <div className='max-w-7xl mx-auto space-y-6'>
           {/* Header mejorado */}
           <EnhancedCard variant='elevated' padding='lg'>
-            <div className='space-y-1 mb-4'>
-              <BreadcrumbNav items={[{ label: 'Chequeos' }]} />
-            </div>
             <div className='space-y-1'>
               <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
                 Gestión de Chequeos
               </h1>
               <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
-              <p className='text-muted-foreground mt-2'>
-                Búsqueda, revisión y corrección de registros de entrada y
-                salida.
-              </p>
             </div>
           </EnhancedCard>
 
@@ -100,43 +93,35 @@ export default function ChequeosPage() {
           <EnhancedCard variant='default' padding='md'>
             {activeView === 'gestion' ? (
               <div className='mt-6'>
-                <EnhancedCard variant='elevated' padding='lg'>
-                  <div className='space-y-4'>
-                    <div className='flex items-center gap-2 mb-4'>
-                      <Edit className='h-5 w-5 text-primary' />
-                      <h2 className='text-lg font-semibold text-foreground'>
-                        Gestión de Chequeos
-                      </h2>
-                    </div>
-                    <p className='text-muted-foreground text-sm mb-6'>
-                      Utilice los filtros para encontrar y corregir registros de
-                      entrada y salida.
-                    </p>
-                    <CorreccionRegistrosForm />
+                <div className='space-y-4'>
+                  <div className='flex items-center gap-2 mb-4'>
+                    <Edit className='h-5 w-5 text-primary' />
+                    <h2 className='text-lg font-semibold text-foreground'>
+                      Gestión de Chequeos
+                    </h2>
                   </div>
-                </EnhancedCard>
+                  <p className='text-muted-foreground text-sm mb-6'>
+                    Utilice los filtros para encontrar y corregir registros de
+                    entrada y salida.
+                  </p>
+                  <CorreccionRegistrosForm />
+                </div>
               </div>
             ) : (
               <div className='mt-6'>
-                <EnhancedCard
-                  variant='elevated'
-                  padding='lg'
-                  id='registro-manual'
-                >
-                  <div className='space-y-4'>
-                    <div className='flex items-center gap-2 mb-4'>
-                      <Plus className='h-5 w-5 text-primary' />
-                      <h2 className='text-lg font-semibold text-foreground'>
-                        Nuevo Registro Manual
-                      </h2>
-                    </div>
-                    <p className='text-muted-foreground text-sm mb-6'>
-                      Agregue una entrada o salida cuando haya omisiones o
-                      correcciones necesarias.
-                    </p>
-                    <RegistroManualForm />
+                <div className='space-y-4'>
+                  <div className='flex items-center gap-2 mb-4'>
+                    <Plus className='h-5 w-5 text-primary' />
+                    <h2 className='text-lg font-semibold text-foreground'>
+                      Nuevo Registro Manual
+                    </h2>
                   </div>
-                </EnhancedCard>
+                  <p className='text-muted-foreground text-sm mb-6'>
+                    Agregue una entrada o salida cuando haya omisiones o
+                    correcciones necesarias.
+                  </p>
+                  <RegistroManualForm />
+                </div>
               </div>
             )}
           </EnhancedCard>

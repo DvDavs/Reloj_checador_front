@@ -208,26 +208,6 @@ export default function EditarEmpleadoPage() {
         { label: 'Editar Empleado' },
       ]}
       backHref='/empleados'
-      steps={[
-        {
-          icon: <User className='h-5 w-5' />,
-          title: 'Datos Personales',
-          description: 'Información básica',
-          color: 'blue',
-        },
-        {
-          icon: <Building className='h-5 w-5' />,
-          title: 'Información Laboral',
-          description: 'Departamento y puesto',
-          color: 'green',
-        },
-        {
-          icon: <FileText className='h-5 w-5' />,
-          title: 'Configuración',
-          description: 'Opciones adicionales',
-          color: 'orange',
-        },
-      ]}
       formIcon={<Edit className='h-5 w-5 text-primary' />}
       formTitle='Información del Empleado'
       formDescription='Actualice los campos que necesite modificar.'

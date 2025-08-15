@@ -76,18 +76,6 @@ export function FormLayout({
                   <p className='text-muted-foreground mt-2'>{description}</p>
                 )}
               </div>
-              {backHref && (
-                <Link href={backHref}>
-                  <Button
-                    variant='outline'
-                    disabled={isSubmitting}
-                    className='border-2 border-border hover:border-primary hover:bg-primary/5'
-                  >
-                    <ArrowLeft className='mr-2 h-4 w-4' />
-                    Volver
-                  </Button>
-                </Link>
-              )}
             </div>
           </EnhancedCard>
 

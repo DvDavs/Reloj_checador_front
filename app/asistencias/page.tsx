@@ -9,6 +9,7 @@ import {
   Filter,
   Search,
   Calendar as CalendarIcon,
+  DatabaseZap,
 } from 'lucide-react';
 
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { cn } from '@/lib/utils';
 
 // Componentes mejorados
@@ -40,7 +41,7 @@ import {
   EstatusDisponible,
 } from '@/lib/api/asistencia.api';
 import { DepartmentSearchableSelect } from '@/app/components/shared/department-searchable-select';
-import { RegistroManualForm } from '@/components/admin/RegistroManualForm';
+import { ConsolidacionManualForm } from '@/components/admin/ConsolidacionManualForm';
 import { useTableState } from '@/app/hooks/use-table-state';
 import { DataTable } from '@/app/components/shared/data-table';
 import { InlineJustificacionModal } from './components/InlineJustificacionModal';
@@ -68,6 +69,9 @@ export default function ControlAsistenciaPage() {
   const [justModalOpen, setJustModalOpen] = useState(false);
   const [selectedForJust, setSelectedForJust] =
     useState<AsistenciaRecord | null>(null);
+  const [activeView, setActiveView] = useState<'gestion' | 'consolidacion'>(
+    'gestion'
+  );
 
   // Tabla: paginación 50 por defecto
   const {
@@ -225,13 +229,15 @@ export default function ControlAsistenciaPage() {
         render: (value: any) => (
           <EnhancedBadge
             variant={
-              value?.toLowerCase().includes('presente')
-                ? 'success'
-                : value?.toLowerCase().includes('falta')
-                  ? 'error'
-                  : value?.toLowerCase().includes('retardo')
-                    ? 'warning'
-                    : 'info'
+              value?.toLowerCase().includes('justificada')
+                ? 'info'
+                : value?.toLowerCase().includes('presente')
+                  ? 'success'
+                  : value?.toLowerCase().includes('falta')
+                    ? 'error'
+                    : value?.toLowerCase().includes('retardo')
+                      ? 'warning'
+                      : 'info'
             }
             size='sm'
           >
@@ -286,286 +292,307 @@ export default function ControlAsistenciaPage() {
   );
 
   return (
-    <div className='min-h-screen bg-background'>
-      <div className='p-6 md:p-8'>
-        <div className='max-w-7xl mx-auto space-y-6'>
-          {/* Header mejorado */}
-          <EnhancedCard variant='elevated' padding='lg'>
-            <div className='space-y-1 mb-4'>
-              <BreadcrumbNav items={[{ label: 'Control de Asistencia' }]} />
-            </div>
-            <div className='space-y-1'>
-              <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
-                Control de Asistencia
-              </h1>
-              <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
-              <p className='text-muted-foreground mt-2'>
-                Visualice resultados de asistencia procesados y ejecute
-                consolidaciones.
-              </p>
+    <div className='p-6 md:p-8'>
+      <div className='max-w-7xl mx-auto space-y-6'>
+        {/* Header mejorado */}
+        <EnhancedCard variant='elevated' padding='lg'>
+          <div className='space-y-1'>
+            <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
+              Control de Asistencia
+            </h1>
+            <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
+          </div>
+        </EnhancedCard>
+
+        {/* Información de funcionalidades (actúa como botones) */}
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          <EnhancedCard
+            variant='bordered'
+            padding='md'
+            hover
+            role='button'
+            tabIndex={0}
+            onClick={() => setActiveView('gestion')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveView('gestion');
+              }
+            }}
+            className={`cursor-pointer ${activeView === 'gestion' ? 'ring-2 ring-primary/60 border-primary/60 bg-primary/5' : ''}`}
+          >
+            <div className='flex items-center space-x-3'>
+              <div className='p-2 bg-blue-100 rounded-lg dark:bg-blue-900/30'>
+                <Search className='h-5 w-5 text-blue-600 dark:text-blue-400' />
+              </div>
+              <div>
+                <h3 className='font-semibold text-foreground'>
+                  Gestión de Asistencias
+                </h3>
+                <p className='text-sm text-muted-foreground'>
+                  Filtre, revise y corrija registros existentes
+                </p>
+              </div>
             </div>
           </EnhancedCard>
 
-          {/* Submenú: Acciones rápidas */}
-          <EnhancedCard variant='default' padding='md'>
-            <Tabs defaultValue='gestion'>
-              <TabsList className='w-full'>
-                <TabsTrigger className='flex-1' value='gestion'>
-                  Gestión de Asistencias
-                </TabsTrigger>
-                <TabsTrigger className='flex-1' value='manual'>
-                  Registro Manual
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value='gestion' className='space-y-6 mt-6'>
-                {/* Filtros de Búsqueda */}
-                <EnhancedCard variant='bordered' padding='lg'>
-                  <div className='space-y-4'>
-                    <div className='flex items-center gap-2 mb-4'>
-                      <Filter className='h-5 w-5 text-primary' />
-                      <h3 className='text-lg font-semibold text-foreground'>
-                        Filtros de Búsqueda
-                      </h3>
-                    </div>
-                    <p className='text-muted-foreground text-sm mb-6'>
-                      Filtre por fechas, empleado o tarjeta, departamento y
-                      estatus.
-                    </p>
-                    {error && (
-                      <Alert variant='destructive'>
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    )}
-
-                    {/* Fila 1: Empleado / Departamento */}
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <div className='space-y-2'>
-                        <Label>Empleado</Label>
-                        <EmployeeSearch
-                          value={empleado}
-                          onChange={setEmpleado}
-                        />
-                      </div>
-                      <div className='space-y-2'>
-                        <Label>Departamento</Label>
-                        <DepartmentSearchableSelect
-                          value={departamento}
-                          onChange={setDepartamento as any}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Fila 2: Fecha Inicio / Fecha Fin */}
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <div className='space-y-2'>
-                        <Label>Fecha Inicio</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant={'outline'}
-                              className={cn(
-                                'w-full justify-start text-left font-normal',
-                                !fechaDesde && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className='mr-2 h-4 w-4' />
-                              {fechaDesde ? (
-                                format(fechaDesde, 'PPP', { locale: es })
-                              ) : (
-                                <span>Seleccionar fecha</span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className='w-auto p-0'>
-                            <Calendar
-                              mode='single'
-                              selected={fechaDesde}
-                              onSelect={(d) => setFechaDesde(d || undefined)}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className='space-y-2'>
-                        <Label>Fecha Fin</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant={'outline'}
-                              className={cn(
-                                'w-full justify-start text-left font-normal',
-                                !fechaHasta && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className='mr-2 h-4 w-4' />
-                              {fechaHasta ? (
-                                format(fechaHasta, 'PPP', { locale: es })
-                              ) : (
-                                <span>Seleccionar fecha</span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className='w-auto p-0'>
-                            <Calendar
-                              mode='single'
-                              selected={fechaHasta}
-                              onSelect={(d) => setFechaHasta(d || undefined)}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-
-                    {/* Fila 3: Tarjeta / Estatus */}
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <div className='space-y-2'>
-                        <Label>Número de Tarjeta</Label>
-                        <Input
-                          placeholder='Ej. 6001'
-                          inputMode='numeric'
-                          pattern='[0-9]*'
-                          value={tarjeta}
-                          onChange={(e) => setTarjeta(e.target.value)}
-                        />
-                      </div>
-                      <div className='space-y-2'>
-                        <Label>Estatus</Label>
-                        <select
-                          className='w-full border rounded-md h-10 px-3 bg-background'
-                          value={estatusSeleccionado?.id?.toString() || 'ALL'}
-                          onFocus={loadEstatusDisponibles}
-                          onChange={(e) => {
-                            if (e.target.value === 'ALL')
-                              setEstatusSeleccionado(null);
-                            else {
-                              const found =
-                                estatusDisponibles.find(
-                                  (x) => x.id.toString() === e.target.value
-                                ) || null;
-                              setEstatusSeleccionado(found);
-                            }
-                          }}
-                        >
-                          <option value='ALL'>Todos</option>
-                          {estatusDisponibles.map((e) => (
-                            <option key={e.id} value={e.id.toString()}>
-                              {e.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className='flex gap-3'>
-                      <Button
-                        onClick={runSearch}
-                        disabled={loading}
-                        className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
-                      >
-                        <Search className='mr-2 h-4 w-4' />
-                        {loading ? 'Buscando...' : 'Buscar'}
-                      </Button>
-                      <Button
-                        variant='outline'
-                        onClick={() => {
-                          setFechaDesde(undefined);
-                          setFechaHasta(undefined);
-                          setEmpleado(null);
-                          setTarjeta('');
-                          setDepartamento(null);
-                          setEstatusSeleccionado(null);
-                        }}
-                        disabled={loading}
-                        className='border-2 border-border hover:border-primary hover:bg-primary/5'
-                      >
-                        Limpiar
-                      </Button>
-                    </div>
-                  </div>
-                </EnhancedCard>
-
-                {/* Tabla de Resultados */}
-                <EnhancedCard variant='elevated' padding='lg'>
-                  <div className='space-y-4'>
-                    <div>
-                      <h3 className='text-lg font-semibold text-foreground'>
-                        Resultados de Asistencia
-                      </h3>
-                      <p className='text-muted-foreground text-sm'>
-                        Mostrando registros{' '}
-                        {asistencias.length > 0
-                          ? `${(currentPage - 1) * 50 + 1}-${Math.min(currentPage * 50, asistencias.length)}`
-                          : '0-0'}{' '}
-                        de {asistencias.length}
-                      </p>
-                    </div>
-
-                    <EnhancedTable
-                      columns={columns}
-                      data={paginatedData}
-                      sortField={sortField}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                      emptyState={{
-                        icon: <Search className='h-8 w-8' />,
-                        title: 'No hay asistencias para mostrar',
-                        description:
-                          'Utiliza los filtros de búsqueda para encontrar registros de asistencia',
-                      }}
-                    />
-
-                    {totalPages > 1 && (
-                      <div className='mt-6 flex justify-center'>
-                        <div className='flex items-center space-x-2'>
-                          <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                          >
-                            Anterior
-                          </Button>
-                          <span className='text-sm text-muted-foreground'>
-                            Página {currentPage} de {totalPages}
-                          </span>
-                          <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                          >
-                            Siguiente
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </EnhancedCard>
-              </TabsContent>
-
-              <TabsContent value='manual' className='mt-6'>
-                <EnhancedCard
-                  variant='elevated'
-                  padding='lg'
-                  id='registro-manual'
-                >
-                  <div className='space-y-4'>
-                    <div>
-                      <h3 className='text-lg font-semibold text-foreground'>
-                        Nuevo Registro Manual
-                      </h3>
-                      <p className='text-muted-foreground text-sm'>
-                        Agregue una entrada o salida cuando haya omisiones o
-                        correcciones necesarias.
-                      </p>
-                    </div>
-                    <RegistroManualForm />
-                  </div>
-                </EnhancedCard>
-              </TabsContent>
-            </Tabs>
+          <EnhancedCard
+            variant='bordered'
+            padding='md'
+            hover
+            role='button'
+            tabIndex={0}
+            onClick={() => setActiveView('consolidacion')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveView('consolidacion');
+              }
+            }}
+            className={`cursor-pointer ${activeView === 'consolidacion' ? 'ring-2 ring-primary/60 border-primary/60 bg-primary/5' : ''}`}
+          >
+            <div className='flex items-center space-x-3'>
+              <div className='p-2 bg-green-100 rounded-lg dark:bg-green-900/30'>
+                <DatabaseZap className='h-5 w-5 text-green-600 dark:text-green-400' />
+              </div>
+              <div>
+                <h3 className='font-semibold text-foreground'>
+                  Consolidación de Asistencia
+                </h3>
+                <p className='text-sm text-muted-foreground'>
+                  Ejecute la consolidación diaria por fecha
+                </p>
+              </div>
+            </div>
           </EnhancedCard>
         </div>
+
+        {activeView === 'gestion' ? (
+          <div className='space-y-6 mt-6'>
+            {/* Filtros de Búsqueda */}
+            <EnhancedCard variant='bordered' padding='lg'>
+              <div className='space-y-4'>
+                <div className='flex items-center gap-2 mb-4'>
+                  <Filter className='h-5 w-5 text-primary' />
+                  <h3 className='text-lg font-semibold text-foreground'>
+                    Filtros de Búsqueda
+                  </h3>
+                </div>
+                <p className='text-muted-foreground text-sm mb-6'>
+                  Filtre por fechas, empleado o tarjeta, departamento y estatus.
+                </p>
+                {error && (
+                  <Alert variant='destructive'>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Fila 1: Empleado / Departamento */}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <Label>Empleado</Label>
+                    <EmployeeSearch value={empleado} onChange={setEmpleado} />
+                  </div>
+                  <div className='space-y-2'>
+                    <Label>Departamento</Label>
+                    <DepartmentSearchableSelect
+                      value={departamento}
+                      onChange={setDepartamento as any}
+                    />
+                  </div>
+                </div>
+
+                {/* Fila 2: Fecha Inicio / Fecha Fin */}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <Label>Fecha Inicio</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !fechaDesde && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className='mr-2 h-4 w-4' />
+                          {fechaDesde ? (
+                            format(fechaDesde, 'PPP', { locale: es })
+                          ) : (
+                            <span>Seleccionar fecha</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className='w-auto p-0'>
+                        <Calendar
+                          mode='single'
+                          selected={fechaDesde}
+                          onSelect={(d) => setFechaDesde(d || undefined)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className='space-y-2'>
+                    <Label>Fecha Fin</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !fechaHasta && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className='mr-2 h-4 w-4' />
+                          {fechaHasta ? (
+                            format(fechaHasta, 'PPP', { locale: es })
+                          ) : (
+                            <span>Seleccionar fecha</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className='w-auto p-0'>
+                        <Calendar
+                          mode='single'
+                          selected={fechaHasta}
+                          onSelect={(d) => setFechaHasta(d || undefined)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                {/* Fila 3: Tarjeta / Estatus */}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <Label>Número de Tarjeta</Label>
+                    <Input
+                      placeholder='Ej. 6001'
+                      inputMode='numeric'
+                      pattern='[0-9]*'
+                      value={tarjeta}
+                      onChange={(e) => setTarjeta(e.target.value)}
+                    />
+                  </div>
+                  <div className='space-y-2'>
+                    <Label>Estatus</Label>
+                    <select
+                      className='w-full border rounded-md h-10 px-3 bg-background'
+                      value={estatusSeleccionado?.id?.toString() || 'ALL'}
+                      onFocus={loadEstatusDisponibles}
+                      onChange={(e) => {
+                        if (e.target.value === 'ALL')
+                          setEstatusSeleccionado(null);
+                        else {
+                          const found =
+                            estatusDisponibles.find(
+                              (x) => x.id.toString() === e.target.value
+                            ) || null;
+                          setEstatusSeleccionado(found);
+                        }
+                      }}
+                    >
+                      <option value='ALL'>Todos</option>
+                      {estatusDisponibles.map((e) => (
+                        <option key={e.id} value={e.id.toString()}>
+                          {e.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className='flex gap-3'>
+                  <Button
+                    onClick={runSearch}
+                    disabled={loading}
+                    className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+                  >
+                    <Search className='mr-2 h-4 w-4' />
+                    {loading ? 'Buscando...' : 'Buscar'}
+                  </Button>
+                  <Button
+                    variant='outline'
+                    onClick={() => {
+                      setFechaDesde(undefined);
+                      setFechaHasta(undefined);
+                      setEmpleado(null);
+                      setTarjeta('');
+                      setDepartamento(null);
+                      setEstatusSeleccionado(null);
+                    }}
+                    disabled={loading}
+                    className='border-2 border-border hover:border-primary hover:bg-primary/5'
+                  >
+                    Limpiar
+                  </Button>
+                </div>
+              </div>
+            </EnhancedCard>
+
+            {/* Tabla de Resultados */}
+            <EnhancedCard variant='elevated' padding='lg'>
+              <div className='space-y-4'>
+                <div>
+                  <h3 className='text-lg font-semibold text-foreground'>
+                    Resultados de Asistencia
+                  </h3>
+                  <p className='text-muted-foreground text-sm'>
+                    Mostrando registros{' '}
+                    {asistencias.length > 0
+                      ? `${(currentPage - 1) * 50 + 1}-${Math.min(currentPage * 50, asistencias.length)}`
+                      : '0-0'}{' '}
+                    de {asistencias.length}
+                  </p>
+                </div>
+
+                <EnhancedTable
+                  columns={columns}
+                  data={paginatedData}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  emptyState={{
+                    icon: <Search className='h-8 w-8' />,
+                    title: 'No hay asistencias para mostrar',
+                    description:
+                      'Utiliza los filtros de búsqueda para encontrar registros de asistencia',
+                  }}
+                />
+
+                {totalPages > 1 && (
+                  <div className='mt-6 flex justify-center'>
+                    <div className='flex items-center space-x-2'>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        Anterior
+                      </Button>
+                      <span className='text-sm text-muted-foreground'>
+                        Página {currentPage} de {totalPages}
+                      </span>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </EnhancedCard>
+          </div>
+        ) : (
+          <div className='mt-6'>
+            <ConsolidacionManualForm />
+          </div>
+        )}
 
         <InlineJustificacionModal
           open={justModalOpen}
