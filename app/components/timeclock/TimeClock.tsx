@@ -8,6 +8,7 @@ import { ScannerPanel } from './ScannerPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { AttendanceDetails } from './AttendanceDetails';
 import { useScanStateReducer } from './useScanStateReducer';
+import { useAudioFeedback } from './hooks/useAudioFeedback';
 import type {
   HistoryPanelProps,
   ScannerPanelProps,
@@ -292,6 +293,9 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
       };
     }
   }, [scanState, clearPanelFlash, setReady]);
+
+  // Audio feedback hook
+  useAudioFeedback({ soundEnabled, scanState });
 
   // Toggle sonido (se usa en header e historial)
   const onToggleSound = useCallback(

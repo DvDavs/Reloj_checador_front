@@ -14,6 +14,8 @@ export { HistoryPanel } from './HistoryPanel';
 // Hooks and utilities
 export { useScanStateReducer } from './useScanStateReducer';
 export type { UseScanStateReducerResult } from './useScanStateReducer';
+export { useAudioFeedback } from './hooks/useAudioFeedback';
+export type { UseAudioFeedbackProps } from './hooks/useAudioFeedback';
 
 // Component interfaces and types
 export * from './interfaces';

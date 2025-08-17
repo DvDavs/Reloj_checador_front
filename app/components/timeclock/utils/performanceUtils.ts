@@ -224,7 +224,7 @@ export function measureRenderPerformance<T extends React.ComponentType<any>>(
 
   WrappedComponent.displayName = `PerformanceProfiled(${displayName || Component.displayName || Component.name})`;
 
-  return WrappedComponent as T;
+  return WrappedComponent as unknown as T;
 }
 
 // React import (will be available in the component context)
