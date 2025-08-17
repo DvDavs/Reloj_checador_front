@@ -22,6 +22,7 @@ interface FingerprintScanner {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+type ChecadorMode = 'new' | 'old';
 
 function LanzadorChecadorContent() {
   const [scanners, setScanners] = useState<FingerprintScanner[]>([]);
@@ -32,6 +33,7 @@ function LanzadorChecadorContent() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [browserSessionId, setBrowserSessionId] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mode, setMode] = useState<ChecadorMode>('new');
 
   useEffect(() => {
     setBrowserSessionId(getBrowserSessionId());
@@ -90,7 +92,8 @@ function LanzadorChecadorContent() {
 
     const readerName = selectedScanner.name;
     const encodedReader = encodeURIComponent(readerName);
-    const clockUrl = `/reloj-checador?reader=${encodedReader}&sessionId=${browserSessionId}`;
+    const basePath = mode === 'old' ? '/reloj-checador-old' : '/reloj-checador';
+    const clockUrl = `${basePath}?reader=${encodedReader}&sessionId=${browserSessionId}`;
 
     window.open(
       clockUrl,
@@ -141,6 +144,33 @@ function LanzadorChecadorContent() {
               <RefreshCw className='h-5 w-5' />
             )}
           </Button>
+          {/* Selector de modo: Nuevo / Viejo */}
+          <div className='flex items-center gap-2 ml-4'>
+            <Button
+              variant={mode === 'new' ? 'default' : 'outline'}
+              className={
+                mode === 'new'
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-zinc-800 border-zinc-700'
+              }
+              onClick={() => setMode('new')}
+              aria-pressed={mode === 'new'}
+            >
+              Nuevo
+            </Button>
+            <Button
+              variant={mode === 'old' ? 'default' : 'outline'}
+              className={
+                mode === 'old'
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-zinc-800 border-zinc-700'
+              }
+              onClick={() => setMode('old')}
+              aria-pressed={mode === 'old'}
+            >
+              Viejo
+            </Button>
+          </div>
         </header>
 
         {errorMessage && !isLoading && (

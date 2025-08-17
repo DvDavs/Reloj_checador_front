@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { ShiftsPanelProps } from './interfaces';
 import { formatTime } from '../../lib/timeClockUtils';
+import { shiftsPanelPropsAreEqual } from './utils/memoComparisons';
 
 type TurnoSize = 'large' | 'medium' | 'small' | 'xsmall';
 
@@ -94,304 +95,357 @@ function getTimeBoxColor(estatus: string, tipo: 'entrada' | 'salida'): string {
   return 'border-zinc-700';
 }
 
-function TurnoItem({
-  jornada,
-  isActive = false,
-  isExpanded = false,
-  size = 'medium',
-  currentTime,
-  onClick,
-}: {
-  jornada: ShiftsPanelProps['jornadas'][number];
-  isActive?: boolean;
-  isExpanded?: boolean;
-  size?: TurnoSize;
-  currentTime: Date;
-  onClick?: () => void;
-}) {
-  const isCompleted = jornada.estatusJornada === 'COMPLETADA';
-  const isPending = jornada.estatusJornada === 'PENDIENTE';
-  const isAbsent = jornada.estatusJornada.includes('AUSENTE');
-  const isInProgress = jornada.estatusJornada === 'EN_CURSO';
-  const hasDelay =
-    jornada.minutosRetardoPreliminar !== null &&
-    jornada.minutosRetardoPreliminar > 0;
+// Memoized TurnoItem component to prevent unnecessary re-renders
+const TurnoItem = React.memo(
+  function TurnoItem({
+    jornada,
+    isActive = false,
+    isExpanded = false,
+    size = 'medium',
+    currentTime,
+    onClick,
+  }: {
+    jornada: ShiftsPanelProps['jornadas'][number];
+    isActive?: boolean;
+    isExpanded?: boolean;
+    size?: TurnoSize;
+    currentTime: Date;
+    onClick?: () => void;
+  }) {
+    // Memoize expensive calculations
+    const jornadaStatus = useMemo(() => {
+      const isCompleted = jornada.estatusJornada === 'COMPLETADA';
+      const isPending = jornada.estatusJornada === 'PENDIENTE';
+      const isAbsent = jornada.estatusJornada.includes('AUSENTE');
+      const isInProgress = jornada.estatusJornada === 'EN_CURSO';
+      const hasDelay =
+        jornada.minutosRetardoPreliminar !== null &&
+        jornada.minutosRetardoPreliminar > 0;
 
-  const currentTimeStr = currentTime.toTimeString().substring(0, 8);
-  const shouldShowAsAbsent =
-    isAbsent && currentTimeStr > jornada.horaSalidaProgramada;
+      const currentTimeStr = currentTime.toTimeString().substring(0, 8);
+      const shouldShowAsAbsent =
+        isAbsent && currentTimeStr > jornada.horaSalidaProgramada;
 
-  const {
-    icon,
-    textColor,
-    bgColor,
-    borderColor,
-    gradientBg,
-    statusBgColor,
-    statusTextColor,
-  } = getStatusIndicator(jornada.estatusJornada, shouldShowAsAbsent);
+      return {
+        isCompleted,
+        isPending,
+        isAbsent,
+        isInProgress,
+        hasDelay,
+        shouldShowAsAbsent,
+      };
+    }, [
+      jornada.estatusJornada,
+      jornada.minutosRetardoPreliminar,
+      jornada.horaSalidaProgramada,
+      currentTime,
+    ]);
 
-  const sizeClasses = useMemo(() => {
-    switch (size) {
-      case 'large':
-        return {
-          container: 'p-4 mb-3',
-          text: 'text-lg',
-          subText: 'text-sm',
-          icon: 'w-8 h-8',
-          timeText: 'text-2xl',
-          badge: 'px-3 py-1 text-sm',
-        };
-      case 'medium':
-        return {
-          container: 'p-3 mb-2',
-          text: 'text-base',
-          subText: 'text-sm',
-          icon: 'w-6 h-6',
-          timeText: 'text-xl',
-          badge: 'px-2 py-0.5 text-xs',
-        };
-      case 'small':
-        return {
-          container: 'p-2 mb-2',
-          text: 'text-sm',
-          subText: 'text-xs',
-          icon: 'w-5 h-5',
-          timeText: 'text-lg',
-          badge: 'px-2 py-0.5 text-xs',
-        };
-      case 'xsmall':
-        return {
-          container: 'p-2 mb-1',
-          text: 'text-xs',
-          subText: 'text-xs',
-          icon: 'w-4 h-4',
-          timeText: 'text-sm',
-          badge: 'px-1 py-0.5 text-xs',
-        };
-    }
-  }, [size]);
+    const {
+      isCompleted,
+      isPending,
+      isAbsent,
+      isInProgress,
+      hasDelay,
+      shouldShowAsAbsent,
+    } = jornadaStatus;
 
-  const getEstadoTexto = (estado: string): string => {
-    if (isAbsent && !shouldShowAsAbsent) return 'Próximo';
-    switch (estado) {
-      case 'COMPLETADA':
-        return 'Completado';
-      case 'EN_CURSO':
-        return 'En curso';
-      case 'RETARDO':
-        return 'En curso';
-      case 'RETARDO_SIN_SALIDA':
-        return shouldShowAsAbsent ? 'Sin salida' : 'En curso';
-      case 'PENDIENTE':
-        return 'Próximo';
-      case 'AUSENTE_ENTRADA':
-        return shouldShowAsAbsent ? 'Sin entrada' : 'Próximo';
-      case 'AUSENTE_SALIDA':
-        return shouldShowAsAbsent ? 'Sin salida' : 'Próximo';
-      case 'AUSENTE':
-        return shouldShowAsAbsent ? 'Ausente' : 'Próximo';
-      default:
-        return 'Próximo';
-    }
-  };
+    // Memoize status indicator to avoid recalculation
+    const statusIndicator = useMemo(() => {
+      return getStatusIndicator(jornada.estatusJornada, shouldShowAsAbsent);
+    }, [jornada.estatusJornada, shouldShowAsAbsent]);
 
-  return (
-    <motion.div
-      className={`${sizeClasses.container} rounded-md border transition-all duration-300 cursor-pointer ${
-        isExpanded ? 'scale-100' : 'scale-98 hover:scale-100'
-      } ${isActive ? 'border-blue-600 shadow-blue-500/40 shadow-lg' : borderColor}`}
-      style={{
-        opacity: isCompleted ? 0.9 : isPending ? 0.95 : 1,
-        background: isActive
-          ? 'linear-gradient(to right, rgba(59,130,246,0.2), rgba(59,130,246,0.05))'
-          : gradientBg,
-      }}
-      onClick={onClick}
-      initial={{ opacity: 0.6, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      whileHover={{ scale: isExpanded ? 1 : 1.02 }}
-    >
-      {isExpanded ? (
-        <>
-          <div className='flex justify-between items-center mb-3 bg-zinc-800/70 -mx-3 -mt-3 px-3 py-2 rounded-t-md'>
+    const {
+      icon,
+      textColor,
+      bgColor,
+      borderColor,
+      gradientBg,
+      statusBgColor,
+      statusTextColor,
+    } = statusIndicator;
+
+    const sizeClasses = useMemo(() => {
+      switch (size) {
+        case 'large':
+          return {
+            container: 'p-4 mb-3',
+            text: 'text-lg',
+            subText: 'text-sm',
+            icon: 'w-8 h-8',
+            timeText: 'text-2xl',
+            badge: 'px-3 py-1 text-sm',
+          };
+        case 'medium':
+          return {
+            container: 'p-3 mb-2',
+            text: 'text-base',
+            subText: 'text-sm',
+            icon: 'w-6 h-6',
+            timeText: 'text-xl',
+            badge: 'px-2 py-0.5 text-xs',
+          };
+        case 'small':
+          return {
+            container: 'p-2 mb-2',
+            text: 'text-sm',
+            subText: 'text-xs',
+            icon: 'w-5 h-5',
+            timeText: 'text-lg',
+            badge: 'px-2 py-0.5 text-xs',
+          };
+        case 'xsmall':
+          return {
+            container: 'p-2 mb-1',
+            text: 'text-xs',
+            subText: 'text-xs',
+            icon: 'w-4 h-4',
+            timeText: 'text-sm',
+            badge: 'px-1 py-0.5 text-xs',
+          };
+      }
+    }, [size]);
+
+    // Memoize estado texto calculation
+    const estadoTexto = useMemo(() => {
+      if (isAbsent && !shouldShowAsAbsent) return 'Próximo';
+      switch (jornada.estatusJornada) {
+        case 'COMPLETADA':
+          return 'Completado';
+        case 'EN_CURSO':
+          return 'En curso';
+        case 'RETARDO':
+          return 'En curso';
+        case 'RETARDO_SIN_SALIDA':
+          return shouldShowAsAbsent ? 'Sin salida' : 'En curso';
+        case 'PENDIENTE':
+          return 'Próximo';
+        case 'AUSENTE_ENTRADA':
+          return shouldShowAsAbsent ? 'Sin entrada' : 'Próximo';
+        case 'AUSENTE_SALIDA':
+          return shouldShowAsAbsent ? 'Sin salida' : 'Próximo';
+        case 'AUSENTE':
+          return shouldShowAsAbsent ? 'Ausente' : 'Próximo';
+        default:
+          return 'Próximo';
+      }
+    }, [jornada.estatusJornada, isAbsent, shouldShowAsAbsent]);
+
+    return (
+      <motion.div
+        className={`${sizeClasses.container} rounded-md border transition-all duration-300 cursor-pointer ${
+          isExpanded ? 'scale-100' : 'scale-98 hover:scale-100'
+        } ${isActive ? 'border-blue-600 shadow-blue-500/40 shadow-lg' : borderColor}`}
+        style={{
+          opacity: isCompleted ? 0.9 : isPending ? 0.95 : 1,
+          background: isActive
+            ? 'linear-gradient(to right, rgba(59,130,246,0.2), rgba(59,130,246,0.05))'
+            : gradientBg,
+        }}
+        onClick={onClick}
+        initial={{ opacity: 0.6, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        whileHover={{ scale: isExpanded ? 1 : 1.02 }}
+      >
+        {isExpanded ? (
+          <>
+            <div className='flex justify-between items-center mb-3 bg-zinc-800/70 -mx-3 -mt-3 px-3 py-2 rounded-t-md'>
+              <div className='flex items-center gap-2'>
+                <motion.div
+                  className={`${sizeClasses.icon} rounded-full flex items-center justify-center ${bgColor}`}
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {icon}
+                </motion.div>
+                <p
+                  className={`${sizeClasses.text} font-medium ${isActive ? 'text-white' : textColor}`}
+                >
+                  {formatTime(jornada.horaEntradaProgramada)} -{' '}
+                  {formatTime(jornada.horaSalidaProgramada)}
+                </p>
+              </div>
+              <motion.div
+                className={`${sizeClasses.badge} font-medium rounded-full ${isActive && isCompleted ? `${statusBgColor} ${statusTextColor} animate-pulse` : `${statusBgColor} ${statusTextColor}`}`}
+                initial={{ opacity: 0.7 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                {estadoTexto}
+                {isActive && isCompleted && ' ✓'}
+              </motion.div>
+            </div>
+
+            {isActive && isCompleted && (
+              <motion.div
+                className='mb-3 px-2 py-1 text-xs bg-green-600/40 text-green-300 border border-green-600/50 rounded-md flex items-center gap-1'
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CheckCircle className='h-3 w-3' />
+                <span>Turno recién completado</span>
+              </motion.div>
+            )}
+
+            {hasDelay && jornada.estatusJornada === 'RETARDO' && (
+              <motion.div
+                className='mb-2 px-2 py-1 text-xs font-medium bg-yellow-600/30 text-yellow-300 rounded-md inline-flex items-center'
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
+                <AlertTriangle className='h-3 w-3 mr-1' />
+                Retardo: {jornada.minutosRetardoPreliminar} min
+              </motion.div>
+            )}
+
+            {isInProgress && jornada.estatusJornada !== 'RETARDO' && (
+              <motion.div
+                className='mb-2 px-2 py-1 text-xs font-medium bg-blue-600/30 text-blue-300 rounded-md inline-flex items-center'
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
+                <Timer className='h-3 w-3 mr-1' />
+                <span>Turno en curso</span>
+              </motion.div>
+            )}
+
+            <motion.div
+              className='grid grid-cols-2 gap-3'
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <div
+                className={`rounded-lg p-3 border ${getTimeBoxColor(jornada.estatusJornada, 'entrada')}`}
+              >
+                <div className='flex items-center gap-2 mb-1'>
+                  <LogIn className='h-4 w-4 text-zinc-400' />
+                  <p className='text-base font-medium'>Entrada</p>
+                </div>
+                {jornada.horaEntradaReal ? (
+                  <p
+                    className={`text-2xl font-bold ${hasDelay ? 'text-yellow-400' : ''}`}
+                  >
+                    {formatTime(jornada.horaEntradaReal)}
+                  </p>
+                ) : (jornada.estatusJornada === 'AUSENTE_ENTRADA' ||
+                    jornada.estatusJornada === 'AUSENTE') &&
+                  shouldShowAsAbsent ? (
+                  <div className='flex items-center gap-2'>
+                    <p className='text-2xl font-bold text-orange-400'>
+                      Sin entrada
+                    </p>
+                    <Ban className='h-5 w-5 text-orange-400' />
+                  </div>
+                ) : (
+                  <p className='text-2xl font-bold text-zinc-500'>
+                    {formatTime(jornada.horaEntradaProgramada)}
+                  </p>
+                )}
+              </div>
+              <div
+                className={`rounded-lg p-3 border ${getTimeBoxColor(jornada.estatusJornada, 'salida')}`}
+              >
+                <div className='flex items-center gap-2 mb-1'>
+                  <LogOut className='h-4 w-4 text-zinc-400' />
+                  <p className='text-base font-medium'>Salida</p>
+                </div>
+                {jornada.horaSalidaReal ? (
+                  <p className='text-2xl font-bold'>
+                    {formatTime(jornada.horaSalidaReal)}
+                  </p>
+                ) : jornada.estatusJornada === 'AUSENTE_SALIDA' &&
+                  shouldShowAsAbsent ? (
+                  <div className='flex items-center gap-2'>
+                    <p className='text-2xl font-bold text-orange-400'>
+                      Sin salida
+                    </p>
+                    <Ban className='h-5 w-5 text-orange-400' />
+                  </div>
+                ) : (
+                  <p className='text-2xl font-bold text-zinc-500'>
+                    {formatTime(jornada.horaSalidaProgramada)}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          </>
+        ) : (
+          <div className='flex justify-between items-center'>
             <div className='flex items-center gap-2'>
               <motion.div
                 className={`${sizeClasses.icon} rounded-full flex items-center justify-center ${bgColor}`}
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1 }}
                 transition={{ duration: 0.2 }}
               >
                 {icon}
               </motion.div>
-              <p
-                className={`${sizeClasses.text} font-medium ${isActive ? 'text-white' : textColor}`}
-              >
-                {formatTime(jornada.horaEntradaProgramada)} -{' '}
-                {formatTime(jornada.horaSalidaProgramada)}
-              </p>
-            </div>
-            <motion.div
-              className={`${sizeClasses.badge} font-medium rounded-full ${isActive && isCompleted ? `${statusBgColor} ${statusTextColor} animate-pulse` : `${statusBgColor} ${statusTextColor}`}`}
-              initial={{ opacity: 0.7 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              {getEstadoTexto(jornada.estatusJornada)}
-              {isActive && isCompleted && ' ✓'}
-            </motion.div>
-          </div>
-
-          {isActive && isCompleted && (
-            <motion.div
-              className='mb-3 px-2 py-1 text-xs bg-green-600/40 text-green-300 border border-green-600/50 rounded-md flex items-center gap-1'
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <CheckCircle className='h-3 w-3' />
-              <span>Turno recién completado</span>
-            </motion.div>
-          )}
-
-          {hasDelay && jornada.estatusJornada === 'RETARDO' && (
-            <motion.div
-              className='mb-2 px-2 py-1 text-xs font-medium bg-yellow-600/30 text-yellow-300 rounded-md inline-flex items-center'
-              initial={{ opacity: 0, x: -5 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              <AlertTriangle className='h-3 w-3 mr-1' />
-              Retardo: {jornada.minutosRetardoPreliminar} min
-            </motion.div>
-          )}
-
-          {isInProgress && jornada.estatusJornada !== 'RETARDO' && (
-            <motion.div
-              className='mb-2 px-2 py-1 text-xs font-medium bg-blue-600/30 text-blue-300 rounded-md inline-flex items-center'
-              initial={{ opacity: 0, x: -5 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              <Timer className='h-3 w-3 mr-1' />
-              <span>Turno en curso</span>
-            </motion.div>
-          )}
-
-          <motion.div
-            className='grid grid-cols-2 gap-3'
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
-            <div
-              className={`rounded-lg p-3 border ${getTimeBoxColor(jornada.estatusJornada, 'entrada')}`}
-            >
-              <div className='flex items-center gap-2 mb-1'>
-                <LogIn className='h-4 w-4 text-zinc-400' />
-                <p className='text-base font-medium'>Entrada</p>
-              </div>
-              {jornada.horaEntradaReal ? (
-                <p
-                  className={`text-2xl font-bold ${hasDelay ? 'text-yellow-400' : ''}`}
-                >
-                  {formatTime(jornada.horaEntradaReal)}
-                </p>
-              ) : (jornada.estatusJornada === 'AUSENTE_ENTRADA' ||
-                  jornada.estatusJornada === 'AUSENTE') &&
-                shouldShowAsAbsent ? (
-                <div className='flex items-center gap-2'>
-                  <p className='text-2xl font-bold text-orange-400'>
-                    Sin entrada
-                  </p>
-                  <Ban className='h-5 w-5 text-orange-400' />
-                </div>
-              ) : (
-                <p className='text-2xl font-bold text-zinc-500'>
-                  {formatTime(jornada.horaEntradaProgramada)}
-                </p>
-              )}
-            </div>
-            <div
-              className={`rounded-lg p-3 border ${getTimeBoxColor(jornada.estatusJornada, 'salida')}`}
-            >
-              <div className='flex items-center gap-2 mb-1'>
-                <LogOut className='h-4 w-4 text-zinc-400' />
-                <p className='text-base font-medium'>Salida</p>
-              </div>
-              {jornada.horaSalidaReal ? (
-                <p className='text-2xl font-bold'>
-                  {formatTime(jornada.horaSalidaReal)}
-                </p>
-              ) : jornada.estatusJornada === 'AUSENTE_SALIDA' &&
-                shouldShowAsAbsent ? (
-                <div className='flex items-center gap-2'>
-                  <p className='text-2xl font-bold text-orange-400'>
-                    Sin salida
-                  </p>
-                  <Ban className='h-5 w-5 text-orange-400' />
-                </div>
-              ) : (
-                <p className='text-2xl font-bold text-zinc-500'>
+              <div className='flex-1'>
+                <p className={`${sizeClasses.text} font-bold ${textColor}`}>
+                  {formatTime(jornada.horaEntradaProgramada)} -{' '}
                   {formatTime(jornada.horaSalidaProgramada)}
                 </p>
-              )}
-            </div>
-          </motion.div>
-        </>
-      ) : (
-        <div className='flex justify-between items-center'>
-          <div className='flex items-center gap-2'>
-            <motion.div
-              className={`${sizeClasses.icon} rounded-full flex items-center justify-center ${bgColor}`}
-              whileHover={{ scale: 1.1 }}
-              transition={{ duration: 0.2 }}
-            >
-              {icon}
-            </motion.div>
-            <div className='flex-1'>
-              <p className={`${sizeClasses.text} font-bold ${textColor}`}>
-                {formatTime(jornada.horaEntradaProgramada)} -{' '}
-                {formatTime(jornada.horaSalidaProgramada)}
-              </p>
-              <div
-                className={`flex items-center gap-1 ${sizeClasses.subText} mt-1`}
-              >
-                {jornada.horaEntradaReal && (
-                  <span className='text-green-300'>
-                    E: {formatTime(jornada.horaEntradaReal)}
-                  </span>
-                )}
-                {jornada.horaSalidaReal && (
-                  <span className='text-blue-300'>
-                    {jornada.horaEntradaReal && ' • '}S:{' '}
-                    {formatTime(jornada.horaSalidaReal)}
-                  </span>
-                )}
-                {jornada.estatusJornada === 'RETARDO' &&
-                  jornada.minutosRetardoPreliminar && (
-                    <span className='text-yellow-300'>
-                      {(jornada.horaEntradaReal || jornada.horaSalidaReal) &&
-                        ' • '}
-                      +{jornada.minutosRetardoPreliminar}min
+                <div
+                  className={`flex items-center gap-1 ${sizeClasses.subText} mt-1`}
+                >
+                  {jornada.horaEntradaReal && (
+                    <span className='text-green-300'>
+                      E: {formatTime(jornada.horaEntradaReal)}
                     </span>
                   )}
+                  {jornada.horaSalidaReal && (
+                    <span className='text-blue-300'>
+                      {jornada.horaEntradaReal && ' • '}S:{' '}
+                      {formatTime(jornada.horaSalidaReal)}
+                    </span>
+                  )}
+                  {jornada.estatusJornada === 'RETARDO' &&
+                    jornada.minutosRetardoPreliminar && (
+                      <span className='text-yellow-300'>
+                        {(jornada.horaEntradaReal || jornada.horaSalidaReal) &&
+                          ' • '}
+                        +{jornada.minutosRetardoPreliminar}min
+                      </span>
+                    )}
+                </div>
               </div>
             </div>
+            <motion.div
+              className={`${sizeClasses.badge} rounded-full ${statusBgColor} ${statusTextColor} font-medium`}
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              {estadoTexto}
+            </motion.div>
           </div>
-          <motion.div
-            className={`${sizeClasses.badge} rounded-full ${statusBgColor} ${statusTextColor} font-medium`}
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.2 }}
-          >
-            {getEstadoTexto(jornada.estatusJornada)}
-          </motion.div>
-        </div>
-      )}
-    </motion.div>
-  );
-}
+        )}
+      </motion.div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison for TurnoItem memoization
+    return (
+      prevProps.jornada.detalleHorarioId ===
+        nextProps.jornada.detalleHorarioId &&
+      prevProps.jornada.estatusJornada === nextProps.jornada.estatusJornada &&
+      prevProps.jornada.horaEntradaReal === nextProps.jornada.horaEntradaReal &&
+      prevProps.jornada.horaSalidaReal === nextProps.jornada.horaSalidaReal &&
+      prevProps.jornada.minutosRetardoPreliminar ===
+        nextProps.jornada.minutosRetardoPreliminar &&
+      prevProps.isActive === nextProps.isActive &&
+      prevProps.isExpanded === nextProps.isExpanded &&
+      prevProps.size === nextProps.size &&
+      prevProps.onClick === nextProps.onClick &&
+      // Only compare minute changes for currentTime
+      prevProps.currentTime.getMinutes() === nextProps.currentTime.getMinutes()
+    );
+  }
+);
 
 function getItemSize(total: number, isCurrent: boolean): TurnoSize {
   if (isCurrent) return total <= 3 ? 'large' : total <= 6 ? 'medium' : 'small';
@@ -478,4 +532,7 @@ function ShiftsPanelComponent({
   );
 }
 
-export const ShiftsPanel = React.memo(ShiftsPanelComponent);
+export const ShiftsPanel = React.memo(
+  ShiftsPanelComponent,
+  shiftsPanelPropsAreEqual
+);

@@ -40,6 +40,7 @@ export type ScanAction =
     }
   | { type: 'SET_READY' }
   | { type: 'SET_IDLE' }
+  | { type: 'CLEAR_PANEL_FLASH' }
   | { type: 'RESET' };
 
 // Props: HeaderClock (hora/fecha, estado de conexión, controles)
@@ -50,6 +51,8 @@ export interface HeaderClockProps {
   isFullScreen: boolean;
   onToggleFullScreen: () => void;
   onReload: () => void;
+  soundEnabled?: boolean;
+  onToggleSound?: (value: boolean) => void;
 }
 
 // Props: ShiftsPanel (jornadas del día y estados relacionados)
@@ -79,6 +82,7 @@ export interface ScannerPanelProps {
   customMessage?: string | null;
   panelFlash?: PanelFlash;
   showInstructionMessage?: boolean;
+  preparingNextScan?: boolean;
 
   // PIN input
   pinInputMode: boolean;
@@ -87,6 +91,10 @@ export interface ScannerPanelProps {
   onStartPinInput: (initialDigit?: string) => void;
   onSubmitPin: (pin: string) => void | Promise<void>;
   onCancelPin: () => void;
+
+  // Attendance details
+  showAttendance?: boolean;
+  currentEmployee?: { id: number; name: string } | null;
 }
 
 // Props: AttendanceDetails (datos del empleado, acción recomendada)
@@ -100,8 +108,8 @@ export interface AttendanceDetailsProps {
 // Props: HistoryPanel (historial de escaneos y control de sonido)
 export interface HistoryPanelProps {
   items: ScanHistoryItem[];
-  soundEnabled: boolean;
-  onToggleSound: (value: boolean) => void;
+  soundEnabled?: boolean;
+  onToggleSound?: (value: boolean) => void;
   inactiveTimeSeconds?: number;
 }
 

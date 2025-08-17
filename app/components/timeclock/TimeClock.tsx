@@ -6,9 +6,10 @@ import { HeaderClock } from './HeaderClock';
 import { ShiftsPanel } from './ShiftsPanel';
 import { ScannerPanel } from './ScannerPanel';
 import { HistoryPanel } from './HistoryPanel';
-import { AttendanceDetails } from './AttendanceDetails';
 import { useScanStateReducer } from './useScanStateReducer';
 import type { HistoryPanelProps, ScannerPanelProps } from './interfaces';
+import { useRenderPerformance } from './utils/performanceMonitor';
+import { PerformanceDebugger } from './PerformanceDebugger';
 
 import useStompTimeClock from '@/app/hooks/useStompTimeClock';
 import useEmployeeAttendanceData from '@/app/hooks/useEmployeeAttendanceData';
@@ -35,6 +36,14 @@ export function TimeClock({
   sessionId,
   instanceId,
 }: TimeClockProps) {
+  // Performance monitoring
+  const { startRender } = useRenderPerformance('TimeClock');
+
+  React.useLayoutEffect(() => {
+    const endRender = startRender();
+    return endRender;
+  });
+
   // Reloj
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   useEffect(() => {
@@ -51,6 +60,7 @@ export function TimeClock({
     setFailed,
     setReady,
     setIdle,
+    clearPanelFlash,
     reset,
   } = useScanStateReducer();
 
@@ -98,6 +108,11 @@ export function TimeClock({
   const [employeeIdToFetch, setEmployeeIdToFetch] = useState<number | null>(
     null
   );
+  // Estado temporal para mostrar datos del empleado inmediatamente
+  const [tempEmployeeData, setTempEmployeeData] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
   const {
     currentEmployeeData,
     jornadasDelDia,
@@ -114,13 +129,30 @@ export function TimeClock({
   const handleFullAttendanceEvent = useCallback(
     (event: FullAttendanceStateEvent) => {
       updateFromFullAttendanceEvent(event);
-      setShowAttendance(true);
-      setReady();
+
+      // Si tenemos datos de empleado, mostrar el panel de asistencia
+      if (event.employeeData) {
+        setEmployeeIdToFetch(event.employeeData.id);
+        setShowAttendance(true);
+        // Almacenar datos temporales del empleado para mostrar inmediatamente
+        setTempEmployeeData({
+          id: event.employeeData.id,
+          name: event.employeeData.nombreCompleto,
+        });
+        console.log('🎯 FullAttendance event - setting temp employee data:', {
+          id: event.employeeData.id,
+          name: event.employeeData.nombreCompleto,
+          showAttendance: true,
+        });
+      }
+
       if (event.justCompletedSessionIdBackend !== undefined) {
         setJustCompletedSessionId(event.justCompletedSessionIdBackend || null);
       }
+
+      // NO llamar a setReady() aquí - mantener el estado actual
     },
-    [setReady, updateFromFullAttendanceEvent]
+    [updateFromFullAttendanceEvent]
   );
 
   const handleChecadorEvent = useCallback(
@@ -147,6 +179,16 @@ export function TimeClock({
         });
         setShowAttendance(true);
         setEmployeeIdToFetch(e.empleadoId);
+        // Almacenar datos temporales del empleado para mostrar inmediatamente
+        setTempEmployeeData({
+          id: e.empleadoId,
+          name: e.nombreCompleto,
+        });
+        console.log('🎯 Success event - setting temp employee data:', {
+          id: e.empleadoId,
+          name: e.nombreCompleto,
+          showAttendance: true,
+        });
         pushHistory({
           name: e.nombreCompleto,
           time: new Date(),
@@ -161,6 +203,7 @@ export function TimeClock({
           statusCode: e.statusCode || null,
           statusData: e.data || null,
         });
+        setTempEmployeeData(null); // Limpiar datos temporales en caso de error
         pushHistory({
           name: e.nombreCompleto || 'Desconocido',
           time: new Date(),
@@ -260,7 +303,34 @@ export function TimeClock({
     return () => window.removeEventListener('keydown', onKey);
   }, [pinInputLoading, pinInputMode]);
 
-  // Render
+  // Panel flash timing: igual que el componente original
+  useEffect(() => {
+    if (scanState === 'success' || scanState === 'failed') {
+      // Limpiar solo el panel flash después de 2.8 segundos (mantener mensaje y estado)
+      const flashTimer = setTimeout(() => {
+        clearPanelFlash();
+      }, 2800);
+
+      // Limpiar todo el estado después de 5 segundos (igual que el original)
+      const stateTimer = setTimeout(() => {
+        setReady();
+        setTempEmployeeData(null); // Limpiar datos temporales
+      }, 5000);
+
+      return () => {
+        clearTimeout(flashTimer);
+        clearTimeout(stateTimer);
+      };
+    }
+  }, [scanState, clearPanelFlash, setReady]);
+
+  // Toggle sonido (se usa en header e historial)
+  const onToggleSound = useCallback(
+    (value: boolean) => setSoundEnabled(value),
+    []
+  );
+
+  // Memoize expensive calculations and props objects
   const headerProps = useMemo(
     () => ({
       currentTime,
@@ -269,6 +339,8 @@ export function TimeClock({
       isFullScreen,
       onToggleFullScreen: toggleFullScreen,
       onReload,
+      soundEnabled,
+      onToggleSound,
     }),
     [
       currentTime,
@@ -277,37 +349,105 @@ export function TimeClock({
       isFullScreen,
       toggleFullScreen,
       onReload,
+      soundEnabled,
+      onToggleSound,
     ]
   );
 
-  const scannerProps: ScannerPanelProps = {
-    scanState,
-    statusCode: statusCode || undefined,
-    customMessage: customMessage || undefined,
-    panelFlash: panelFlash || undefined,
-    showInstructionMessage: true,
-    pinInputMode,
-    pinInputLoading,
-    initialPinDigit,
-    onStartPinInput,
-    onSubmitPin,
-    onCancelPin,
-  };
+  // Memoize current employee calculation
+  const currentEmployee = useMemo(() => {
+    return currentEmployeeData
+      ? {
+          id: currentEmployeeData.id,
+          name: currentEmployeeData.nombreCompleto,
+        }
+      : tempEmployeeData;
+  }, [currentEmployeeData, tempEmployeeData]);
 
-  const onToggleSound = useCallback(
-    (value: boolean) => setSoundEnabled(value),
-    []
+  // Debug log
+  if (showAttendance) {
+    console.log('🔍 ScannerPanel props:', {
+      scanState,
+      showAttendance,
+      currentEmployee,
+      tempEmployeeData,
+      currentEmployeeData: currentEmployeeData?.nombreCompleto,
+    });
+  }
+
+  // Memoize scanner props to prevent unnecessary re-renders
+  const scannerProps: ScannerPanelProps = useMemo(
+    () => ({
+      scanState,
+      statusCode: statusCode || undefined,
+      customMessage: customMessage || undefined,
+      panelFlash: panelFlash || undefined,
+      showInstructionMessage: true,
+      pinInputMode,
+      pinInputLoading,
+      initialPinDigit,
+      preparingNextScan: false, // TODO: Implement preparingNextScan state
+      onStartPinInput,
+      onSubmitPin,
+      onCancelPin,
+      showAttendance,
+      currentEmployee,
+    }),
+    [
+      scanState,
+      statusCode,
+      customMessage,
+      panelFlash,
+      pinInputMode,
+      pinInputLoading,
+      initialPinDigit,
+      onStartPinInput,
+      onSubmitPin,
+      onCancelPin,
+      showAttendance,
+      currentEmployee,
+    ]
   );
 
-  const historyProps: HistoryPanelProps = {
-    items: scanHistory,
-    soundEnabled,
-    onToggleSound,
-    inactiveTimeSeconds,
-  };
+  // Memoize history props
+  const historyProps: HistoryPanelProps = useMemo(
+    () => ({
+      items: scanHistory,
+      soundEnabled,
+      onToggleSound,
+      inactiveTimeSeconds,
+    }),
+    [scanHistory, soundEnabled, onToggleSound, inactiveTimeSeconds]
+  );
+
+  // Memoize turno click handler
   const onTurnoClick = useCallback(
     (turnoId: number | null) => setExpandedTurnoId(turnoId),
     []
+  );
+
+  // Memoize shifts props
+  const shiftsProps = useMemo(
+    () => ({
+      jornadas: jornadasDelDia,
+      activeSessionId,
+      expandedTurnoId,
+      onTurnoClick,
+      currentTime: currentTime || new Date(),
+      justCompletedSessionId,
+      nextRecommendedAction,
+      isLoading,
+    }),
+    [
+      jornadasDelDia,
+      activeSessionId,
+      expandedTurnoId,
+      onTurnoClick,
+      currentTime,
+      justCompletedSessionId,
+      nextRecommendedAction,
+      isLoading,
+    ]
   );
 
   return (
@@ -316,38 +456,26 @@ export function TimeClock({
         <HeaderClock {...headerProps} />
 
         {/* Estructura de tres columnas: Izquierda (Turnos), Centro (Scanner + Detalles), Derecha (Historial) */}
-        <div className='flex flex-col md:flex-row gap-4'>
+        <div className='flex flex-col md:flex-row gap-4 min-h-[600px]'>
           {/* Izquierda: Turnos */}
-          <div className='w-full md:w-80'>
-            <ShiftsPanel
-              jornadas={jornadasDelDia}
-              activeSessionId={activeSessionId}
-              expandedTurnoId={expandedTurnoId}
-              onTurnoClick={onTurnoClick}
-              currentTime={currentTime || new Date()}
-              justCompletedSessionId={justCompletedSessionId}
-              nextRecommendedAction={nextRecommendedAction}
-              isLoading={isLoading}
-            />
+          <div className='w-full md:w-80 flex flex-col'>
+            <ShiftsPanel {...shiftsProps} />
           </div>
 
           {/* Centro: Scanner + Detalles */}
-          <div className='flex-1 flex flex-col gap-4'>
+          <div className='flex-1 flex flex-col'>
             <ScannerPanel {...scannerProps} />
-            <AttendanceDetails
-              employee={currentEmployeeData}
-              show={showAttendance}
-              nextRecommendedAction={nextRecommendedAction}
-              dailyWorkSessions={jornadasDelDia}
-            />
           </div>
 
           {/* Derecha: Historial */}
-          <div className='w-full md:w-80'>
+          <div className='w-full md:w-80 flex flex-col'>
             <HistoryPanel {...historyProps} />
           </div>
         </div>
       </div>
+
+      {/* Performance debugger - only in development */}
+      <PerformanceDebugger />
     </div>
   );
 }

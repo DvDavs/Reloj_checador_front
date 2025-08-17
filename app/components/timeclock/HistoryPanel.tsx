@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import {
   History,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import type { HistoryPanelProps } from './interfaces';
+import { historyPanelPropsAreEqual } from './utils/memoComparisons';
 
 function getBgAndBorderClasses(statusCode?: string | null): string {
   if (!statusCode) return 'bg-zinc-800/50';
@@ -80,9 +81,18 @@ function HistoryPanelComponent({
   const hasItems = items && items.length > 0;
   const maxItems = 6;
 
+  // Memoize visible items calculation
   const visibleItems = useMemo(
     () => (hasItems ? items.slice(0, maxItems) : []),
-    [hasItems, items]
+    [hasItems, items, maxItems]
+  );
+
+  // Memoize sound toggle handler
+  const handleSoundToggle = useCallback(
+    (checked: boolean) => {
+      onToggleSound?.(checked);
+    },
+    [onToggleSound]
   );
 
   return (
@@ -94,7 +104,7 @@ function HistoryPanelComponent({
         </div>
         <div className='flex items-center gap-2'>
           <span className='text-xs text-zinc-400'>Sonido</span>
-          <Switch checked={soundEnabled} onCheckedChange={onToggleSound} />
+          <Switch checked={soundEnabled} onCheckedChange={handleSoundToggle} />
         </div>
       </div>
 
@@ -117,6 +127,7 @@ function HistoryPanelComponent({
               </div>
             ))
           : visibleItems.map((scan, index) => {
+              // Memoize expensive calculations per item
               const containerClasses = getBgAndBorderClasses(scan.statusCode);
               const { Icon, colorClass } = getActionIconAndColor(
                 scan.statusCode,
@@ -126,6 +137,11 @@ function HistoryPanelComponent({
                 index === 0
                   ? 1
                   : Math.max(0.5, 1 - inactiveTimeSeconds * 0.01 * index);
+
+              // Memoize formatted time
+              const formattedTime = format(scan.time, 'HH:mm:ss');
+              const truncatedName = truncateName(scan.name);
+
               return (
                 <div
                   key={`${scan.employeeId}-${scan.time.toString()}-${index}`}
@@ -142,12 +158,10 @@ function HistoryPanelComponent({
                       className='text-lg font-bold text-white'
                       title={scan.name}
                     >
-                      {truncateName(scan.name)}
+                      {truncatedName}
                     </p>
                     <div className='flex justify-between items-center'>
-                      <p className='text-base text-zinc-400'>
-                        {format(scan.time, 'HH:mm:ss')}
-                      </p>
+                      <p className='text-base text-zinc-400'>{formattedTime}</p>
                       {scan.success ? (
                         <span
                           className={`px-2 py-0.5 text-xs font-medium rounded-full ${scan.action === 'entrada' ? 'bg-green-500/20 text-green-300' : 'bg-blue-500/20 text-blue-300'}`}
@@ -169,4 +183,7 @@ function HistoryPanelComponent({
   );
 }
 
-export const HistoryPanel = React.memo(HistoryPanelComponent);
+export const HistoryPanel = React.memo(
+  HistoryPanelComponent,
+  historyPanelPropsAreEqual
+);

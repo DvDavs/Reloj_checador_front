@@ -82,6 +82,11 @@ export function scanStateReducer(
         statusCode: null,
         statusData: null,
       };
+    case 'CLEAR_PANEL_FLASH':
+      return {
+        ...state,
+        panelFlash: null,
+      };
     case 'RESET':
       return getInitialScanReducerState();
     default:
@@ -104,6 +109,7 @@ export interface UseScanStateReducerResult {
   }) => void;
   setReady: () => void;
   setIdle: () => void;
+  clearPanelFlash: () => void;
   reset: () => void;
   dispatch: React.Dispatch<ScanAction>;
 }
@@ -160,6 +166,10 @@ export function useScanStateReducer(
     dispatch({ type: 'SET_IDLE' });
   }, []);
 
+  const clearPanelFlash = useCallback(() => {
+    dispatch({ type: 'CLEAR_PANEL_FLASH' });
+  }, []);
+
   const reset = useCallback(() => {
     dispatch({ type: 'RESET' });
   }, []);
@@ -172,10 +182,20 @@ export function useScanStateReducer(
       setFailed,
       setReady,
       setIdle,
+      clearPanelFlash,
       reset,
       dispatch,
     }),
-    [state, setScanning, setSuccess, setFailed, setReady, setIdle, reset]
+    [
+      state,
+      setScanning,
+      setSuccess,
+      setFailed,
+      setReady,
+      setIdle,
+      clearPanelFlash,
+      reset,
+    ]
   );
 }
 
