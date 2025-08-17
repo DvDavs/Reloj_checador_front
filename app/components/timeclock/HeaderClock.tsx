@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import type { HeaderClockProps } from './interfaces';
 import { headerClockPropsAreEqual } from './utils/memoComparisons';
-import { useRenderPerformance } from './utils/performanceMonitor';
 
 function HeaderClockComponent({
   currentTime,
@@ -33,14 +32,6 @@ function HeaderClockComponent({
   soundEnabled = true,
   onToggleSound,
 }: HeaderClockProps) {
-  // Performance monitoring
-  const { startRender } = useRenderPerformance('HeaderClock');
-
-  React.useLayoutEffect(() => {
-    const endRender = startRender();
-    return endRender;
-  });
-
   // Memoize formatted time strings to avoid recalculating on every render
   const formattedTime = useMemo(() => {
     return currentTime ? format(currentTime, 'HH:mm:ss') : '00:00:00';

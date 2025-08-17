@@ -6,10 +6,13 @@ import { HeaderClock } from './HeaderClock';
 import { ShiftsPanel } from './ShiftsPanel';
 import { ScannerPanel } from './ScannerPanel';
 import { HistoryPanel } from './HistoryPanel';
+import { AttendanceDetails } from './AttendanceDetails';
 import { useScanStateReducer } from './useScanStateReducer';
-import type { HistoryPanelProps, ScannerPanelProps } from './interfaces';
-import { useRenderPerformance } from './utils/performanceMonitor';
-import { PerformanceDebugger } from './PerformanceDebugger';
+import type {
+  HistoryPanelProps,
+  ScannerPanelProps,
+  AttendanceDetailsProps,
+} from './interfaces';
 
 import useStompTimeClock from '@/app/hooks/useStompTimeClock';
 import useEmployeeAttendanceData from '@/app/hooks/useEmployeeAttendanceData';
@@ -36,14 +39,6 @@ export function TimeClock({
   sessionId,
   instanceId,
 }: TimeClockProps) {
-  // Performance monitoring
-  const { startRender } = useRenderPerformance('TimeClock');
-
-  React.useLayoutEffect(() => {
-    const endRender = startRender();
-    return endRender;
-  });
-
   // Reloj
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   useEffect(() => {
@@ -315,6 +310,8 @@ export function TimeClock({
       const stateTimer = setTimeout(() => {
         setReady();
         setTempEmployeeData(null); // Limpiar datos temporales
+        setShowAttendance(false); // Ocultar el panel de asistencia
+        setEmployeeIdToFetch(null); // Limpiar el ID para que el hook también se resetee
       }, 5000);
 
       return () => {
@@ -390,8 +387,6 @@ export function TimeClock({
       onStartPinInput,
       onSubmitPin,
       onCancelPin,
-      showAttendance,
-      currentEmployee,
     }),
     [
       scanState,
@@ -404,9 +399,18 @@ export function TimeClock({
       onStartPinInput,
       onSubmitPin,
       onCancelPin,
-      showAttendance,
-      currentEmployee,
     ]
+  );
+
+  // Memoize attendance details props
+  const attendanceDetailsProps: AttendanceDetailsProps = useMemo(
+    () => ({
+      employee: currentEmployeeData,
+      show: showAttendance,
+      nextRecommendedAction,
+      dailyWorkSessions: jornadasDelDia,
+    }),
+    [currentEmployeeData, showAttendance, nextRecommendedAction, jornadasDelDia]
   );
 
   // Memoize history props
@@ -456,15 +460,17 @@ export function TimeClock({
         <HeaderClock {...headerProps} />
 
         {/* Estructura de tres columnas: Izquierda (Turnos), Centro (Scanner + Detalles), Derecha (Historial) */}
-        <div className='flex flex-col md:flex-row gap-4 min-h-[600px]'>
+        <div className='flex flex-col md:flex-row gap-4'>
           {/* Izquierda: Turnos */}
           <div className='w-full md:w-80 flex flex-col'>
+            <ShiftsPanel {...shiftsProps} />
             <ShiftsPanel {...shiftsProps} />
           </div>
 
           {/* Centro: Scanner + Detalles */}
-          <div className='flex-1 flex flex-col'>
+          <div className='flex-1 flex flex-col gap-4'>
             <ScannerPanel {...scannerProps} />
+            <AttendanceDetails {...attendanceDetailsProps} />
           </div>
 
           {/* Derecha: Historial */}
@@ -473,9 +479,6 @@ export function TimeClock({
           </div>
         </div>
       </div>
-
-      {/* Performance debugger - only in development */}
-      <PerformanceDebugger />
     </div>
   );
 }

@@ -2,20 +2,11 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Fingerprint,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  User,
-  LogIn,
-  LogOut,
-} from 'lucide-react';
+import { Fingerprint, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import type { ScannerPanelProps } from './interfaces';
 import PinInput from '../PinInput';
 import { getStyleClassesForCode } from '../../lib/timeClockUtils';
 import { scannerPanelPropsAreEqual } from './utils/memoComparisons';
-import { useRenderPerformance } from './utils/performanceMonitor';
 
 function getResultMessage(
   scanState: ScannerPanelProps['scanState'],
@@ -61,17 +52,7 @@ function ScannerPanelComponent({
   onStartPinInput,
   onSubmitPin,
   onCancelPin,
-  showAttendance = false,
-  currentEmployee = null,
 }: ScannerPanelProps) {
-  // Performance monitoring
-  const { startRender } = useRenderPerformance('ScannerPanel');
-
-  React.useLayoutEffect(() => {
-    const endRender = startRender();
-    return endRender;
-  });
-
   // Memoize panel color calculation to avoid recalculation on every render
   const getPanelColor = useMemo(() => {
     if (statusCode) {
@@ -128,10 +109,10 @@ function ScannerPanelComponent({
 
   return (
     <div
-      className={`relative flex flex-col items-center rounded-lg p-6 border-2 transition-colors duration-300 min-h-[600px] ${getPanelColor}`}
+      className={`relative flex flex-col items-center rounded-lg p-6 border-2 transition-colors duration-300 ${getPanelColor}`}
     >
-      {/* Contenedor superior para el escáner */}
-      <div className='flex-1 flex flex-col items-center justify-center'>
+      {/* Contenedor para el escáner */}
+      <div className='flex flex-col items-center justify-center flex-1'>
         {/* Overlay de mensaje grande en la parte superior, como en la vista original */}
         <div
           className='absolute top-0 left-0 right-0 flex items-center justify-center z-10 pointer-events-none'
@@ -423,59 +404,6 @@ function ScannerPanelComponent({
             Usar PIN
           </button>
         )}
-      </div>
-
-      {/* Sección de datos de asistencia - SIEMPRE VISIBLE CON PLACEHOLDERS */}
-      <div className='w-full border-t-2 border-zinc-700 pt-6 mt-auto'>
-        {/* Información del usuario - siempre visible con placeholders */}
-        <div className='mb-6 flex items-center gap-4'>
-          <div
-            className={`flex h-16 w-16 items-center justify-center rounded-full ${
-              showAttendance && currentEmployee
-                ? 'bg-blue-500/30 border-2 border-blue-500'
-                : 'bg-zinc-800'
-            }`}
-          >
-            <User
-              className={`h-8 w-8 ${
-                showAttendance && currentEmployee
-                  ? 'text-blue-300'
-                  : 'text-zinc-400'
-              }`}
-            />
-          </div>
-          <div>
-            <h2 className='text-2xl font-bold text-white'>
-              {showAttendance && currentEmployee?.name
-                ? currentEmployee.name
-                : 'Usuario'}
-            </h2>
-            <p className='text-lg text-zinc-400'>
-              {showAttendance && currentEmployee?.id
-                ? currentEmployee.id
-                : 'ID-0000-0000'}
-            </p>
-          </div>
-        </div>
-
-        {/* Recuadros de Entrada/Salida - siempre visibles */}
-        <div className='mb-6 grid grid-cols-2 gap-4'>
-          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-zinc-700'>
-            <div className='flex items-center gap-3 mb-2'>
-              <LogIn className='h-6 w-6 text-zinc-400' />
-              <p className='text-lg font-medium'>Entrada</p>
-            </div>
-            <p className='text-3xl font-bold text-zinc-600'>00:00</p>
-          </div>
-
-          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-zinc-700'>
-            <div className='flex items-center gap-3 mb-2'>
-              <LogOut className='h-6 w-6 text-zinc-400' />
-              <p className='text-lg font-medium'>Salida</p>
-            </div>
-            <p className='text-3xl font-bold text-zinc-600'>00:00</p>
-          </div>
-        </div>
       </div>
     </div>
   );

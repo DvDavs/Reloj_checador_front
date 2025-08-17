@@ -14,6 +14,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import type { HistoryPanelProps } from './interfaces';
 import { historyPanelPropsAreEqual } from './utils/memoComparisons';
+import type { ScanHistoryItem } from '../../lib/types/timeClockTypes';
 
 function getBgAndBorderClasses(statusCode?: string | null): string {
   if (!statusCode) return 'bg-zinc-800/50';
@@ -72,6 +73,103 @@ function truncateName(name: string, maxLength = 28): string {
   return name.slice(0, maxLength - 1) + '…';
 }
 
+// Memoized HistoryItem component for better performance
+const HistoryItem = React.memo(
+  function HistoryItem({
+    scan,
+    index,
+    inactiveTimeSeconds,
+  }: {
+    scan: ScanHistoryItem;
+    index: number;
+    inactiveTimeSeconds: number;
+  }) {
+    // Memoize expensive calculations
+    const itemData = useMemo(() => {
+      const containerClasses = getBgAndBorderClasses(scan.statusCode);
+      const { Icon, colorClass } = getActionIconAndColor(
+        scan.statusCode,
+        scan.action
+      );
+      const opacity =
+        index === 0 ? 1 : Math.max(0.5, 1 - inactiveTimeSeconds * 0.01 * index);
+      const formattedTime = format(scan.time, 'HH:mm:ss');
+      const truncatedName = truncateName(scan.name);
+
+      return {
+        containerClasses,
+        Icon,
+        colorClass,
+        opacity,
+        formattedTime,
+        truncatedName,
+      };
+    }, [
+      scan.statusCode,
+      scan.action,
+      scan.time,
+      scan.name,
+      index,
+      inactiveTimeSeconds,
+    ]);
+
+    const avatarBgClass = useMemo(
+      () => getAvatarBgClass(scan.statusCode),
+      [scan.statusCode]
+    );
+
+    return (
+      <div
+        key={`${scan.employeeId}-${scan.time.toString()}-${index}`}
+        className={`flex items-center gap-3 p-3 rounded-md ${itemData.containerClasses}`}
+        style={{ opacity: itemData.opacity, transition: 'opacity 1s ease' }}
+      >
+        <div
+          className={`h-12 w-12 rounded-full flex items-center justify-center ${avatarBgClass}`}
+        >
+          <itemData.Icon className={`h-6 w-6 ${itemData.colorClass}`} />
+        </div>
+        <div className='flex-1'>
+          <p className='text-lg font-bold text-white' title={scan.name}>
+            {itemData.truncatedName}
+          </p>
+          <div className='flex justify-between items-center'>
+            <p className='text-base text-zinc-400'>{itemData.formattedTime}</p>
+            {scan.success ? (
+              <span
+                className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                  scan.action === 'entrada'
+                    ? 'bg-green-500/20 text-green-300'
+                    : 'bg-blue-500/20 text-blue-300'
+                }`}
+              >
+                {scan.action === 'entrada' ? 'Entrada' : 'Salida'}
+              </span>
+            ) : (
+              <span className='px-2 py-0.5 text-xs font-medium rounded-full bg-zinc-700/50 text-zinc-400'>
+                Intento
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison for HistoryItem
+    return (
+      prevProps.scan.employeeId === nextProps.scan.employeeId &&
+      prevProps.scan.time.getTime() === nextProps.scan.time.getTime() &&
+      prevProps.scan.success === nextProps.scan.success &&
+      prevProps.scan.action === nextProps.scan.action &&
+      prevProps.scan.statusCode === nextProps.scan.statusCode &&
+      prevProps.index === nextProps.index &&
+      Math.floor(prevProps.inactiveTimeSeconds / 10) ===
+        Math.floor(nextProps.inactiveTimeSeconds / 10)
+    );
+  }
+);
+
 function HistoryPanelComponent({
   items,
   soundEnabled,
@@ -126,58 +224,14 @@ function HistoryPanelComponent({
                 </div>
               </div>
             ))
-          : visibleItems.map((scan, index) => {
-              // Memoize expensive calculations per item
-              const containerClasses = getBgAndBorderClasses(scan.statusCode);
-              const { Icon, colorClass } = getActionIconAndColor(
-                scan.statusCode,
-                scan.action
-              );
-              const opacity =
-                index === 0
-                  ? 1
-                  : Math.max(0.5, 1 - inactiveTimeSeconds * 0.01 * index);
-
-              // Memoize formatted time
-              const formattedTime = format(scan.time, 'HH:mm:ss');
-              const truncatedName = truncateName(scan.name);
-
-              return (
-                <div
-                  key={`${scan.employeeId}-${scan.time.toString()}-${index}`}
-                  className={`flex items-center gap-3 p-3 rounded-md ${containerClasses}`}
-                  style={{ opacity, transition: 'opacity 1s ease' }}
-                >
-                  <div
-                    className={`h-12 w-12 rounded-full flex items-center justify-center ${getAvatarBgClass(scan.statusCode)}`}
-                  >
-                    <Icon className={`h-6 w-6 ${colorClass}`} />
-                  </div>
-                  <div className='flex-1'>
-                    <p
-                      className='text-lg font-bold text-white'
-                      title={scan.name}
-                    >
-                      {truncatedName}
-                    </p>
-                    <div className='flex justify-between items-center'>
-                      <p className='text-base text-zinc-400'>{formattedTime}</p>
-                      {scan.success ? (
-                        <span
-                          className={`px-2 py-0.5 text-xs font-medium rounded-full ${scan.action === 'entrada' ? 'bg-green-500/20 text-green-300' : 'bg-blue-500/20 text-blue-300'}`}
-                        >
-                          {scan.action === 'entrada' ? 'Entrada' : 'Salida'}
-                        </span>
-                      ) : (
-                        <span className='px-2 py-0.5 text-xs font-medium rounded-full bg-zinc-700/50 text-zinc-400'>
-                          Intento
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          : visibleItems.map((scan, index) => (
+              <HistoryItem
+                key={`${scan.employeeId}-${scan.time.toString()}-${index}`}
+                scan={scan}
+                index={index}
+                inactiveTimeSeconds={inactiveTimeSeconds}
+              />
+            ))}
       </div>
     </div>
   );

@@ -106,24 +106,9 @@ export function scannerPanelPropsAreEqual(
     prevProps.pinInputMode !== nextProps.pinInputMode ||
     prevProps.pinInputLoading !== nextProps.pinInputLoading ||
     prevProps.initialPinDigit !== nextProps.initialPinDigit ||
-    prevProps.preparingNextScan !== nextProps.preparingNextScan ||
-    prevProps.showAttendance !== nextProps.showAttendance
+    prevProps.preparingNextScan !== nextProps.preparingNextScan
   ) {
     return false;
-  }
-
-  // Compare currentEmployee object
-  const prevEmployee = prevProps.currentEmployee;
-  const nextEmployee = nextProps.currentEmployee;
-
-  if (prevEmployee !== nextEmployee) {
-    if (!prevEmployee || !nextEmployee) return false;
-    if (
-      prevEmployee.id !== nextEmployee.id ||
-      prevEmployee.name !== nextEmployee.name
-    ) {
-      return false;
-    }
   }
 
   // Function references should be stable due to useCallback

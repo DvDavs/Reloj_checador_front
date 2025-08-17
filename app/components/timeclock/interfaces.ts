@@ -91,10 +91,6 @@ export interface ScannerPanelProps {
   onStartPinInput: (initialDigit?: string) => void;
   onSubmitPin: (pin: string) => void | Promise<void>;
   onCancelPin: () => void;
-
-  // Attendance details
-  showAttendance?: boolean;
-  currentEmployee?: { id: number; name: string } | null;
 }
 
 // Props: AttendanceDetails (datos del empleado, acción recomendada)
