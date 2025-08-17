@@ -464,7 +464,6 @@ export function TimeClock({
           {/* Izquierda: Turnos */}
           <div className='w-full md:w-80 flex flex-col'>
             <ShiftsPanel {...shiftsProps} />
-            <ShiftsPanel {...shiftsProps} />
           </div>
 
           {/* Centro: Scanner + Detalles */}

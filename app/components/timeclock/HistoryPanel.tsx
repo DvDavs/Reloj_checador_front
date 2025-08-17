@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import {
   History,
@@ -11,7 +11,6 @@ import {
   XCircle,
   ShieldAlert,
 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
 import type { HistoryPanelProps } from './interfaces';
 import { historyPanelPropsAreEqual } from './utils/memoComparisons';
 import type { ScanHistoryItem } from '../../lib/types/timeClockTypes';
@@ -172,8 +171,6 @@ const HistoryItem = React.memo(
 
 function HistoryPanelComponent({
   items,
-  soundEnabled,
-  onToggleSound,
   inactiveTimeSeconds = 0,
 }: HistoryPanelProps) {
   const hasItems = items && items.length > 0;
@@ -185,24 +182,12 @@ function HistoryPanelComponent({
     [hasItems, items, maxItems]
   );
 
-  // Memoize sound toggle handler
-  const handleSoundToggle = useCallback(
-    (checked: boolean) => {
-      onToggleSound?.(checked);
-    },
-    [onToggleSound]
-  );
-
   return (
     <div className='w-full md:w-80 bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800'>
       <div className='flex items-center justify-between mb-4'>
         <div className='flex items-center gap-3'>
           <History className='h-6 w-6 text-zinc-400' />
           <h3 className='text-xl font-bold text-zinc-300'>Últimos Registros</h3>
-        </div>
-        <div className='flex items-center gap-2'>
-          <span className='text-xs text-zinc-400'>Sonido</span>
-          <Switch checked={soundEnabled} onCheckedChange={handleSoundToggle} />
         </div>
       </div>
 
