@@ -235,7 +235,7 @@ const TurnoItem = React.memo(
       <motion.div
         className={`${sizeClasses.container} rounded-md border transition-all duration-300 cursor-pointer ${
           isExpanded ? 'scale-100' : 'scale-98 hover:scale-100'
-        } ${isActive ? 'border-blue-600 shadow-blue-500/40 shadow-lg' : borderColor}`}
+        } ${isActive ? 'border-blue-600 shadow-blue-500/40 shadow-lg active' : borderColor}`}
         style={{
           opacity: isCompleted ? 0.9 : isPending ? 0.95 : 1,
           background: isActive
@@ -247,6 +247,7 @@ const TurnoItem = React.memo(
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         whileHover={{ scale: isExpanded ? 1 : 1.02 }}
+        data-testid={`shift-${jornada.detalleHorarioId}`}
       >
         {isExpanded ? (
           <>

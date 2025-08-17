@@ -8,7 +8,7 @@ describe('TimeClock Module Exports', () => {
   it('should export TimeClock component', async () => {
     const { TimeClock } = await import('../index');
     expect(TimeClock).toBeDefined();
-    expect(typeof TimeClock).toBe('function');
+    expect(typeof TimeClock).toBe('object'); // React.memo returns object
   });
 
   it('should export TimeClockProps type', async () => {

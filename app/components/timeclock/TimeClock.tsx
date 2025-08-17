@@ -34,11 +34,11 @@ export type TimeClockProps = {
   instanceId: string;
 };
 
-export function TimeClock({
+const TimeClock = React.memo<TimeClockProps>(function TimeClock({
   selectedReader,
   sessionId,
   instanceId,
-}: TimeClockProps) {
+}) {
   // Reloj
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   useEffect(() => {
@@ -49,14 +49,13 @@ export function TimeClock({
 
   // Reducer de estado de escaneo
   const {
-    state: { scanState, customMessage, panelFlash, statusCode, statusData },
+    state: { scanState, customMessage, panelFlash, statusCode },
     setScanning,
     setSuccess,
     setFailed,
     setReady,
     setIdle,
     clearPanelFlash,
-    reset,
   } = useScanStateReducer();
 
   // UI local
@@ -103,11 +102,6 @@ export function TimeClock({
   const [employeeIdToFetch, setEmployeeIdToFetch] = useState<number | null>(
     null
   );
-  // Estado temporal para mostrar datos del empleado inmediatamente
-  const [tempEmployeeData, setTempEmployeeData] = useState<{
-    id: number;
-    name: string;
-  } | null>(null);
   const {
     currentEmployeeData,
     jornadasDelDia,
@@ -129,16 +123,6 @@ export function TimeClock({
       if (event.employeeData) {
         setEmployeeIdToFetch(event.employeeData.id);
         setShowAttendance(true);
-        // Almacenar datos temporales del empleado para mostrar inmediatamente
-        setTempEmployeeData({
-          id: event.employeeData.id,
-          name: event.employeeData.nombreCompleto,
-        });
-        console.log('🎯 FullAttendance event - setting temp employee data:', {
-          id: event.employeeData.id,
-          name: event.employeeData.nombreCompleto,
-          showAttendance: true,
-        });
       }
 
       if (event.justCompletedSessionIdBackend !== undefined) {
@@ -174,16 +158,6 @@ export function TimeClock({
         });
         setShowAttendance(true);
         setEmployeeIdToFetch(e.empleadoId);
-        // Almacenar datos temporales del empleado para mostrar inmediatamente
-        setTempEmployeeData({
-          id: e.empleadoId,
-          name: e.nombreCompleto,
-        });
-        console.log('🎯 Success event - setting temp employee data:', {
-          id: e.empleadoId,
-          name: e.nombreCompleto,
-          showAttendance: true,
-        });
         pushHistory({
           name: e.nombreCompleto,
           time: new Date(),
@@ -198,7 +172,6 @@ export function TimeClock({
           statusCode: e.statusCode || null,
           statusData: e.data || null,
         });
-        setTempEmployeeData(null); // Limpiar datos temporales en caso de error
         pushHistory({
           name: e.nombreCompleto || 'Desconocido',
           time: new Date(),
@@ -309,7 +282,6 @@ export function TimeClock({
       // Limpiar todo el estado después de 5 segundos (igual que el original)
       const stateTimer = setTimeout(() => {
         setReady();
-        setTempEmployeeData(null); // Limpiar datos temporales
         setShowAttendance(false); // Ocultar el panel de asistencia
         setEmployeeIdToFetch(null); // Limpiar el ID para que el hook también se resetee
       }, 5000);
@@ -351,15 +323,10 @@ export function TimeClock({
     ]
   );
 
-  // Memoize current employee calculation
+  // Memoize current employee calculation - rely directly on hook data
   const currentEmployee = useMemo(() => {
-    return currentEmployeeData
-      ? {
-          id: currentEmployeeData.id,
-          name: currentEmployeeData.nombreCompleto,
-        }
-      : tempEmployeeData;
-  }, [currentEmployeeData, tempEmployeeData]);
+    return currentEmployeeData;
+  }, [currentEmployeeData]);
 
   // Debug log
   if (showAttendance) {
@@ -367,7 +334,6 @@ export function TimeClock({
       scanState,
       showAttendance,
       currentEmployee,
-      tempEmployeeData,
       currentEmployeeData: currentEmployeeData?.nombreCompleto,
     });
   }
@@ -480,6 +446,8 @@ export function TimeClock({
       </div>
     </div>
   );
-}
+});
+
+TimeClock.displayName = 'TimeClock';
 
 export default TimeClock;

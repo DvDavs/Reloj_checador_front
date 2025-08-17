@@ -60,6 +60,7 @@ function HeaderClockComponent({
         <div className='hidden md:flex items-center space-x-2 bg-zinc-800 p-2 rounded-lg'>
           <Switch
             id='sound-toggle'
+            data-testid='sound-toggle'
             checked={soundEnabled}
             onCheckedChange={(v) => onToggleSound && onToggleSound(v)}
           />
@@ -117,7 +118,10 @@ function HeaderClockComponent({
         </TooltipProvider>
 
         {isConnected && selectedReader && (
-          <div className='flex items-center space-x-2 bg-blue-900/30 p-2 rounded-lg border border-blue-800'>
+          <div
+            className='flex items-center space-x-2 bg-blue-900/30 p-2 rounded-lg border border-blue-800 connected'
+            data-testid='connection-status'
+          >
             <Fingerprint className='h-4 w-4 text-blue-400' />
             <span className='text-sm text-blue-300'>{selectedReader}</span>
           </div>

@@ -137,7 +137,10 @@ function ScannerPanelComponent({
         </div>
 
         {/* Scanner area or PIN input */}
-        <div className='relative mb-8 flex h-64 w-64 items-center justify-center flex-shrink-0'>
+        <div
+          className={`relative mb-8 flex h-64 w-64 items-center justify-center flex-shrink-0 ${scanState === 'scanning' ? 'scanning' : ''}`}
+          data-testid='scanner-area'
+        >
           {pinInputMode ? (
             <PinInput
               isVisible={true}
