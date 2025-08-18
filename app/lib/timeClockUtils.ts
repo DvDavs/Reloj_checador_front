@@ -50,7 +50,7 @@ export const getUserFriendlyMessage = (
     case '406':
       return 'Salida no registrada - Sin entrada';
     case '407':
-      return 'No tienes permiso para checar con número de tarjeta';
+      return 'Sin permiso de usar número de tarjeta';
 
     // Código especial para FR - se guarda pero se muestra como error
     case 'FR':

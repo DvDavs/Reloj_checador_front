@@ -5,15 +5,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { HeaderClock } from './HeaderClock';
 import { ShiftsPanel } from './ShiftsPanel';
 import { ScannerPanel } from './ScannerPanel';
-import { HistoryPanel } from './HistoryPanel';
+// import { HistoryPanel } from './HistoryPanel';
+import AdvertisingPanel from './AdvertisingPanel';
 import { AttendanceDetails } from './AttendanceDetails';
 import { useScanStateReducer } from './useScanStateReducer';
 import { useAudioFeedback } from './hooks/useAudioFeedback';
-import type {
-  HistoryPanelProps,
-  ScannerPanelProps,
-  AttendanceDetailsProps,
-} from './interfaces';
+import type { ScannerPanelProps, AttendanceDetailsProps } from './interfaces';
 
 import useStompTimeClock from '@/app/hooks/useStompTimeClock';
 import useEmployeeAttendanceData from '@/app/hooks/useEmployeeAttendanceData';
@@ -151,7 +148,22 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
         e.nombreCompleto
       );
 
-      if (e.identificado && e.empleadoId && e.nombreCompleto && e.accion) {
+      // Determinar éxito por código de estado (evita problemas por mayúsculas/minúsculas del mensaje)
+      // - 2xx => éxito (incluye 200, 201, 202, 203)
+      // - 301/302 => ya registrada (lo consideramos éxito visualmente)
+      // - FR => mostrar como fallo aunque pueda haberse guardado
+      const code = e.statusCode || '';
+      const isSuccessfulRegistration =
+        code !== 'FR' &&
+        (code.startsWith('2') || code === '301' || code === '302');
+
+      if (
+        e.identificado &&
+        e.empleadoId &&
+        e.nombreCompleto &&
+        e.accion &&
+        isSuccessfulRegistration
+      ) {
         setSuccess({
           message: friendly,
           statusCode: e.statusCode || null,
@@ -173,6 +185,11 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
           statusCode: e.statusCode || null,
           statusData: e.data || null,
         });
+        // Si hay empleado identificado pero no es registro exitoso, mostrar panel
+        if (e.identificado && e.empleadoId && e.nombreCompleto) {
+          setShowAttendance(true);
+          setEmployeeIdToFetch(e.empleadoId);
+        }
         pushHistory({
           name: e.nombreCompleto || 'Desconocido',
           time: new Date(),
@@ -383,16 +400,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
     [currentEmployeeData, showAttendance, nextRecommendedAction, jornadasDelDia]
   );
 
-  // Memoize history props
-  const historyProps: HistoryPanelProps = useMemo(
-    () => ({
-      items: scanHistory,
-      soundEnabled,
-      onToggleSound,
-      inactiveTimeSeconds,
-    }),
-    [scanHistory, soundEnabled, onToggleSound, inactiveTimeSeconds]
-  );
+  // HistoryPanel oculto: mantenemos el estado pero no renderizamos
 
   // Memoize turno click handler
   const onTurnoClick = useCallback(
@@ -425,26 +433,33 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
   );
 
   return (
-    <div className='min-h-screen w-full bg-black text-white p-4'>
-      <div className='max-w-7xl mx-auto space-y-4'>
-        <HeaderClock {...headerProps} />
+    <div className='h-screen w-full bg-black text-white p-3 xl:p-4 overflow-hidden'>
+      <div className='max-w-7xl mx-auto h-full transform origin-top xl:scale-95'>
+        {/* Rectángulo contenedor sin overflow */}
+        <div className='h-full rounded-xl border-2 border-zinc-800 bg-zinc-950/60 p-3 xl:p-4 overflow-hidden'>
+          <div className='grid grid-rows-[auto,1fr] gap-3 xl:gap-4 h-full min-h-0'>
+            <HeaderClock {...headerProps} />
 
-        {/* Estructura de tres columnas: Izquierda (Turnos), Centro (Scanner + Detalles), Derecha (Historial) */}
-        <div className='flex flex-col md:flex-row gap-4'>
-          {/* Izquierda: Turnos */}
-          <div className='w-full md:w-80 flex flex-col'>
-            <ShiftsPanel {...shiftsProps} />
-          </div>
+            {/* Layout de dos columnas como en la imagen (contenido ocupa todo el alto restante) */}
+            <div className='grid grid-cols-1 lg:grid-cols-3 gap-4 xl:gap-6 h-full min-h-0 overflow-hidden'>
+              {/* Columna izquierda: Scanner + Detalles del usuario (2/3 del ancho) */}
+              <div className='lg:col-span-2 grid grid-rows-[3fr,2fr] gap-3 h-full min-h-0 overflow-hidden'>
+                {/* Scanner de huellas (3 partes) */}
+                <div className='min-h-0 overflow-hidden'>
+                  <ScannerPanel {...scannerProps} />
+                </div>
 
-          {/* Centro: Scanner + Detalles */}
-          <div className='flex-1 flex flex-col gap-4'>
-            <ScannerPanel {...scannerProps} />
-            <AttendanceDetails {...attendanceDetailsProps} />
-          </div>
+                {/* Detalles del usuario (1 parte) */}
+                <div className='min-h-0 overflow-hidden'>
+                  <AttendanceDetails {...attendanceDetailsProps} />
+                </div>
+              </div>
 
-          {/* Derecha: Historial */}
-          <div className='w-full md:w-80 flex flex-col'>
-            <HistoryPanel {...historyProps} />
+              {/* Columna derecha: Publicidad (1/3 del ancho) */}
+              <div className='lg:col-span-1 h-full min-h-0 overflow-hidden'>
+                <AdvertisingPanel />
+              </div>
+            </div>
           </div>
         </div>
       </div>

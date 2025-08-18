@@ -43,16 +43,28 @@ function HeaderClockComponent({
       : '---, -- --- ----';
   }, [currentTime]);
 
+  // Mostrar solo los últimos 5 caracteres del lector, omitiendo el último
+  // si es un carácter no alfanumérico (p. ej. '}' o ')'). Ej.: "B2FE}" -> "B2FE"
+  const shortReaderId = useMemo(() => {
+    if (!selectedReader) return null;
+    const tail = selectedReader.slice(-5);
+    return tail.replace(/[^A-Za-z0-9]$/, '');
+  }, [selectedReader]);
+
   return (
-    <div className='flex justify-between items-center bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800'>
+    <div className='flex justify-between items-center bg-zinc-900 rounded-lg px-4 py-5 border-2 border-zinc-800'>
       <div className='flex items-center gap-3'>
-        <Clock className='h-10 w-10 text-zinc-400' />
-        <span className='text-4xl font-bold text-white'>{formattedTime}</span>
+        <Clock className='h-12 w-12 text-zinc-400' />
+        <span className='text-5xl xl:text-6xl font-bold text-white leading-none'>
+          {formattedTime}
+        </span>
       </div>
 
       <div className='flex items-center gap-3'>
-        <Calendar className='h-8 w-8 text-zinc-400' />
-        <span className='text-2xl font-medium text-white'>{formattedDate}</span>
+        <Calendar className='h-9 w-9 text-zinc-400' />
+        <span className='text-2xl xl:text-3xl font-medium text-white'>
+          {formattedDate}
+        </span>
       </div>
 
       <div className='flex items-center gap-3'>
@@ -117,13 +129,15 @@ function HeaderClockComponent({
           </Tooltip>
         </TooltipProvider>
 
-        {isConnected && selectedReader && (
+        {isConnected && shortReaderId && (
           <div
-            className='flex items-center space-x-2 bg-blue-900/30 p-2 rounded-lg border border-blue-800 connected'
+            className='flex items-center space-x-2 bg-zinc-800/60 p-2 rounded-lg border border-zinc-700 connected'
             data-testid='connection-status'
           >
-            <Fingerprint className='h-4 w-4 text-blue-400' />
-            <span className='text-sm text-blue-300'>{selectedReader}</span>
+            <Fingerprint className='h-5 w-5 text-blue-400' />
+            <span className='text-sm font-medium text-blue-300'>
+              {shortReaderId}
+            </span>
           </div>
         )}
       </div>

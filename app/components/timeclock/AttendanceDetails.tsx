@@ -1,79 +1,11 @@
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import {
-  User,
-  IdCard,
-  Building2,
-  School,
-  LogIn,
-  LogOut,
-  CheckCircle,
-  Info,
-} from 'lucide-react';
-import type {
-  AttendanceDetailsProps,
-  NextRecommendedAction,
-} from './interfaces';
+import { User, LogIn, LogOut, AlertTriangle } from 'lucide-react';
+import type { AttendanceDetailsProps } from './interfaces';
 import { formatTime } from '../../lib/timeClockUtils';
 import { attendanceDetailsPropsAreEqual } from './utils/memoComparisons';
-
-function getRecommendationStyles(action: NextRecommendedAction | undefined): {
-  label: string;
-  icon: React.ReactNode;
-  badgeClasses: string;
-} {
-  switch (action) {
-    case 'entrada':
-      return {
-        label: 'Entrada recomendada',
-        icon: <LogIn className='h-4 w-4' />,
-        badgeClasses:
-          'bg-green-900/40 border border-green-600/60 text-green-300',
-      };
-    case 'salida':
-      return {
-        label: 'Salida recomendada',
-        icon: <LogOut className='h-4 w-4' />,
-        badgeClasses: 'bg-blue-900/40 border border-blue-600/60 text-blue-300',
-      };
-    case 'ALL_COMPLETE':
-      return {
-        label: 'Jornadas completas',
-        icon: <CheckCircle className='h-4 w-4' />,
-        badgeClasses:
-          'bg-emerald-900/40 border border-emerald-600/60 text-emerald-300',
-      };
-    case 'NO_ACTION':
-    default:
-      return {
-        label: 'Sin acción recomendada',
-        icon: <Info className='h-4 w-4' />,
-        badgeClasses: 'bg-zinc-800 border border-zinc-700 text-zinc-300',
-      };
-  }
-}
-
-// Memoized RecommendationBadge component
-const RecommendationBadge = React.memo(function RecommendationBadge({
-  action,
-}: {
-  action: NextRecommendedAction | undefined;
-}) {
-  const { label, icon, badgeClasses } = useMemo(
-    () => getRecommendationStyles(action),
-    [action]
-  );
-  return (
-    <div
-      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${badgeClasses}`}
-    >
-      {icon}
-      <span className='text-sm font-medium'>{label}</span>
-    </div>
-  );
-});
 
 type Session = AttendanceDetailsProps['dailyWorkSessions'][number];
 
@@ -131,48 +63,87 @@ const PrimarySessionBoxes = React.memo(
 
     if (!session || !formattedTimes) {
       return (
-        <div className='text-sm text-zinc-500'>
-          No hay turnos asignados para hoy
+        <div className='grid grid-cols-2 gap-4'>
+          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-zinc-700'>
+            <div className='flex items-center gap-2 mb-2'>
+              <LogIn className='h-6 w-6 text-zinc-400' />
+              <p className='text-lg font-medium'>Entrada</p>
+            </div>
+            <p className='text-3xl font-bold text-zinc-600'>00:00</p>
+          </div>
+          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-zinc-700'>
+            <div className='flex items-center gap-2 mb-2'>
+              <LogOut className='h-6 w-6 text-zinc-400' />
+              <p className='text-lg font-medium'>Salida</p>
+            </div>
+            <p className='text-3xl font-bold text-zinc-600'>00:00</p>
+          </div>
         </div>
       );
     }
 
+    const hasRetardo =
+      session.estatusJornada === 'RETARDO' ||
+      session.estatusJornada === 'RETARDO_SIN_SALIDA';
+
     return (
       <motion.div
-        className='grid grid-cols-2 gap-3'
+        className='grid grid-cols-2 gap-4'
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
       >
         <div
-          className={`rounded-lg p-4 border ${getTimeBoxBorder(session.estatusJornada, 'entrada')}`}
+          className={`rounded-lg p-4 border-2 transition-all duration-300 ${getTimeBoxBorder(session.estatusJornada, 'entrada')}`}
         >
-          <div className='flex items-center gap-2 mb-1'>
-            <LogIn className='h-4 w-4 text-zinc-400' />
-            <p className='text-base font-medium'>Entrada</p>
+          <div className='flex items-center gap-2 mb-2'>
+            <LogIn
+              className={`h-6 w-6 ${
+                session.horaEntradaReal
+                  ? hasRetardo
+                    ? 'text-yellow-400'
+                    : 'text-green-400'
+                  : 'text-blue-400'
+              }`}
+            />
+            <p className='text-lg font-medium'>Entrada</p>
           </div>
-          {formattedTimes.entradaReal ? (
-            <p className='text-3xl font-bold'>{formattedTimes.entradaReal}</p>
-          ) : (
-            <p className='text-3xl font-bold text-zinc-400'>
-              {formattedTimes.entradaProgramada}
-            </p>
+          <p
+            className={`text-3xl font-bold ${
+              session.horaEntradaReal
+                ? hasRetardo
+                  ? 'text-yellow-300'
+                  : 'text-green-300'
+                : 'text-blue-300'
+            }`}
+          >
+            {formattedTimes.entradaReal || formattedTimes.entradaProgramada}
+          </p>
+          {hasRetardo && session.horaEntradaReal && (
+            <div className='mt-1 text-xs text-yellow-400 flex items-center gap-1'>
+              <AlertTriangle className='h-3 w-3' /> Entrada con retardo
+            </div>
           )}
         </div>
+
         <div
-          className={`rounded-lg p-4 border ${getTimeBoxBorder(session.estatusJornada, 'salida')}`}
+          className={`rounded-lg p-4 border-2 transition-all duration-300 ${getTimeBoxBorder(session.estatusJornada, 'salida')}`}
         >
-          <div className='flex items-center gap-2 mb-1'>
-            <LogOut className='h-4 w-4 text-zinc-400' />
-            <p className='text-base font-medium'>Salida</p>
+          <div className='flex items-center gap-2 mb-2'>
+            <LogOut
+              className={`h-6 w-6 ${
+                session.horaSalidaReal ? 'text-green-400' : 'text-blue-400'
+              }`}
+            />
+            <p className='text-lg font-medium'>Salida</p>
           </div>
-          {formattedTimes.salidaReal ? (
-            <p className='text-3xl font-bold'>{formattedTimes.salidaReal}</p>
-          ) : (
-            <p className='text-3xl font-bold text-zinc-400'>
-              {formattedTimes.salidaProgramada}
-            </p>
-          )}
+          <p
+            className={`text-3xl font-bold ${
+              session.horaSalidaReal ? 'text-green-300' : 'text-blue-300'
+            }`}
+          >
+            {formattedTimes.salidaReal || formattedTimes.salidaProgramada}
+          </p>
         </div>
       </motion.div>
     );
@@ -197,47 +168,43 @@ const PrimarySessionBoxes = React.memo(
 function AttendanceDetailsComponent({
   employee,
   show,
-  nextRecommendedAction,
   dailyWorkSessions,
 }: AttendanceDetailsProps) {
-  if (!show || !employee) return null;
+  // Siempre mostrar el panel, pero con placeholders cuando no hay datos
+  const hasEmployeeData = show && employee;
+
   return (
-    <div className='w-full mt-6'>
-      <div className='flex items-start justify-between gap-4 mb-4'>
-        <div className='flex items-center gap-3'>
-          <div className='p-2 rounded-full bg-zinc-800 border border-zinc-700'>
-            <User className='h-5 w-5 text-zinc-300' />
-          </div>
-          <div>
-            <p className='text-lg font-semibold text-white'>
-              {employee.nombreCompleto}
-            </p>
-            <div className='flex flex-wrap items-center gap-3 mt-1 text-xs text-zinc-400'>
-              <span className='inline-flex items-center gap-1'>
-                <IdCard className='h-3.5 w-3.5' /> RFC: {employee.rfc}
-              </span>
-              {employee.tarjeta ? (
-                <span className='inline-flex items-center gap-1'>
-                  <IdCard className='h-3.5 w-3.5' /> Tarjeta: {employee.tarjeta}
-                </span>
-              ) : null}
-              {employee.departamentoNombre ? (
-                <span className='inline-flex items-center gap-1'>
-                  <Building2 className='h-3.5 w-3.5' />{' '}
-                  {employee.departamentoNombre}
-                </span>
-              ) : null}
-              {employee.academiaNombre ? (
-                <span className='inline-flex items-center gap-1'>
-                  <School className='h-3.5 w-3.5' /> {employee.academiaNombre}
-                </span>
-              ) : null}
-            </div>
-          </div>
+    <div className='w-full h-full bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800 flex flex-col'>
+      {/* Información del usuario - con placeholders - Más compacto */}
+      <div className='mb-3 flex items-center gap-4'>
+        <div
+          className={`flex h-20 w-20 items-center justify-center rounded-full ${
+            hasEmployeeData
+              ? 'bg-blue-500/30 border-2 border-blue-500'
+              : 'bg-zinc-800 border-2 border-zinc-700'
+          }`}
+        >
+          <User
+            className={`h-10 w-10 ${
+              hasEmployeeData ? 'text-blue-300' : 'text-zinc-400'
+            }`}
+          />
         </div>
-        <RecommendationBadge action={nextRecommendedAction} />
+        <div className='flex-1'>
+          <h2 className='text-3xl font-bold text-white'>
+            {hasEmployeeData ? employee.nombreCompleto : 'Usuario'}
+          </h2>
+        </div>
       </div>
-      <PrimarySessionBoxes sessions={dailyWorkSessions} />
+
+      {/* Recuadros de Entrada/Salida - siempre visibles */}
+      <div className='flex-1 flex items-center justify-center'>
+        <div className='w-full'>
+          <PrimarySessionBoxes
+            sessions={hasEmployeeData ? dailyWorkSessions : []}
+          />
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -511,7 +511,7 @@ function ShiftsPanelComponent({
                 jornada.detalleHorarioId === activeSessionId) ||
               (justCompletedSessionId !== null &&
                 jornada.detalleHorarioId === justCompletedSessionId);
-            const isExpanded = jornada.detalleHorarioId === expandedTurnoId;
+            const isExpanded = true; // Siempre expandido
             const size = getItemSize(sortedJornadas.length, isExpanded);
             return (
               <TurnoItem
@@ -521,9 +521,7 @@ function ShiftsPanelComponent({
                 isExpanded={isExpanded}
                 size={size}
                 currentTime={currentTime}
-                onClick={() =>
-                  onTurnoClick(isExpanded ? null : jornada.detalleHorarioId)
-                }
+                onClick={() => {}} // Sin funcionalidad de click ya que siempre está expandido
               />
             );
           })}

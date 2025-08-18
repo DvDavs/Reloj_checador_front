@@ -174,7 +174,7 @@ function HistoryPanelComponent({
   inactiveTimeSeconds = 0,
 }: HistoryPanelProps) {
   const hasItems = items && items.length > 0;
-  const maxItems = 6;
+  const maxItems = 5;
 
   // Memoize visible items calculation
   const visibleItems = useMemo(
