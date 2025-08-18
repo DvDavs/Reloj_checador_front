@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import TimeClock from '@/app/components/time-clock-view'; // Ajusta la ruta si es necesario
+import { TimeClock } from '@/app/components/timeclock';
 import { Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 

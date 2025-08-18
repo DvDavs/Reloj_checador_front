@@ -371,7 +371,7 @@ export default function Sidebar() {
               </Link>
             ) : (
               <div className='flex justify-center opacity-100 duration-200'>
-                <Tooltip content='TecNM Campus Oaxaca - Sistema de Control'>
+                <Tooltip content='TecNM Campus Oaxaca - Sistema de Asistencias'>
                   <Link
                     href='/'
                     className='group cursor-pointer p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))] transition-colors'

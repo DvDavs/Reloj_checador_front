@@ -32,6 +32,7 @@ const useStompTimeClock = ({
 }: UseStompTimeClockProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const stompClientRef = useRef<Client | null>(null);
+  const shuttingDownRef = useRef(false);
 
   useEffect(() => {
     if (!initialReaderName || !initialSessionId || !instanceId) {
@@ -40,6 +41,9 @@ const useStompTimeClock = ({
       );
       return;
     }
+
+    // Asegurar que no estamos en proceso de apagado para esta nueva activación
+    shuttingDownRef.current = false;
 
     const client = new Client({
       webSocketFactory: () => new SockJS(`${apiBaseUrl}/ws-fingerprint`),
@@ -105,11 +109,39 @@ const useStompTimeClock = ({
         onReadyStateChange(false);
       },
       onStompError: (frame) => {
-        const errorMsg = `Error de conexión STOMP: ${frame.headers['message'] || 'Desconocido'}`;
-        console.error(errorMsg, frame);
+        const message = (frame.headers['message'] as string) || '';
+        const isSessionClosed = /session closed/i.test(message);
+
+        // Si estamos cerrando de forma intencional o es un cierre normal de sesión, no tratarlo como error ruidoso
+        if (shuttingDownRef.current || isSessionClosed) {
+          console.info('STOMP session closed.', frame);
+          setIsConnected(false);
+          onReadyStateChange(false);
+          return;
+        }
+
+        const errorMsg = `Error de conexión STOMP: ${message || 'Desconocido'}`;
+        console.warn(errorMsg, frame);
         onConnectionError(errorMsg);
         setIsConnected(false);
         onReadyStateChange(false);
+      },
+      // Manejar cierre de WebSocket subyacente para debug/reconexión silenciosa
+      onWebSocketClose: (evt) => {
+        const code = (evt as CloseEvent)?.code;
+        const reason = (evt as CloseEvent)?.reason;
+        if (shuttingDownRef.current || code === 1000) {
+          console.info('WebSocket cerrado limpiamente.', { code, reason });
+        } else {
+          console.warn('WebSocket cerrado inesperadamente.', { code, reason });
+        }
+        setIsConnected(false);
+        onReadyStateChange(false);
+      },
+      onWebSocketError: (evt) => {
+        if (!shuttingDownRef.current) {
+          console.warn('WebSocket error detectado.', evt);
+        }
       },
     });
 
@@ -135,6 +167,7 @@ const useStompTimeClock = ({
       if (stompClientRef.current) {
         const client = stompClientRef.current;
         stompClientRef.current = null; // Evitar múltiples llamadas
+        shuttingDownRef.current = true; // Ignorar errores durante el apagado intencional
 
         const stopAndReleaseReader = async () => {
           try {

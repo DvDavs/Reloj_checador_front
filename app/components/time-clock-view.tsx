@@ -1789,6 +1789,20 @@ export default function TimeClock({
     return 'bg-zinc-900 border-zinc-800';
   };
 
+  // Resolver el estado visual del icono priorizando statusCode sobre scanState
+  const resolvedIconState: 'success' | 'failed' | null = (() => {
+    if (statusCode) {
+      if (statusCode === 'FR') return 'failed';
+      if (statusCode.startsWith('4') || statusCode.startsWith('5'))
+        return 'failed';
+      if (statusCode.startsWith('2') || statusCode.startsWith('3'))
+        return 'success';
+    }
+    if (scanState === 'success') return 'success';
+    if (scanState === 'failed') return 'failed';
+    return null;
+  })();
+
   // Auto-reset después de mostrar la información de asistencia para limpiar la interfaz.
   useEffect(() => {
     // Este efecto se encarga de limpiar la información del empleado y el resultado del
@@ -2333,13 +2347,16 @@ export default function TimeClock({
             className={`relative flex-1 overflow-hidden p-4 text-white shadow-lg border-2 transition-colors duration-300 ${getPanelColor()}`}
             ref={containerRef}
           >
-            {/* Mensaje de resultado como overlay - posición fija y centrado */}
-            <div className='absolute inset-0 flex items-center justify-center z-10 pointer-events-none'>
+            {/* Mensaje de resultado como overlay - posición en la parte superior */}
+            <div
+              className='absolute top-0 left-0 right-0 flex items-center justify-center z-10 pointer-events-none'
+              style={{ height: '320px' }}
+            >
               <div
                 className={`text-5xl md:text-6xl font-bold transition-opacity duration-300 text-center px-4 max-w-4xl ${getResultMessageColor()} ${
-                  scanState === 'success'
+                  resolvedIconState === 'success'
                     ? 'drop-shadow-[0_0_30px_rgba(74,222,128,0.9)]'
-                    : scanState === 'failed'
+                    : resolvedIconState === 'failed'
                       ? 'drop-shadow-[0_0_30px_rgba(248,113,113,0.9)]'
                       : ''
                 }`}
@@ -2510,7 +2527,7 @@ export default function TimeClock({
                       )}
 
                       {/* Estado de éxito - animación de marca de verificación verde */}
-                      {scanState === 'success' && (
+                      {resolvedIconState === 'success' && (
                         <>
                           <motion.div
                             initial={{ scale: 0 }}
@@ -2545,7 +2562,7 @@ export default function TimeClock({
                       )}
 
                       {/* Estado de fallo - animación de X roja */}
-                      {scanState === 'failed' && (
+                      {resolvedIconState === 'failed' && (
                         <>
                           <motion.div
                             initial={{ scale: 0 }}
