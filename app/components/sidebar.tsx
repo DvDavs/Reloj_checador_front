@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -126,6 +126,17 @@ const navItems: NavItemData[] = [
     icon: <Clock size={20} />,
     text: 'Chequeos',
     keywords: ['chequeos', 'registros', 'entradas', 'salidas', 'correccion'],
+  },
+];
+
+// Navegación mínima para el lanzador
+const launcherNavItems: NavItemData[] = [
+  {
+    id: 'login',
+    href: '/login',
+    icon: <Fingerprint size={20} />,
+    text: 'Iniciar sesión',
+    keywords: ['login', 'ingresar', 'acceder'],
   },
 ];
 
@@ -259,12 +270,18 @@ export default function Sidebar() {
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
+  const isLauncherRoute = pathname.startsWith('/lanzador');
+
+  const effectiveNavItems: NavItemData[] = useMemo(
+    () => (isLauncherRoute ? launcherNavItems : navItems),
+    [isLauncherRoute]
+  );
 
   // Actualizar submenús abiertos basado en la ruta actual
   useEffect(() => {
     const newOpenSubmenus: Record<string, boolean> = {};
 
-    navItems.forEach((item) => {
+    effectiveNavItems.forEach((item) => {
       if (item.submenu) {
         const isSubmenuActive = item.submenu.some((subItem) => {
           return (
@@ -277,8 +294,16 @@ export default function Sidebar() {
       }
     });
 
-    setOpenSubmenus(newOpenSubmenus);
-  }, [pathname]);
+    setOpenSubmenus((prev) => {
+      const prevKeys = Object.keys(prev);
+      const newKeys = Object.keys(newOpenSubmenus);
+      if (prevKeys.length !== newKeys.length) return newOpenSubmenus;
+      for (const key of newKeys) {
+        if (prev[key] !== newOpenSubmenus[key]) return newOpenSubmenus;
+      }
+      return prev;
+    });
+  }, [pathname, effectiveNavItems]);
 
   // Manejar atajos de teclado
   useEffect(() => {
@@ -388,7 +413,7 @@ export default function Sidebar() {
           </div>
 
           {/* Command Palette Trigger */}
-          {!isCollapsed && (
+          {!isCollapsed && !isLauncherRoute && (
             <div className='p-4'>
               <button
                 onClick={() => setCommandPaletteOpen(true)}
@@ -410,7 +435,7 @@ export default function Sidebar() {
 
           {/* Navigation */}
           <nav className='flex-1 p-4 space-y-1 overflow-y-auto'>
-            {navItems.map((item) => (
+            {effectiveNavItems.map((item) => (
               <div key={item.id}>
                 <NavItem
                   item={item}
@@ -445,69 +470,71 @@ export default function Sidebar() {
           </nav>
 
           {/* User Info & Logout Button */}
-          <div className='p-4 border-t border-[hsl(var(--sidebar-border))] bg-gradient-to-br from-[hsl(var(--sidebar-background))] to-[hsl(var(--muted))/20]'>
-            {isAuthenticated && !isCollapsed ? (
-              <div className='flex items-center gap-3 transition-all duration-150 p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))] border border-transparent hover:border-[hsl(var(--border))]'>
-                <div className='w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--sidebar-accent))] to-[hsl(var(--accent))] flex items-center justify-center shadow-sm'>
-                  <Users
-                    size={16}
-                    className='text-[hsl(var(--sidebar-accent-foreground))]'
-                  />
-                </div>
-                <div className='flex-1 min-w-0'>
-                  <p className='text-sm font-medium text-[hsl(var(--sidebar-foreground))] truncate'>
-                    {user?.username ?? 'Usuario autenticado'}
-                  </p>
-                  <p className='text-xs text-[hsl(var(--muted-foreground))] truncate'>
-                    {user?.roles.has('ROLE_ADMIN')
-                      ? 'Rol: Administrador'
-                      : user?.roles.has('ROLE_DISPOSITIVO')
-                        ? 'Rol: Dispositivo'
-                        : 'Sesión activa'}
-                  </p>
-                </div>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  onClick={logout}
-                  title='Cerrar Sesión'
-                  className='text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--destructive))]/10 hover:text-[hsl(var(--destructive))] transition-colors border border-transparent hover:border-[hsl(var(--destructive))]/20'
-                >
-                  <LogOut size={16} />
-                </Button>
-              </div>
-            ) : isAuthenticated && isCollapsed ? (
-              <Tooltip content='Cerrar Sesión'>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  onClick={logout}
-                  className='w-full text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--destructive))]/10 hover:text-[hsl(var(--destructive))] transition-colors border border-transparent hover:border-[hsl(var(--destructive))]/20'
-                >
-                  <LogOut size={16} />
-                </Button>
-              </Tooltip>
-            ) : (
-              <div className='flex items-center gap-3 transition-all duration-150 p-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/30'>
-                <div className='w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--muted-foreground))]/20 to-[hsl(var(--muted-foreground))]/10 flex items-center justify-center'>
-                  <Users
-                    size={16}
-                    className='text-[hsl(var(--muted-foreground))]'
-                  />
-                </div>
-                {!isCollapsed && (
+          {!isLauncherRoute && (
+            <div className='p-4 border-t border-[hsl(var(--sidebar-border))] bg-gradient-to-br from-[hsl(var(--sidebar-background))] to-[hsl(var(--muted))/20]'>
+              {isAuthenticated && !isCollapsed ? (
+                <div className='flex items-center gap-3 transition-all duration-150 p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))] border border-transparent hover:border-[hsl(var(--border))]'>
+                  <div className='w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--sidebar-accent))] to-[hsl(var(--accent))] flex items-center justify-center shadow-sm'>
+                    <Users
+                      size={16}
+                      className='text-[hsl(var(--sidebar-accent-foreground))]'
+                    />
+                  </div>
                   <div className='flex-1 min-w-0'>
-                    <p className='text-sm font-medium text-[hsl(var(--muted-foreground))] truncate'>
-                      No autenticado
+                    <p className='text-sm font-medium text-[hsl(var(--sidebar-foreground))] truncate'>
+                      {user?.username ?? 'Usuario autenticado'}
                     </p>
-                    <p className='text-xs text-[hsl(var(--muted-foreground))]/70 truncate'>
-                      Inicia sesión
+                    <p className='text-xs text-[hsl(var(--muted-foreground))] truncate'>
+                      {user?.roles.has('ROLE_ADMIN')
+                        ? 'Rol: Administrador'
+                        : user?.roles.has('ROLE_DISPOSITIVO')
+                          ? 'Rol: Dispositivo'
+                          : 'Sesión activa'}
                     </p>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    onClick={logout}
+                    title='Cerrar Sesión'
+                    className='text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--destructive))]/10 hover:text-[hsl(var(--destructive))] transition-colors border border-transparent hover:border-[hsl(var(--destructive))]/20'
+                  >
+                    <LogOut size={16} />
+                  </Button>
+                </div>
+              ) : isAuthenticated && isCollapsed ? (
+                <Tooltip content='Cerrar Sesión'>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    onClick={logout}
+                    className='w-full text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--destructive))]/10 hover:text-[hsl(var(--destructive))] transition-colors border border-transparent hover:border-[hsl(var(--destructive))]/20'
+                  >
+                    <LogOut size={16} />
+                  </Button>
+                </Tooltip>
+              ) : (
+                <div className='flex items-center gap-3 transition-all duration-150 p-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/30'>
+                  <div className='w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--muted-foreground))]/20 to-[hsl(var(--muted-foreground))]/10 flex items-center justify-center'>
+                    <Users
+                      size={16}
+                      className='text-[hsl(var(--muted-foreground))]'
+                    />
+                  </div>
+                  {!isCollapsed && (
+                    <div className='flex-1 min-w-0'>
+                      <p className='text-sm font-medium text-[hsl(var(--muted-foreground))] truncate'>
+                        No autenticado
+                      </p>
+                      <p className='text-xs text-[hsl(var(--muted-foreground))]/70 truncate'>
+                        Inicia sesión
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
 
         {/* Botón de colapsar en el lateral */}

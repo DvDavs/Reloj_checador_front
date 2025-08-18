@@ -4,7 +4,7 @@ import { Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import LegacyTimeClock from '@/app/components/time-clock-view';
+import { TimeClock } from '@/app/components/timeclock';
 
 function OldClockContent() {
   const searchParams = useSearchParams();
@@ -21,7 +21,7 @@ function OldClockContent() {
   }
 
   return (
-    <LegacyTimeClock
+    <TimeClock
       selectedReader={reader}
       sessionId={sessionId}
       instanceId={instanceId}

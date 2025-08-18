@@ -66,6 +66,7 @@ import { HandSelector, fingerIndexToName } from './components/hand-selector';
 import { WizardStepper } from '@/app/components/shared/wizard-stepper';
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
 import { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
+import { PostFingerprintDialog } from './components/post-fingerprint-dialog';
 
 // Componentes mejorados
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
@@ -181,6 +182,7 @@ function AsignarHuellaContent() {
   const imageSubscription = useRef<StompSubscription | null>(null);
   const isUnmounting = useRef(false);
   const currentEnrollmentAttemptId = useRef<string | null>(null);
+  const [showPostDialog, setShowPostDialog] = useState(false);
 
   const searchEmployees = useCallback(async (query: string) => {
     if (query.trim().length < 2 && query.trim().length !== 0) {
@@ -1084,13 +1086,34 @@ function AsignarHuellaContent() {
     if (selectedScanner && browserSessionId) {
       releaseReaderApiCall(selectedScanner, browserSessionId);
     }
-    router.push('/empleados');
+    setShowPostDialog(true);
   };
 
   const handleRegisterAnotherFinger = () => {
     setCurrentStep(3);
     resetCaptureProcess();
     setSelectedFinger(null);
+  };
+
+  const handleGoToEmployees = () => {
+    if (selectedScanner && browserSessionId) {
+      releaseReaderApiCall(selectedScanner, browserSessionId);
+    }
+    router.push('/empleados');
+  };
+
+  const handleCreateSchedule = () => {
+    if (selectedScanner && browserSessionId) {
+      releaseReaderApiCall(selectedScanner, browserSessionId);
+    }
+    if (selectedEmployee) {
+      const url = `/horarios/asignados/registrar?id=${selectedEmployee.id}&nombre=${encodeURIComponent(
+        selectedEmployee.nombreCompleto
+      )}`;
+      router.push(url);
+    } else {
+      router.push('/horarios/asignados/registrar');
+    }
   };
 
   const renderStepContent = () => {
@@ -1142,7 +1165,8 @@ function AsignarHuellaContent() {
                         {selectedEmployee.nombreCompleto}
                       </h3>
                       <p className='text-muted-foreground'>
-                        ID interno: {selectedEmployee.id}
+                        Numero de tarjeta:{' '}
+                        {selectedEmployee.numTarjetaTrabajador}
                       </p>
                       <div className='mt-2'>
                         <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'>
@@ -1200,7 +1224,7 @@ function AsignarHuellaContent() {
                     {selectedEmployee?.nombreCompleto}
                   </h2>
                   <p className='text-muted-foreground'>
-                    ID interno: {selectedEmployee?.id}
+                    Numero de tarjeta: {selectedEmployee?.numTarjetaTrabajador}
                   </p>
                 </div>
               </div>
@@ -1731,7 +1755,8 @@ function AsignarHuellaContent() {
                       {selectedEmployee?.nombreCompleto}
                     </h3>
                     <p className='text-muted-foreground'>
-                      ID interno: {selectedEmployee?.id}
+                      Numero de tarjeta:{' '}
+                      {selectedEmployee?.numTarjetaTrabajador}
                     </p>
                   </div>
                 </div>
@@ -1886,6 +1911,13 @@ function AsignarHuellaContent() {
           </AnimatePresence>
         </div>
       </div>
+      <PostFingerprintDialog
+        isOpen={showPostDialog}
+        onClose={() => setShowPostDialog(false)}
+        onCreateSchedule={handleCreateSchedule}
+        onGoToEmployees={handleGoToEmployees}
+        employeeName={selectedEmployee?.nombreCompleto || 'Empleado'}
+      />
     </div>
   );
 }

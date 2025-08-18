@@ -52,7 +52,7 @@ export default function ChequeosPage() {
                     Gestión de Chequeos
                   </h3>
                   <p className='text-sm text-muted-foreground'>
-                    Filtre, revise y corrija registros existentes
+                    Filtre, revise y corrija registros de chequeos existentes
                   </p>
                 </div>
               </div>

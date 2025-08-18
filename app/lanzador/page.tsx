@@ -13,6 +13,9 @@ import {
 import { apiClient } from '@/lib/apiClient';
 import { getBrowserSessionId } from '@/lib/sessionId';
 import Link from 'next/link';
+import { EnhancedCard } from '@/app/components/shared/enhanced-card';
+import { LoadingState } from '@/app/components/shared/loading-state';
+import { ErrorState } from '@/app/components/shared/error-state';
 
 type ScannerStatus = 'online' | 'offline' | 'error' | 'reserved';
 interface FingerprintScanner {
@@ -22,7 +25,6 @@ interface FingerprintScanner {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-type ChecadorMode = 'new' | 'old';
 
 function LanzadorChecadorContent() {
   const [scanners, setScanners] = useState<FingerprintScanner[]>([]);
@@ -33,7 +35,6 @@ function LanzadorChecadorContent() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [browserSessionId, setBrowserSessionId] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [mode, setMode] = useState<ChecadorMode>('new');
 
   useEffect(() => {
     setBrowserSessionId(getBrowserSessionId());
@@ -69,7 +70,7 @@ function LanzadorChecadorContent() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [API_BASE_URL]);
 
   useEffect(() => {
     if (browserSessionId) {
@@ -92,8 +93,7 @@ function LanzadorChecadorContent() {
 
     const readerName = selectedScanner.name;
     const encodedReader = encodeURIComponent(readerName);
-    const basePath = mode === 'old' ? '/reloj-checador-old' : '/reloj-checador';
-    const clockUrl = `${basePath}?reader=${encodedReader}&sessionId=${browserSessionId}`;
+    const clockUrl = `/reloj-checador?reader=${encodedReader}&sessionId=${browserSessionId}`;
 
     window.open(
       clockUrl,
@@ -121,200 +121,248 @@ function LanzadorChecadorContent() {
   };
 
   return (
-    <div className='p-8 bg-black min-h-screen text-white'>
-      <div className='max-w-7xl mx-auto'>
-        <header className='mb-10 flex items-center justify-between'>
-          <div className='flex items-center gap-4'>
-            <Link href='/login'>
-              <img src='/Logo_ITO.png' alt='Logo' className='h-12 w-auto' />
-            </Link>
-            <h1 className='text-3xl font-bold'>Lanzador de Reloj Checador</h1>
-          </div>
-          <Button
-            variant='outline'
-            size='icon'
-            className='rounded-full bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-            onClick={handleRefreshScanners}
-            disabled={isLoading || isLaunching}
-            aria-label='Refrescar lista de lectores'
-          >
-            {isLoading ? (
-              <Loader2 className='h-5 w-5 animate-spin' />
-            ) : (
-              <RefreshCw className='h-5 w-5' />
-            )}
-          </Button>
-          {/* Selector de modo: Nuevo / Viejo */}
-          <div className='flex items-center gap-2 ml-4'>
-            <Button
-              variant={mode === 'new' ? 'default' : 'outline'}
-              className={
-                mode === 'new'
-                  ? 'bg-blue-600 hover:bg-blue-700'
-                  : 'bg-zinc-800 border-zinc-700'
-              }
-              onClick={() => setMode('new')}
-              aria-pressed={mode === 'new'}
-            >
-              Nuevo
-            </Button>
-            <Button
-              variant={mode === 'old' ? 'default' : 'outline'}
-              className={
-                mode === 'old'
-                  ? 'bg-blue-600 hover:bg-blue-700'
-                  : 'bg-zinc-800 border-zinc-700'
-              }
-              onClick={() => setMode('old')}
-              aria-pressed={mode === 'old'}
-            >
-              Viejo
-            </Button>
-          </div>
-        </header>
-
-        {errorMessage && !isLoading && (
-          <div className='mb-6 p-4 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg flex items-center gap-3'>
-            <AlertCircle className='h-5 w-5' />
-            <p>{errorMessage}</p>
-          </div>
-        )}
-
-        {showConfirmation && selectedScanner && (
-          <motion.div
-            className='fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4'
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className='bg-zinc-900 border border-blue-500/50 rounded-lg p-6 max-w-md w-full shadow-xl'
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-            >
-              <h3 className='text-xl font-bold mb-4 flex items-center gap-2'>
-                <Fingerprint className='h-6 w-6 text-blue-400' />
-                Confirmar Inicio
-              </h3>
-              <p className='text-zinc-300 mb-6'>
-                ¿Desea iniciar una nueva ventana de Reloj Checador con el lector{' '}
-                <strong className='text-blue-300'>
-                  {selectedScanner.name}
-                </strong>
-                ?
-              </p>
-              {errorMessage && (
-                <p className='text-red-400 text-sm mb-4'>{errorMessage}</p>
-              )}
-              <div className='flex gap-3 justify-end'>
+    <div className='min-h-screen bg-background'>
+      <div className='p-6 md:p-8'>
+        <div className='max-w-7xl mx-auto space-y-6'>
+          <EnhancedCard variant='elevated' padding='lg'>
+            <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+              <div className='flex items-center gap-4'>
+                <Link href='/login'>
+                  <img
+                    src='/Logo_ITO.png'
+                    alt='Logo'
+                    className='h-12 w-auto rounded-full'
+                  />
+                </Link>
+                <div className='space-y-1'>
+                  <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
+                    Lanzador de Reloj Checador
+                  </h1>
+                  <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
+                </div>
+              </div>
+              <div className='flex items-center gap-3'>
                 <Button
                   variant='outline'
-                  onClick={handleCancelSelection}
-                  disabled={isLaunching}
+                  size='icon'
+                  className='h-10 w-10 border-2 border-border hover:border-primary hover:bg-primary/5 transition-all duration-200 shadow-sm'
+                  onClick={handleRefreshScanners}
+                  disabled={isLoading || isLaunching}
+                  aria-label='Refrescar lista de lectores'
                 >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleConfirmSelection}
-                  className='bg-blue-600 hover:bg-blue-700'
-                  disabled={isLaunching}
-                >
-                  {isLaunching ? (
-                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  {isLoading ? (
+                    <Loader2 className='h-4 w-4 animate-spin text-primary' />
                   ) : (
-                    <CheckCircle className='mr-2 h-4 w-4' />
+                    <RefreshCw className='h-4 w-4 text-muted-foreground' />
                   )}
-                  {isLaunching ? 'Lanzando...' : 'Confirmar e Iniciar'}
                 </Button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
+            </div>
+          </EnhancedCard>
 
-        {isLoading ? (
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={`skeleton-${index}`}
-                className='bg-zinc-900/50 border border-zinc-800 rounded-lg h-64 animate-pulse flex flex-col items-center justify-center p-6'
-              >
-                <div className='h-20 w-20 rounded-full bg-zinc-800 mb-4'></div>
-                <div className='h-6 w-3/4 rounded bg-zinc-800 mb-4'></div>
-                <div className='h-10 w-2/4 rounded bg-zinc-800'></div>
-              </div>
-            ))}
-          </div>
-        ) : scanners.length > 0 ? (
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {scanners.map((scanner) => (
+          {errorMessage && !isLoading && (
+            <EnhancedCard
+              variant='elevated'
+              padding='lg'
+              className='border-red-200/60 dark:border-red-800'
+            >
+              <ErrorState
+                message={errorMessage}
+                onRetry={handleRefreshScanners}
+              />
+            </EnhancedCard>
+          )}
+
+          {showConfirmation && selectedScanner && (
+            <motion.div
+              className='fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4'
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
               <motion.div
-                key={scanner.id}
-                className={`relative bg-gradient-to-br from-zinc-900 to-zinc-950 border-2 ${
-                  scanner.status === 'online'
-                    ? 'border-zinc-700 hover:border-blue-500 cursor-pointer'
-                    : 'border-zinc-800 opacity-60 cursor-not-allowed'
-                }
-                rounded-xl overflow-hidden transition-all duration-300 h-64 flex flex-col items-center justify-center p-6 shadow-md hover:shadow-blue-500/20`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                whileHover={
-                  scanner.status === 'online' ? { scale: 1.02, y: -2 } : {}
-                }
-                onClick={() => handleSelectScanner(scanner)}
-                role='button'
-                aria-label={`Seleccionar lector ${scanner.name}`}
-                aria-disabled={scanner.status !== 'online'}
+                className='bg-card border-2 border-border rounded-xl p-6 max-w-md w-full shadow-2xl'
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
               >
-                <Fingerprint
-                  className={`h-24 w-24 mb-4 transition-colors ${
-                    scanner.status === 'online'
-                      ? 'text-blue-400 group-hover:text-blue-300'
-                      : 'text-zinc-600'
-                  }`}
-                />
-                <h3 className='text-lg font-semibold mb-4 text-center text-zinc-100'>
-                  {scanner.name}
+                <h3 className='text-xl font-bold mb-4 flex items-center gap-2 text-foreground'>
+                  <Fingerprint className='h-6 w-6 text-primary' />
+                  Confirmar Inicio
                 </h3>
-                {scanner.status === 'online' && (
+                <p className='text-muted-foreground mb-6'>
+                  ¿Desea iniciar una nueva ventana de Reloj Checador con el
+                  lector{' '}
+                  <strong className='text-foreground font-semibold'>
+                    {selectedScanner.name}
+                  </strong>
+                  ?
+                </p>
+                {errorMessage && (
+                  <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm dark:bg-red-950/30 dark:border-red-800 dark:text-red-400'>
+                    <AlertCircle className='h-4 w-4 inline mr-2' />
+                    {errorMessage}
+                  </div>
+                )}
+                <div className='flex gap-3 justify-end'>
                   <Button
                     variant='outline'
-                    className='border-blue-600 text-blue-400 hover:bg-blue-900/30 hover:text-blue-300 pointer-events-none'
+                    onClick={handleCancelSelection}
+                    disabled={isLaunching}
+                    className='border-2 border-border hover:border-primary hover:bg-primary/5'
                   >
-                    Seleccionar Lector
+                    Cancelar
                   </Button>
-                )}
-                {scanner.status !== 'online' && (
-                  <span className='text-zinc-500 text-sm'>No disponible</span>
-                )}
+                  <Button
+                    onClick={handleConfirmSelection}
+                    className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+                    disabled={isLaunching}
+                  >
+                    {isLaunching ? (
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    ) : (
+                      <CheckCircle className='mr-2 h-4 w-4' />
+                    )}
+                    {isLaunching ? 'Lanzando...' : 'Confirmar e Iniciar'}
+                  </Button>
+                </div>
               </motion.div>
-            ))}
-          </div>
-        ) : !errorMessage ? (
-          <div className='flex flex-col items-center justify-center h-96 text-center'>
-            <AlertCircle className='h-24 w-24 text-zinc-700 mb-6' />
-            <h3 className='text-2xl font-bold text-zinc-400 mb-2'>
-              No hay lectores disponibles
-            </h3>
-            <p className='text-zinc-500 mb-6 max-w-md'>
-              Asegúrese de que los lectores estén conectados y el servicio de
-              huellas esté funcionando correctamente en el servidor.
-            </p>
-            <Button
-              className='bg-blue-600 hover:bg-blue-700'
-              onClick={handleRefreshScanners}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-              ) : (
-                <RefreshCw className='h-5 w-5 mr-2' />
-              )}
-              Volver a intentar
-            </Button>
-          </div>
-        ) : null}
+            </motion.div>
+          )}
+
+          {isLoading ? (
+            <EnhancedCard variant='elevated' padding='xl'>
+              <LoadingState message='Cargando lectores de huellas disponibles...' />
+            </EnhancedCard>
+          ) : scanners.length > 0 ? (
+            <EnhancedCard variant='elevated' padding='lg'>
+              <div className='space-y-6'>
+                <div>
+                  <h2 className='text-lg font-semibold text-foreground'>
+                    Lectores Disponibles
+                  </h2>
+                  <p className='text-muted-foreground text-sm'>
+                    Seleccione un lector para iniciar una nueva sesión de reloj
+                    checador
+                  </p>
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                  {scanners.map((scanner) => (
+                    <motion.div
+                      key={scanner.id}
+                      className={`group relative ${
+                        scanner.status === 'online'
+                          ? 'cursor-pointer'
+                          : 'opacity-60 cursor-not-allowed'
+                      }`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      whileHover={
+                        scanner.status === 'online'
+                          ? { scale: 1.02, y: -4 }
+                          : {}
+                      }
+                      onClick={() => handleSelectScanner(scanner)}
+                      role='button'
+                      aria-label={`Seleccionar lector ${scanner.name}`}
+                      aria-disabled={scanner.status !== 'online'}
+                    >
+                      <EnhancedCard
+                        variant='bordered'
+                        padding='lg'
+                        hover={scanner.status === 'online'}
+                        className={`h-64 flex flex-col items-center justify-center transition-all duration-300 ${
+                          scanner.status === 'online'
+                            ? 'hover:border-primary hover:shadow-lg hover:shadow-primary/10'
+                            : ''
+                        }`}
+                      >
+                        <div
+                          className={`absolute top-4 right-4 w-3 h-3 rounded-full ${
+                            scanner.status === 'online'
+                              ? 'bg-green-500 shadow-sm shadow-green-500/50'
+                              : 'bg-muted-foreground'
+                          }`}
+                        ></div>
+
+                        <div
+                          className={`p-4 rounded-full mb-4 transition-all duration-300 ${
+                            scanner.status === 'online'
+                              ? 'bg-primary/10 group-hover:bg-primary/20'
+                              : 'bg-muted/30'
+                          }`}
+                        >
+                          <Fingerprint
+                            className={`h-16 w-16 transition-all duration-300 ${
+                              scanner.status === 'online'
+                                ? 'text-primary group-hover:scale-110'
+                                : 'text-muted-foreground'
+                            }`}
+                          />
+                        </div>
+
+                        <h3
+                          className={`text-lg font-semibold mb-4 text-center transition-colors ${
+                            scanner.status === 'online'
+                              ? 'text-foreground group-hover:text-primary'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          {scanner.name}
+                        </h3>
+
+                        {scanner.status === 'online' ? (
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            className='border-primary/50 text-primary hover:bg-primary/10 hover:border-primary pointer-events-none transition-all duration-200'
+                          >
+                            Seleccionar Lector
+                          </Button>
+                        ) : (
+                          <span className='text-muted-foreground text-sm bg-muted px-3 py-1 rounded-full'>
+                            No disponible
+                          </span>
+                        )}
+                      </EnhancedCard>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </EnhancedCard>
+          ) : !errorMessage ? (
+            <EnhancedCard variant='elevated' padding='xl'>
+              <div className='flex flex-col items-center justify-center text-center space-y-6'>
+                <div className='bg-muted/30 rounded-full p-6'>
+                  <AlertCircle className='h-16 w-16 text-muted-foreground' />
+                </div>
+                <div className='space-y-2'>
+                  <h3 className='text-xl font-bold text-foreground'>
+                    No hay lectores disponibles
+                  </h3>
+                  <p className='text-muted-foreground max-w-md'>
+                    Asegúrese de que los lectores estén conectados y el servicio
+                    de huellas esté funcionando correctamente en el servidor.
+                  </p>
+                </div>
+                <Button
+                  className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+                  onClick={handleRefreshScanners}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  ) : (
+                    <RefreshCw className='h-4 w-4 mr-2' />
+                  )}
+                  Volver a intentar
+                </Button>
+              </div>
+            </EnhancedCard>
+          ) : null}
+        </div>
       </div>
     </div>
   );

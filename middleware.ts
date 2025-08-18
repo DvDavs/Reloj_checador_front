@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isLoginPage = pathname.startsWith('/login');
-  const publicPaths = ['/login', '/reloj-checador', '/lanzador'];
+  const publicPaths = ['/login', '/reloj-checador', '/lanzador', '/ads/'];
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
   // Si el usuario TIENE token y trata de ir a la página de login,
