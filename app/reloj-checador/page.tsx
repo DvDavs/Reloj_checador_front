@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { TimeClock } from '@/app/components/timeclock';
 import { Loader2 } from 'lucide-react';

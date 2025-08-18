@@ -26,6 +26,7 @@ import { getInitials } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { apiClient } from '@/lib/apiClient';
 
 interface EmployeeSearchProps {
   value: EmpleadoSimpleDTO | null;
@@ -38,7 +39,7 @@ interface EmployeeSearchProps {
 export function EmployeeSearch({
   value,
   onChange,
-  placeholder = 'Buscar por nombre y apellidos, RFC o CURP...',
+  placeholder = 'Buscar por nombre, RFC, CURP o Tarjeta...',
   disabled = false,
   showAllOnOpen = false,
 }: EmployeeSearchProps) {
@@ -51,19 +52,71 @@ export function EmployeeSearch({
 
   React.useEffect(() => {
     const fetchEmployees = async () => {
-      if (!debouncedSearchTerm && !showAllOnOpen) {
+      const term = (debouncedSearchTerm || '').trim();
+
+      if (!term && !showAllOnOpen) {
         setEmployees([]);
         return;
       }
       setIsLoading(true);
       setError(null);
       try {
-        const data = debouncedSearchTerm
-          ? await searchEmployees(debouncedSearchTerm)
-          : showAllOnOpen
-            ? await searchEmployees('')
-            : [];
-        setEmployees(data || []);
+        // Si el término es numérico, buscar por número de tarjeta directamente
+        if (term && /^\d+$/.test(term)) {
+          try {
+            const resp = await apiClient.get(
+              `/api/empleados/tarjeta/${encodeURIComponent(term)}`
+            );
+            const emp = resp.data || null;
+            const mapped = emp
+              ? [
+                  {
+                    id: emp.id,
+                    nombreCompleto:
+                      emp.nombreCompleto ||
+                      [
+                        emp.primerNombre,
+                        emp.segundoNombre,
+                        emp.primerApellido,
+                        emp.segundoApellido,
+                      ]
+                        .filter(Boolean)
+                        .join(' '),
+                    rfc: emp.rfc,
+                    curp: emp.curp,
+                    numTarjetaTrabajador:
+                      emp.tarjeta !== null && emp.tarjeta !== undefined
+                        ? String(emp.tarjeta)
+                        : undefined,
+                  },
+                ]
+              : [];
+            setEmployees(mapped);
+          } catch (e: any) {
+            // Si no existe, mostrar simplemente sin resultados; otros errores, propagar
+            if (e?.response?.status === 404) {
+              setEmployees([]);
+            } else {
+              throw e;
+            }
+          }
+        } else {
+          // Búsqueda tradicional (nombre, RFC, CURP). Además, mapear tarjeta -> numTarjetaTrabajador si viene
+          const data = term
+            ? await searchEmployees(term)
+            : showAllOnOpen
+              ? await searchEmployees('')
+              : [];
+          const mapped = (data || []).map((emp: any) => ({
+            ...emp,
+            numTarjetaTrabajador:
+              emp?.numTarjetaTrabajador ??
+              (emp?.tarjeta !== undefined && emp?.tarjeta !== null
+                ? String(emp.tarjeta)
+                : undefined),
+          }));
+          setEmployees(mapped);
+        }
       } catch (err: any) {
         setError(err.message || 'Error al cargar empleados');
         setEmployees([]);

@@ -94,7 +94,7 @@ export function ConsolidacionManualForm({
 
       setSuccessInfo(response);
       toast({
-        title: 'Consolidación Exitosa',
+        title: 'Generación de Asistencias Exitosa',
         description:
           response.mensaje ||
           `Registros consolidados: ${response.totalConsolidados}. Faltas: ${response.totalFaltas}.`,
@@ -104,7 +104,7 @@ export function ConsolidacionManualForm({
       const errorMessage = getApiErrorMessage(err);
       setError(errorMessage);
       toast({
-        title: 'Error en la Consolidación',
+        title: 'Error en la Generación de Asistencias',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -118,11 +118,11 @@ export function ConsolidacionManualForm({
       <Card>
         <CardHeader>
           <CardTitle>
-            {titleOverride ?? 'Consolidar Asistencias por Fecha'}
+            {titleOverride ?? 'Generación de Asistencias por Fecha'}
           </CardTitle>
           <CardDescription>
             {descriptionOverride ??
-              'Seleccione una fecha para ejecutar manualmente el proceso de consolidación diaria.'}
+              'Seleccione una fecha para ejecutar manualmente el proceso de generación de asistencias diaria.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -201,10 +201,11 @@ export function ConsolidacionManualForm({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmTitleOverride ?? '¿Confirmar Consolidación?'}
+              {confirmTitleOverride ?? '¿Confirmar Generación de Asistencias?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción ejecutará el proceso de consolidación para la fecha{' '}
+              Esta acción ejecutará el proceso de generación de asistencias para
+              la fecha{' '}
               <strong>
                 {selectedDate
                   ? format(selectedDate, 'PPP', { locale: es })

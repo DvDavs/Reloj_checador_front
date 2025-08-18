@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { useReducer } from 'react';
-import { WizardAction, WizardState } from './types';
+import { useSearchParams } from 'next/navigation';
+import { EmpleadoSimpleDTO, WizardAction, WizardState } from './types';
 import {
   Card,
   CardContent,
@@ -525,9 +526,49 @@ export default function ScheduleAssignmentWizardPage() {
   const [scheduleTypes, setScheduleTypes] = React.useState<TipoHorarioDTO[]>(
     []
   );
+  const searchParams = useSearchParams();
 
   const stableSetTemplates = React.useCallback(setTemplates, []);
   const stableSetScheduleTypes = React.useCallback(setScheduleTypes, []);
+
+  // Prefill employee from query params (?id=..&nombre=..)
+  React.useEffect(() => {
+    const idParam = searchParams.get('id');
+    const nombreParam = searchParams.get('nombre');
+    if (idParam && nombreParam && /^\d+$/.test(idParam)) {
+      const prefilled = {
+        id: Number.parseInt(idParam, 10),
+        nombreCompleto: nombreParam,
+      } as EmpleadoSimpleDTO;
+      dispatch({ type: 'SELECT_EMPLOYEE', payload: prefilled });
+    }
+  }, [searchParams]);
+
+  // Enriquecer empleado seleccionado con número de tarjeta si falta
+  React.useEffect(() => {
+    const enrich = async () => {
+      const emp = state.selectedEmployee;
+      if (!emp || emp.numTarjetaTrabajador) return;
+      try {
+        const resp = await apiClient.get(`/api/empleados/${emp.id}`);
+        const tarjeta: number | null | undefined = resp.data?.tarjeta;
+        if (tarjeta !== null && tarjeta !== undefined) {
+          dispatch({
+            type: 'SET_STATE',
+            payload: {
+              selectedEmployee: {
+                ...emp,
+                numTarjetaTrabajador: String(tarjeta),
+              },
+            },
+          });
+        }
+      } catch (_) {
+        // Silencioso
+      }
+    };
+    enrich();
+  }, [state.selectedEmployee, dispatch]);
 
   const WIZARD_STEPS = [
     {
@@ -718,7 +759,8 @@ export default function ScheduleAssignmentWizardPage() {
                       {state.selectedEmployee.nombreCompleto}
                     </h2>
                     <p className='text-muted-foreground'>
-                      ID interno: {state.selectedEmployee.id}
+                      Numero de tarjeta:{' '}
+                      {state.selectedEmployee.numTarjetaTrabajador}
                     </p>
                     {state.selectedEmployee.rfc && (
                       <p className='text-sm text-muted-foreground'>

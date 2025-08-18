@@ -330,7 +330,7 @@ export default function ControlAsistenciaPage() {
                   Gestión de Asistencias
                 </h3>
                 <p className='text-sm text-muted-foreground'>
-                  Filtre, revise y corrija registros existentes
+                  Filtre, revise y corrija registros de asistencias existentes
                 </p>
               </div>
             </div>
@@ -357,10 +357,10 @@ export default function ControlAsistenciaPage() {
               </div>
               <div>
                 <h3 className='font-semibold text-foreground'>
-                  Consolidación de Asistencia
+                  Generación de Asistencia
                 </h3>
                 <p className='text-sm text-muted-foreground'>
-                  Ejecute la consolidación diaria por fecha
+                  Ejecute la Generación diaria por fecha
                 </p>
               </div>
             </div>
