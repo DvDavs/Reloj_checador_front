@@ -28,7 +28,22 @@ export function DetailsDialog({ isOpen, onClose, item }: DetailsDialogProps) {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
+    // Interpretar como fecha pura (YYYY-MM-DD) en horario local para evitar desfase por zona horaria
+    const onlyDate = dateString.substring(0, 10);
+    const [yStr, mStr, dStr] = onlyDate.split('-');
+    const year = parseInt(yStr || '', 10);
+    const month = parseInt(mStr || '', 10);
+    const day = parseInt(dStr || '', 10);
+    if (!year || !month || !day) {
+      // Fallback si el formato no es el esperado
+      const fallback = new Date(dateString);
+      return fallback.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    }
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'long',

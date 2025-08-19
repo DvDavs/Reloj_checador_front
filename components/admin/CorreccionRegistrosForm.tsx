@@ -219,7 +219,15 @@ export function CorreccionRegistrosForm() {
           </div>
         ),
       },
-      { key: 'tipoRegistroNombre', label: 'Fuente' },
+      {
+        key: 'tipoRegistroNombre',
+        label: 'Fuente',
+        render: (item: RegistroDetalle) => {
+          const upper = (item.tipoRegistroNombre || '').toUpperCase();
+          if (upper === 'NIP') return 'pin';
+          return upper;
+        },
+      },
       {
         key: 'observaciones',
         label: 'Observaciones',
@@ -233,7 +241,10 @@ export function CorreccionRegistrosForm() {
             size='sm'
             variant='outline'
             onClick={() => {
-              setEditing(item);
+              setEditing({
+                ...item,
+                observaciones: item.observaciones ?? 'Corrección manual',
+              });
               setEditOpen(true);
             }}
           >
@@ -524,6 +535,23 @@ export function CorreccionRegistrosForm() {
                 </Select>
               </div>
               <div className='space-y-2'>
+                <Label>Tipo de Registro</Label>
+                <Select
+                  value={editing.tipoEoS}
+                  onValueChange={(v) =>
+                    setEditing({ ...editing, tipoEoS: v as 'E' | 'S' })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='E'>Entrada</SelectItem>
+                    <SelectItem value='S'>Salida</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-2'>
                 <Label>Observaciones</Label>
                 <Textarea
                   value={editing.observaciones ?? ''}
@@ -542,12 +570,25 @@ export function CorreccionRegistrosForm() {
             <Button
               onClick={async () => {
                 if (!editing) return;
+                if (
+                  !editing.observaciones ||
+                  editing.observaciones.trim() === ''
+                ) {
+                  toast({
+                    title: 'Observaciones requeridas',
+                    description:
+                      'Agrega una observación (por ejemplo: "Corrección manual").',
+                    variant: 'destructive',
+                  });
+                  return;
+                }
                 try {
                   setEditSaving(true);
                   await updateRegistroDetalle(editing.id, {
                     fechaHora: editing.fechaHora,
                     estatusCalculado: editing.estatusCalculado,
                     observaciones: editing.observaciones ?? null,
+                    tipoEoS: editing.tipoEoS,
                   });
                   setEditOpen(false);
                   handleSearch(data.number);

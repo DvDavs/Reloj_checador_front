@@ -47,6 +47,16 @@ import { DataTable } from '@/app/components/shared/data-table';
 import { InlineJustificacionModal } from './components/InlineJustificacionModal';
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
 import type { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  buscarRegistrosDetalle,
+  type RegistroDetalle,
+} from '@/lib/api/registros-detalle.api';
 
 export default function ControlAsistenciaPage() {
   // Estado de filtros
@@ -69,6 +79,11 @@ export default function ControlAsistenciaPage() {
   const [justModalOpen, setJustModalOpen] = useState(false);
   const [selectedForJust, setSelectedForJust] =
     useState<AsistenciaRecord | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedForDetail, setSelectedForDetail] =
+    useState<AsistenciaRecord | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailRegistros, setDetailRegistros] = useState<RegistroDetalle[]>([]);
   const [activeView, setActiveView] = useState<'gestion' | 'consolidacion'>(
     'gestion'
   );
@@ -270,7 +285,25 @@ export default function ControlAsistenciaPage() {
             buttons={[
               {
                 icon: <Eye className='h-4 w-4' />,
-                onClick: () => {}, // TODO: Implementar ver detalle
+                onClick: async () => {
+                  setSelectedForDetail(item);
+                  setDetailOpen(true);
+                  try {
+                    setDetailLoading(true);
+                    const res = await buscarRegistrosDetalle({
+                      empleadoId: item.empleadoId,
+                      desde: item.fecha,
+                      hasta: item.fecha,
+                      page: 0,
+                      size: 100,
+                    });
+                    setDetailRegistros(res.content || []);
+                  } catch (_) {
+                    setDetailRegistros([]);
+                  } finally {
+                    setDetailLoading(false);
+                  }
+                },
                 variant: 'view',
                 title: 'Ver Detalle',
               },
@@ -603,6 +636,205 @@ export default function ControlAsistenciaPage() {
             runSearch();
           }}
         />
+
+        {/* Detalle de Asistencia */}
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Detalle de Asistencia</DialogTitle>
+            </DialogHeader>
+            {selectedForDetail && (
+              <div className='space-y-4'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div>
+                    <div className='text-sm text-muted-foreground'>
+                      Empleado
+                    </div>
+                    <div className='font-medium'>
+                      {selectedForDetail.empleadoNombre}
+                    </div>
+                  </div>
+                  <div>
+                    <div className='text-sm text-muted-foreground'>Fecha</div>
+                    <div className='font-medium'>
+                      {format(
+                        parse(
+                          selectedForDetail.fecha,
+                          'yyyy-MM-dd',
+                          new Date()
+                        ),
+                        'dd/MM/yyyy',
+                        { locale: es }
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className='text-sm text-muted-foreground'>Estatus</div>
+                    <div className='font-medium'>
+                      {selectedForDetail.estatusAsistenciaNombre}
+                    </div>
+                  </div>
+                  <div>
+                    <div className='text-sm text-muted-foreground'>
+                      Observaciones
+                    </div>
+                    <div className='font-medium'>
+                      {selectedForDetail.observaciones || '--'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className='border-t pt-4 space-y-2'>
+                  <div className='text-sm text-muted-foreground'>
+                    Detalle de horario
+                  </div>
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm'>
+                    <div>
+                      <div className='text-muted-foreground'>
+                        Entrada programada
+                      </div>
+                      <div className='font-medium'>
+                        {selectedForDetail.horaEntradaProgramada || '--:--:--'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className='text-muted-foreground'>
+                        Salida programada
+                      </div>
+                      <div className='font-medium'>
+                        {selectedForDetail.horaSalidaProgramada || '--:--:--'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className='text-muted-foreground'>Tarjeta</div>
+                      <div className='font-medium'>
+                        #{selectedForDetail.empleadoTarjeta ?? 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className='border-t pt-4 space-y-2'>
+                  <div className='text-sm text-muted-foreground'>
+                    Marcaciones del día
+                  </div>
+                  {detailLoading ? (
+                    <div className='text-sm text-muted-foreground'>
+                      Cargando...
+                    </div>
+                  ) : detailRegistros.length === 0 ? (
+                    <div className='text-sm text-muted-foreground'>
+                      Sin registros
+                    </div>
+                  ) : (
+                    <div className='space-y-2'>
+                      {(() => {
+                        const mapFuente = (nombre?: string | null) => {
+                          if (!nombre) return '--';
+                          const upper = nombre.toUpperCase();
+                          return upper === 'NIP' ? 'pin' : upper;
+                        };
+                        const entradas = detailRegistros.filter(
+                          (r) => r.tipoEoS === 'E'
+                        );
+                        const salidas = detailRegistros.filter(
+                          (r) => r.tipoEoS === 'S'
+                        );
+                        const firstEntrada = entradas.sort((a, b) =>
+                          a.fechaHora.localeCompare(b.fechaHora)
+                        )[0];
+                        const lastSalida = salidas
+                          .sort((a, b) =>
+                            a.fechaHora.localeCompare(b.fechaHora)
+                          )
+                          .slice(-1)[0];
+                        return (
+                          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                            <div className='space-y-1'>
+                              <div className='text-sm text-muted-foreground'>
+                                Entrada real
+                              </div>
+                              <div className='font-medium'>
+                                {selectedForDetail.horaEntradaReal?.replace(
+                                  'T',
+                                  ' '
+                                ) ||
+                                  selectedForDetail.horaEntrada?.replace(
+                                    'T',
+                                    ' '
+                                  ) ||
+                                  '--:--:--'}
+                              </div>
+                              <div className='text-sm text-muted-foreground'>
+                                Fuente entrada
+                              </div>
+                              <div className='font-medium'>
+                                {mapFuente(firstEntrada?.tipoRegistroNombre)}
+                              </div>
+                            </div>
+                            <div className='space-y-1'>
+                              <div className='text-sm text-muted-foreground'>
+                                Salida real
+                              </div>
+                              <div className='font-medium'>
+                                {selectedForDetail.horaSalidaReal?.replace(
+                                  'T',
+                                  ' '
+                                ) ||
+                                  selectedForDetail.horaSalida?.replace(
+                                    'T',
+                                    ' '
+                                  ) ||
+                                  '--:--:--'}
+                              </div>
+                              <div className='text-sm text-muted-foreground'>
+                                Fuente salida
+                              </div>
+                              <div className='font-medium'>
+                                {mapFuente(lastSalida?.tipoRegistroNombre)}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      <div className='border rounded-md divide-y'>
+                        <div className='px-3 py-2 text-xs text-muted-foreground grid grid-cols-4 gap-2'>
+                          <div>Hora</div>
+                          <div>Tipo</div>
+                          <div>Fuente</div>
+                          <div>Observaciones</div>
+                        </div>
+                        {detailRegistros.map((r) => (
+                          <div
+                            key={r.id}
+                            className='px-3 py-2 text-sm grid grid-cols-4 gap-2'
+                          >
+                            <div className='font-mono'>{r.fechaHora}</div>
+                            <div>
+                              {r.tipoEoS === 'E' ? 'Entrada' : 'Salida'}
+                            </div>
+                            <div>
+                              {(r.tipoRegistroNombre?.toUpperCase?.() || '') ===
+                              'NIP'
+                                ? 'pin'
+                                : r.tipoRegistroNombre || '--'}
+                            </div>
+                            <div
+                              className='truncate'
+                              title={r.observaciones || ''}
+                            >
+                              {r.observaciones || '--'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
