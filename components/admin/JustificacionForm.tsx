@@ -64,15 +64,17 @@ import {
   JustificacionIndividualData,
   JustificacionDepartamentalData,
   JustificacionMasivaData,
+  listTiposJustificacion,
+  TipoJustificacion,
 } from '@/lib/api/justificaciones.api';
 import { useToast } from '@/components/ui/use-toast';
 import { getApiErrorMessage } from '@/lib/api/api-helpers';
 import { apiClient } from '@/lib/apiClient';
 
-type TipoJustificacion = 'individual' | 'departamental' | 'masiva';
+type TipoJustificacionForm = 'individual' | 'departamental' | 'masiva';
 
 interface JustificacionFormData {
-  tipo: TipoJustificacion;
+  tipo: TipoJustificacionForm;
   empleado: EmpleadoSimpleDTO | null;
   departamento: DepartamentoDto | null;
   fechaInicio: Date | null;
@@ -80,10 +82,11 @@ interface JustificacionFormData {
   fecha: Date | null;
   motivo: string;
   numOficio?: string;
+  tipoDescripcion?: string; // código/clave (columna descripcion) del tipo seleccionado
 }
 
 interface JustificacionExitosa {
-  tipo: TipoJustificacion;
+  tipo: TipoJustificacionForm;
   empleadosAfectados?: number;
   fechasAfectadas: string;
   empleadoNombre?: string;
@@ -101,6 +104,7 @@ const initialState: JustificacionFormData = {
   fecha: null,
   motivo: '',
   numOficio: '',
+  tipoDescripcion: undefined,
 };
 
 export function JustificacionForm() {
@@ -116,6 +120,22 @@ export function JustificacionForm() {
   // Empleados por departamento (para flujo departamental)
   const [deptEmployees, setDeptEmployees] = useState<EmpleadoSimpleDTO[]>([]);
   const [selectedDeptIds, setSelectedDeptIds] = useState<number[]>([]);
+
+  // Tipos de justificación
+  const [tipos, setTipos] = useState<TipoJustificacion[]>([]);
+
+  useEffect(() => {
+    const fetchTipos = async () => {
+      try {
+        const data = await listTiposJustificacion();
+        setTipos(data);
+      } catch (err) {
+        // ignore pero no bloquear el uso
+        setTipos([]);
+      }
+    };
+    fetchTipos();
+  }, []);
 
   useEffect(() => {
     const fetchDeptEmployees = async () => {
@@ -158,10 +178,19 @@ export function JustificacionForm() {
     fetchDeptEmployees();
   }, [formData.tipo, formData.departamento]);
 
-  const handleTipoChange = (tipo: TipoJustificacion) => {
+  const handleTipoChange = (tipo: TipoJustificacionForm) => {
     setFormData({ ...initialState, tipo });
     setError(null);
     setSuccessInfo(null);
+  };
+
+  const handleTipoJustificacionChange = (desc: string) => {
+    const selected = tipos.find((t) => t.descripcion === desc);
+    setFormData((prev) => ({
+      ...prev,
+      tipoDescripcion: desc,
+      motivo: selected ? selected.descripcion : prev.motivo, // prellenar con la descripción
+    }));
   };
 
   const handleDateChange = (
@@ -188,9 +217,11 @@ export function JustificacionForm() {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.motivo.trim() || formData.motivo.trim().length < 5) {
-      newErrors.motivo =
-        'El motivo es requerido y debe tener al menos 5 caracteres.';
+    if (!formData.tipoDescripcion) {
+      newErrors.tipoDescripcion = 'Debe seleccionar el tipo de justificación.';
+    }
+    if (!formData.motivo.trim() || formData.motivo.trim().length < 1) {
+      newErrors.motivo = 'El motivo es requerido.';
     }
     switch (formData.tipo) {
       case 'individual':
@@ -299,12 +330,13 @@ export function JustificacionForm() {
             ),
             motivo: formData.motivo.trim(),
             numOficio: formData.numOficio?.trim() || undefined,
-          };
-          response = await createJustificacionIndividual(individualData);
+            // nuevo campo
+            tipoDescripcion: formData.tipoDescripcion!,
+          } as any;
+          response = await createJustificacionIndividual(individualData as any);
           successPayload.empleadoNombre = formData.empleado?.nombreCompleto;
           successPayload.fechasAfectadas = `${format(formData.fechaInicio!, 'dd/MM/yyyy')} - ${format(formData.fechaFin || formData.fechaInicio!, 'dd/MM/yyyy')}`;
           // Nota: La re-consolidación por empleado ya la realiza el backend automáticamente
-          //       después de crear la justificación individual. No disparamos consolidación global aquí.
           break;
         }
 
@@ -329,9 +361,11 @@ export function JustificacionForm() {
                 fechaFin: fechaStr,
                 motivo: formData.motivo.trim(),
                 numOficio: formData.numOficio?.trim() || undefined,
-              };
+                // nuevo campo
+                tipoDescripcion: formData.tipoDescripcion!,
+              } as any;
               try {
-                await createJustificacionIndividual(payload);
+                await createJustificacionIndividual(payload as any);
                 empleadosAfectados += 1;
               } catch (_) {
                 // continuar
@@ -343,8 +377,6 @@ export function JustificacionForm() {
           successPayload.departamentoNombre = formData.departamento?.nombre;
           successPayload.fechasAfectadas = `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`;
           successPayload.empleadosAfectados = empleadosAfectados;
-          // Nota: La re-consolidación por empleado ya la realiza el backend
-          //       para cada empleado justificado del departamento. No disparamos consolidación global.
           break;
         }
 
@@ -359,9 +391,11 @@ export function JustificacionForm() {
             const payload: JustificacionMasivaData = {
               fecha: format(cursor, 'yyyy-MM-dd'),
               motivo: formData.motivo.trim(),
-            };
+              // nuevo campo
+              tipoDescripcion: formData.tipoDescripcion!,
+            } as any;
             try {
-              const res = await createJustificacionMasiva(payload);
+              const res = await createJustificacionMasiva(payload as any);
               empleadosAfectados += res.empleadosAfectados || 0;
             } catch (_) {
               // continuar
@@ -484,7 +518,9 @@ export function JustificacionForm() {
               <Label>Tipo de Justificación</Label>
               <Select
                 value={formData.tipo}
-                onValueChange={(v) => handleTipoChange(v as TipoJustificacion)}
+                onValueChange={(v) =>
+                  handleTipoChange(v as TipoJustificacionForm)
+                }
                 disabled={loading}
               >
                 <SelectTrigger>
@@ -506,6 +542,27 @@ export function JustificacionForm() {
                       <Globe /> Masiva
                     </div>
                   </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Dropdown: Tipo de Justificación (catálogo) */}
+            <div className='space-y-2'>
+              <Label>Concepto de Justificación</Label>
+              <Select
+                value={formData.tipoDescripcion || ''}
+                onValueChange={handleTipoJustificacionChange}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder='Seleccione el concepto (se usará como motivo)' />
+                </SelectTrigger>
+                <SelectContent>
+                  {tipos.map((t) => (
+                    <SelectItem key={t.id} value={t.descripcion}>
+                      {t.descripcion} — {t.nombre}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -644,7 +701,7 @@ export function JustificacionForm() {
             <div className='space-y-2'>
               <Label>Motivo</Label>
               <Textarea
-                placeholder='Describa el motivo de la justificación (mínimo 10 caracteres)'
+                placeholder='El motivo se prellenará con el concepto seleccionado, puede ajustarlo si lo requiere'
                 value={formData.motivo}
                 onChange={(e) =>
                   setFormData((f) => ({ ...f, motivo: e.target.value }))

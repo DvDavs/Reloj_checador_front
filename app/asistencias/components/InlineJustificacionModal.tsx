@@ -172,7 +172,7 @@ export function InlineJustificacionModal({
               <div className='space-y-2 sm:col-span-2'>
                 <Label>Motivo</Label>
                 <Textarea
-                  placeholder='Describa el motivo de la justificación (mínimo 10 caracteres)'
+                  placeholder='Describa el motivo de la justificación (mínimo 15caracteres)'
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
                   rows={3}

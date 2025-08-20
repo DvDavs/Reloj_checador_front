@@ -1,14 +1,126 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FileText, Users, User, Calendar } from 'lucide-react';
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
 import { JustificacionForm } from '@/components/admin/JustificacionForm';
 
 // Componentes mejorados
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
+import { DataTable } from '@/app/components/shared/data-table';
+import {
+  listJustificaciones,
+  type JustificacionItem,
+} from '@/lib/api/justificaciones.api';
+import { Badge } from '@/components/ui/badge';
 
 export default function JustificacionesPage() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rows, setRows] = useState<JustificacionItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await listJustificaciones();
+        setRows(data);
+        setTotalPages(1);
+      } catch (e: any) {
+        setError(e?.message || 'Error al cargar justificaciones');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const sortedRows = useMemo(() => {
+    if (!sortField) return rows;
+    const copy = [...rows];
+    copy.sort((a: any, b: any) => {
+      const va = a[sortField!];
+      const vb = b[sortField!];
+      if (va == null && vb == null) return 0;
+      if (va == null) return sortDirection === 'asc' ? -1 : 1;
+      if (vb == null) return sortDirection === 'asc' ? 1 : -1;
+      if (va < vb) return sortDirection === 'asc' ? -1 : 1;
+      if (va > vb) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return copy;
+  }, [rows, sortField, sortDirection]);
+
+  const columns = useMemo(
+    () => [
+      {
+        key: 'empleadoNombre',
+        label: 'Empleado',
+        sortable: true,
+        render: (j: JustificacionItem) =>
+          j.empleadoNombre || (j.esMasiva ? 'Todos' : '—'),
+      },
+      {
+        key: 'tipoJustificacionNombre',
+        label: 'Tipo',
+        sortable: true,
+        render: (j: JustificacionItem) =>
+          j.tipoJustificacionNombre || 'Administrativa',
+      },
+      {
+        key: 'fechaInicio',
+        label: 'Inicio',
+        sortable: true,
+        render: (j: JustificacionItem) => j.fechaInicio || '—',
+      },
+      {
+        key: 'fechaFin',
+        label: 'Fin',
+        sortable: true,
+        render: (j: JustificacionItem) => j.fechaFin || '—',
+      },
+      {
+        key: 'esMasiva',
+        label: 'Alcance',
+        render: (j: JustificacionItem) => (
+          <Badge variant={j.esMasiva ? 'default' : 'secondary'}>
+            {j.esMasiva
+              ? 'Masiva'
+              : j.departamentoId
+                ? `Depto ${j.departamentoId}`
+                : 'Individual'}
+          </Badge>
+        ),
+      },
+      {
+        key: 'motivo',
+        label: 'Motivo',
+        render: (j: JustificacionItem) => j.motivo || '—',
+        className: 'max-w-[300px] truncate',
+      },
+      {
+        key: 'numOficio',
+        label: 'Oficio',
+        render: (j: JustificacionItem) => j.numOficio || '—',
+      },
+    ],
+    [sortField, sortDirection]
+  );
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   return (
     <div className='min-h-screen bg-background'>
       <div className='p-6 md:p-8'>
@@ -37,6 +149,34 @@ export default function JustificacionesPage() {
                 asistencia.
               </p>
               <JustificacionForm />
+            </div>
+          </EnhancedCard>
+
+          {/* Tabla de justificaciones */}
+          <EnhancedCard variant='elevated' padding='lg'>
+            <div className='space-y-4'>
+              <div className='flex items-center gap-2 mb-4'>
+                <FileText className='h-5 w-5 text-primary' />
+                <h2 className='text-lg font-semibold text-foreground'>
+                  Justificaciones Registradas
+                </h2>
+              </div>
+              {error && <div className='text-sm text-red-600'>{error}</div>}
+              <DataTable
+                data={sortedRows}
+                columns={columns as any}
+                currentPage={page}
+                totalPages={totalPages}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+                onPageChange={setPage}
+                emptyMessage={
+                  loading
+                    ? 'Cargando...'
+                    : 'No hay justificaciones registradas.'
+                }
+              />
             </div>
           </EnhancedCard>
         </div>

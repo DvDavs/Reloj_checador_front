@@ -126,6 +126,7 @@ export const updateRegistroDetalle = async (
     fechaHora?: string | null;
     estatusCalculado?: string | null;
     observaciones?: string | null;
+    tipoEoS?: 'E' | 'S' | null;
   }
 ): Promise<RegistroDetalle> => {
   try {
