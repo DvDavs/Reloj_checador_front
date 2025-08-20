@@ -27,7 +27,9 @@ export interface AsistenciaRecord {
   horaEntrada?: string | null;
   horaSalida?: string | null;
   minutosRetardo: number | null;
+  horasTrabajadas?: number | null;
   observaciones: string | null;
+  justificacionId?: number | null;
   empleadoId: number;
   empleadoNombre: string;
   empleadoTarjeta?: number | null;

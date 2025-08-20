@@ -40,6 +40,10 @@ import {
   getEstatusDisponibles,
   EstatusDisponible,
 } from '@/lib/api/asistencia.api';
+import {
+  listJustificaciones,
+  type JustificacionItem,
+} from '@/lib/api/justificaciones.api';
 import { DepartmentSearchableSelect } from '@/app/components/shared/department-searchable-select';
 import { ConsolidacionManualForm } from '@/components/admin/ConsolidacionManualForm';
 import { useTableState } from '@/app/hooks/use-table-state';
@@ -87,6 +91,10 @@ export default function ControlAsistenciaPage() {
   const [activeView, setActiveView] = useState<'gestion' | 'consolidacion'>(
     'gestion'
   );
+  const [justificacionesMap, setJustificacionesMap] = useState<
+    Record<number, JustificacionItem>
+  >({});
+  const [loadingJustificaciones, setLoadingJustificaciones] = useState(false);
 
   // Tabla: paginación 50 por defecto
   const {
@@ -154,6 +162,49 @@ export default function ControlAsistenciaPage() {
     tarjeta,
     handlePageChange,
   ]);
+
+  const ensureJustificacionesLoaded = useCallback(async () => {
+    if (loadingJustificaciones || Object.keys(justificacionesMap).length > 0) {
+      return;
+    }
+    try {
+      setLoadingJustificaciones(true);
+      const items = await listJustificaciones();
+      const map = items.reduce(
+        (acc, j) => {
+          acc[j.id] = j;
+          return acc;
+        },
+        {} as Record<number, JustificacionItem>
+      );
+      setJustificacionesMap(map);
+    } catch (_) {
+      // noop
+    } finally {
+      setLoadingJustificaciones(false);
+    }
+  }, [loadingJustificaciones, justificacionesMap]);
+
+  const asistenciasConJustificacion = useMemo(
+    () => asistencias.some((a) => (a as any).justificacionId),
+    [asistencias]
+  );
+
+  React.useEffect(() => {
+    if (asistenciasConJustificacion) {
+      void ensureJustificacionesLoaded();
+    }
+  }, [asistenciasConJustificacion, ensureJustificacionesLoaded]);
+
+  const formatHorasTrabajadas = useCallback((horas?: number | null) => {
+    if (horas == null || isNaN(horas as number)) return '--:--';
+    const totalMin = Math.round((horas as number) * 60);
+    const hh = Math.floor(totalMin / 60)
+      .toString()
+      .padStart(2, '0');
+    const mm = (totalMin % 60).toString().padStart(2, '0');
+    return `${hh}:${mm}`;
+  }, []);
 
   // No ejecutar búsqueda inicial automática
 
@@ -238,6 +289,17 @@ export default function ControlAsistenciaPage() {
         },
       },
       {
+        key: 'horasTrabajadas',
+        label: 'Horas trabajadas',
+        sortable: true,
+        className: 'text-center',
+        render: (value: any, item: AsistenciaRecord) => (
+          <span className='font-mono'>
+            {formatHorasTrabajadas(item.horasTrabajadas as any)}
+          </span>
+        ),
+      },
+      {
         key: 'estatusAsistenciaNombre',
         label: 'Estatus',
         sortable: true,
@@ -263,8 +325,27 @@ export default function ControlAsistenciaPage() {
       {
         key: 'justificacion',
         label: 'Justificación',
-        className: 'text-muted-foreground',
-        render: () => <span className='text-muted-foreground'>N/A</span>,
+        className: 'text-muted-foreground max-w-48 truncate',
+        render: (_: any, item: AsistenciaRecord) => {
+          const jId = (item as any).justificacionId as number | undefined;
+          if (!jId) return <span className='text-muted-foreground'>—</span>;
+          const j = justificacionesMap[jId];
+          if (!j) {
+            return (
+              <span className='text-muted-foreground'>
+                {loadingJustificaciones ? 'Cargando…' : '—'}
+              </span>
+            );
+          }
+          const text = j.tipoJustificacionNombre
+            ? `${j.tipoJustificacionNombre}${j.motivo ? ' — ' + j.motivo : ''}`
+            : j.motivo || '—';
+          return (
+            <span className='text-muted-foreground' title={text}>
+              {text}
+            </span>
+          );
+        },
       },
       {
         key: 'observaciones',
@@ -321,7 +402,13 @@ export default function ControlAsistenciaPage() {
         ),
       },
     ],
-    [setSelectedForJust, setJustModalOpen]
+    [
+      setSelectedForJust,
+      setJustModalOpen,
+      justificacionesMap,
+      loadingJustificaciones,
+      formatHorasTrabajadas,
+    ]
   );
 
   return (
@@ -645,6 +732,50 @@ export default function ControlAsistenciaPage() {
             </DialogHeader>
             {selectedForDetail && (
               <div className='space-y-4'>
+                {(selectedForDetail as any).justificacionId && (
+                  <div className='border rounded-md p-3 bg-muted/30'>
+                    <div className='text-sm text-muted-foreground'>
+                      Justificación
+                    </div>
+                    {(() => {
+                      const j =
+                        justificacionesMap[
+                          (selectedForDetail as any).justificacionId as number
+                        ];
+                      if (!j) {
+                        return (
+                          <div className='text-sm text-muted-foreground'>
+                            {loadingJustificaciones ? 'Cargando…' : '—'}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className='text-sm'>
+                          <div>
+                            <span className='font-medium'>Tipo:</span>{' '}
+                            {j.tipoJustificacionNombre || 'Administrativa'}
+                          </div>
+                          {j.motivo && (
+                            <div>
+                              <span className='font-medium'>Motivo:</span>{' '}
+                              {j.motivo}
+                            </div>
+                          )}
+                          {j.numOficio && (
+                            <div>
+                              <span className='font-medium'>Oficio:</span>{' '}
+                              {j.numOficio}
+                            </div>
+                          )}
+                          <div className='text-xs text-muted-foreground'>
+                            Vigencia: {j.fechaInicio}{' '}
+                            {j.fechaFin ? `→ ${j.fechaFin}` : ''}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
                     <div className='text-sm text-muted-foreground'>
@@ -672,6 +803,16 @@ export default function ControlAsistenciaPage() {
                     <div className='text-sm text-muted-foreground'>Estatus</div>
                     <div className='font-medium'>
                       {selectedForDetail.estatusAsistenciaNombre}
+                    </div>
+                  </div>
+                  <div>
+                    <div className='text-sm text-muted-foreground'>
+                      Horas trabajadas
+                    </div>
+                    <div className='font-medium'>
+                      {formatHorasTrabajadas(
+                        (selectedForDetail as any).horasTrabajadas as any
+                      )}
                     </div>
                   </div>
                   <div>

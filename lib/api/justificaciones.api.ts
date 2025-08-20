@@ -11,17 +11,20 @@ export interface JustificacionIndividualData {
   fechaFin: string;
   motivo: string;
   numOficio?: string;
+  tipoDescripcion?: string;
 }
 
 export interface JustificacionDepartamentalData {
   departamentoClave: string; // DEBE SER departamentoClave y de tipo string
   fecha: string;
   motivo: string;
+  tipoDescripcion?: string;
 }
 
 export interface JustificacionMasivaData {
   fecha: string;
   motivo: string;
+  tipoDescripcion?: string;
 }
 
 export interface JustificacionResponse {
@@ -46,6 +49,13 @@ export interface JustificacionItem {
   empleadoNombre?: string | null;
   tipoJustificacionNombre?: string | null;
   createdAt?: string;
+}
+
+export interface TipoJustificacion {
+  id: number;
+  nombre: string;
+  descripcion: string; // este es el código/clave a enviar como tipoDescripcion
+  requiereOficio: boolean;
 }
 
 // ============================================================================
@@ -236,6 +246,31 @@ export const listJustificaciones = async (): Promise<JustificacionItem[]> => {
       getApiErrorMessage(
         error,
         'Ocurrió un error inesperado al listar las justificaciones.'
+      )
+    );
+  }
+};
+
+/**
+ * Lista tipos de justificación disponibles.
+ */
+export const listTiposJustificacion = async (): Promise<
+  TipoJustificacion[]
+> => {
+  try {
+    const response = await apiClient.get('/api/justificaciones/tipos');
+    const data = response.data?.data || [];
+    return data.map((t: any) => ({
+      id: t.id,
+      nombre: t.nombre,
+      descripcion: t.descripcion,
+      requiereOficio: Boolean(t.requiereOficio),
+    }));
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(
+        error,
+        'Ocurrió un error inesperado al listar los tipos de justificación.'
       )
     );
   }
