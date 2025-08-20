@@ -31,6 +31,24 @@ export interface JustificacionResponse {
 }
 
 // ============================================================================
+// TIPOS PARA LISTADO
+// ============================================================================
+
+export interface JustificacionItem {
+  id: number;
+  fechaInicio: string;
+  fechaFin: string;
+  motivo?: string | null;
+  numOficio?: string | null;
+  esMasiva: boolean;
+  departamentoId?: number | null;
+  empleadoId?: number | null;
+  empleadoNombre?: string | null;
+  tipoJustificacionNombre?: string | null;
+  createdAt?: string;
+}
+
+// ============================================================================
 // FUNCIONES DE API
 // ============================================================================
 
@@ -181,5 +199,44 @@ export const createJustificacionMasiva = async (
 
     console.error('API: Error en justificación masiva:', backendMessage); // Debug log
     throw new Error(backendMessage);
+  }
+};
+
+/**
+ * Lista todas las justificaciones registradas
+ */
+export const listJustificaciones = async (): Promise<JustificacionItem[]> => {
+  try {
+    const response = await apiClient.get('/api/justificaciones');
+    const backend = response.data || {};
+    const items: any[] = backend.data || [];
+
+    // Mapear a un modelo plano y estable para la UI
+    return items.map((j: any) => {
+      const empleado = j.empleado || {};
+      const tipo = j.tipoJustificacion || {};
+      return {
+        id: j.id,
+        fechaInicio: j.fechaInicio,
+        fechaFin: j.fechaFin,
+        motivo: j.motivo ?? null,
+        numOficio: j.numOficio ?? null,
+        esMasiva: Boolean(j.esMasiva),
+        departamentoId: j.departamentoId ?? null,
+        empleadoId: j.empleadoId ?? empleado.id ?? null,
+        empleadoNombre:
+          j.empleadoNombre ?? empleado.nombreCompleto ?? undefined,
+        tipoJustificacionNombre:
+          j.tipoJustificacionNombre ?? tipo.nombre ?? undefined,
+        createdAt: j.createdAt,
+      } as JustificacionItem;
+    });
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(
+        error,
+        'Ocurrió un error inesperado al listar las justificaciones.'
+      )
+    );
   }
 };

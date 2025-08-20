@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, AlertCircle, Fingerprint } from 'lucide-react';
+import { Loader2, AlertCircle, Fingerprint, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -21,6 +21,7 @@ import Link from 'next/link';
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
@@ -43,8 +44,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className='flex items-center justify-center min-h-screen bg-zinc-950 p-4'>
-      <Card className='w-full max-w-sm bg-zinc-900 border-zinc-800 text-white shadow-lg shadow-blue-500/10'>
+    <div className='flex items-center justify-center min-h-screen bg-gray-50 p-4'>
+      <Card className='w-full max-w-sm bg-white border-gray-200 text-gray-900 shadow-lg'>
         <CardHeader className='text-center space-y-4'>
           <Image
             src='/Logo_ITO.png'
@@ -54,35 +55,60 @@ export default function LoginPage() {
             className='mx-auto rounded-full'
           />
           <CardTitle className='text-2xl'>Control de Asistencia</CardTitle>
-          <CardDescription className='text-zinc-400'>
+          <CardDescription className='text-gray-500'>
             Acceso al panel de administración
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className='space-y-4'>
             <div className='space-y-2'>
-              <Label htmlFor='username'>Correo Institucional</Label>
+              <Label htmlFor='username' className='text-gray-700'>
+                Nombre de usuario
+              </Label>
               <Input
                 id='username'
-                type='email'
-                placeholder='ejemplo@itoaxaca.edu.mx'
+                type='text'
+                placeholder='Administrador'
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={isSubmitting}
+                className='bg-white border-gray-300 text-gray-900 placeholder-gray-500'
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='password'>Contraseña</Label>
-              <Input
-                id='password'
-                type='password'
-                placeholder='••••••••'
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isSubmitting}
-              />
+              <Label htmlFor='password' className='text-gray-700'>
+                Contraseña
+              </Label>
+              <div className='relative'>
+                <Input
+                  id='password'
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder='••••••••'
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isSubmitting}
+                  className='bg-white border-gray-300 text-gray-900 placeholder-gray-500 pr-10'
+                />
+                <button
+                  type='button'
+                  onClick={() => setShowPassword((v) => !v)}
+                  className='absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700'
+                  aria-label={
+                    showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                  }
+                  title={
+                    showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                  }
+                >
+                  {showPassword ? (
+                    <EyeOff className='h-4 w-4' />
+                  ) : (
+                    <Eye className='h-4 w-4' />
+                  )}
+                </button>
+              </div>
             </div>
             {error && (
               <Alert variant='destructive'>
@@ -105,7 +131,10 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className='flex justify-center'>
           <Link href='/lanzador'>
-            <Button variant='ghost' className='text-zinc-400 hover:text-white'>
+            <Button
+              variant='ghost'
+              className='text-gray-600 hover:text-gray-900'
+            >
               <Fingerprint className='mr-2 h-4 w-4' />
               Lanzar Reloj Checador
             </Button>
