@@ -89,6 +89,23 @@ export function CorreccionRegistrosForm() {
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<RegistroDetalle | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [sortField, setSortField] = useState<string>('fechaHora');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const mapSortFieldToBackend = useCallback((field: string): string => {
+    switch (field) {
+      case 'empleadoNombre':
+        return 'empleado.primerApellido';
+      case 'tarjeta':
+        return 'empleado.tarjeta';
+      case 'tipoEoS':
+        return 'tipo';
+      case 'tipoRegistroNombre':
+        return 'tipoRegistro.nombre';
+      default:
+        return field;
+    }
+  }, []);
 
   const getEstatusColor = (clave: string) => {
     switch (clave) {
@@ -134,6 +151,7 @@ export function CorreccionRegistrosForm() {
           tipoRegistroId: filters.tipoRegistroId
             ? Number(filters.tipoRegistroId)
             : undefined,
+          sort: `${mapSortFieldToBackend(sortField)},${sortDirection}`,
         };
         const response = await buscarRegistrosDetalle(params);
         setData(response);
@@ -144,7 +162,7 @@ export function CorreccionRegistrosForm() {
         setLoading(false);
       }
     },
-    [filters]
+    [filters, sortField, sortDirection]
   );
 
   const handleClearFilters = () => {
@@ -176,6 +194,7 @@ export function CorreccionRegistrosForm() {
       {
         key: 'empleadoNombre',
         label: 'Empleado',
+        sortable: true,
         render: (item: RegistroDetalle) => (
           <div className='font-medium'>{item.empleadoNombre}</div>
         ),
@@ -183,11 +202,13 @@ export function CorreccionRegistrosForm() {
       {
         key: 'tarjeta',
         label: 'No. Tarjeta',
+        sortable: true,
         render: (item: RegistroDetalle) => item.tarjeta ?? '-',
       },
       {
         key: 'fechaHora',
         label: 'Fecha y Hora',
+        sortable: true,
         render: (item: RegistroDetalle) =>
           format(new Date(item.fechaHora), 'dd/MM/yyyy HH:mm:ss', {
             locale: es,
@@ -196,6 +217,7 @@ export function CorreccionRegistrosForm() {
       {
         key: 'tipoEoS',
         label: 'Tipo',
+        sortable: true,
         render: (item: RegistroDetalle) => (
           <Badge variant={item.tipoEoS === 'E' ? 'default' : 'secondary'}>
             {item.tipoEoS === 'E' ? 'Entrada' : 'Salida'}
@@ -205,6 +227,7 @@ export function CorreccionRegistrosForm() {
       {
         key: 'estatusCalculado',
         label: 'Estatus',
+        sortable: true,
         render: (item: RegistroDetalle) => (
           <div className='flex items-center gap-2'>
             <span
@@ -222,6 +245,7 @@ export function CorreccionRegistrosForm() {
       {
         key: 'tipoRegistroNombre',
         label: 'Fuente',
+        sortable: true,
         render: (item: RegistroDetalle) => {
           const upper = (item.tipoRegistroNombre || '').toUpperCase();
           if (upper === 'NIP') return 'pin';
@@ -471,9 +495,15 @@ export function CorreccionRegistrosForm() {
             currentPage={data.number + 1}
             totalPages={data.totalPages}
             onPageChange={(page) => handleSearch(page - 1)}
-            sortField={null}
-            sortDirection='asc'
-            onSort={() => {}}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={(field) => {
+              const newDirection =
+                sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
+              setSortField(field);
+              setSortDirection(newDirection);
+              handleSearch(0);
+            }}
             enableSelection
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}

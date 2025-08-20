@@ -125,7 +125,7 @@ export function CorreccionRegistrosModal({
             </Select>
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='motivo'>Motivo</Label>
+            <Label htmlFor='motivo'>Motivo (minimo 10 caracteres)</Label>
             <Textarea
               id='motivo'
               placeholder='Describa la razón de la corrección...'
