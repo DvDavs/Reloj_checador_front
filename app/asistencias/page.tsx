@@ -10,6 +10,11 @@ import {
   Search,
   Calendar as CalendarIcon,
   DatabaseZap,
+  Clock,
+  LogIn,
+  LogOut,
+  CreditCard,
+  FileText,
 } from 'lucide-react';
 
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
@@ -732,180 +737,94 @@ export default function ControlAsistenciaPage() {
             </DialogHeader>
             {selectedForDetail && (
               <div className='space-y-4'>
-                {(selectedForDetail as any).justificacionId && (
-                  <div className='border rounded-md p-3 bg-muted/30'>
-                    <div className='text-sm text-muted-foreground'>
-                      Justificación
-                    </div>
-                    {(() => {
-                      const j =
-                        justificacionesMap[
-                          (selectedForDetail as any).justificacionId as number
-                        ];
-                      if (!j) {
-                        return (
-                          <div className='text-sm text-muted-foreground'>
-                            {loadingJustificaciones ? 'Cargando…' : '—'}
-                          </div>
-                        );
-                      }
-                      return (
-                        <div className='text-sm'>
-                          <div>
-                            <span className='font-medium'>Tipo:</span>{' '}
-                            {j.tipoJustificacionNombre || 'Administrativa'}
-                          </div>
-                          {j.motivo && (
-                            <div>
-                              <span className='font-medium'>Motivo:</span>{' '}
-                              {j.motivo}
-                            </div>
-                          )}
-                          {j.numOficio && (
-                            <div>
-                              <span className='font-medium'>Oficio:</span>{' '}
-                              {j.numOficio}
-                            </div>
-                          )}
+                {(() => {
+                  const mapFuente = (nombre?: string | null) => {
+                    if (!nombre) return '--';
+                    const upper = nombre.toUpperCase();
+                    return upper === 'NIP' ? 'pin' : upper;
+                  };
+                  const entradas = detailRegistros.filter(
+                    (r) => r.tipoEoS === 'E'
+                  );
+                  const salidas = detailRegistros.filter(
+                    (r) => r.tipoEoS === 'S'
+                  );
+                  const firstEntrada = entradas.sort((a, b) =>
+                    a.fechaHora.localeCompare(b.fechaHora)
+                  )[0];
+                  const lastSalida = salidas
+                    .sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
+                    .slice(-1)[0];
+                  const entradaRealDisplay =
+                    selectedForDetail.horaEntradaReal?.replace('T', ' ') ||
+                    selectedForDetail.horaEntrada?.replace?.('T', ' ') ||
+                    '--:--:--';
+                  const salidaRealDisplay =
+                    selectedForDetail.horaSalidaReal?.replace('T', ' ') ||
+                    selectedForDetail.horaSalida?.replace?.('T', ' ') ||
+                    '--:--:--';
+                  const fechaDisplay = format(
+                    parse(selectedForDetail.fecha, 'yyyy-MM-dd', new Date()),
+                    'dd/MM/yyyy',
+                    { locale: es }
+                  );
+                  const estatus = selectedForDetail.estatusAsistenciaNombre;
+                  const estatusVariant = estatus
+                    ?.toLowerCase()
+                    .includes('justificada')
+                    ? 'info'
+                    : estatus?.toLowerCase().includes('presente')
+                      ? 'success'
+                      : estatus?.toLowerCase().includes('falta')
+                        ? 'error'
+                        : estatus?.toLowerCase().includes('retardo')
+                          ? 'warning'
+                          : 'info';
+
+                  return (
+                    <div className='space-y-4'>
+                      <div className='flex items-start justify-between'>
+                        <div>
                           <div className='text-xs text-muted-foreground'>
-                            Vigencia: {j.fechaInicio}{' '}
-                            {j.fechaFin ? `→ ${j.fechaFin}` : ''}
+                            Empleado
+                          </div>
+                          <div className='font-semibold text-lg'>
+                            {selectedForDetail.empleadoNombre}
+                          </div>
+                          <div className='mt-1 text-xs'>
+                            <span className='bg-muted px-2 py-1 rounded-full text-muted-foreground font-mono'>
+                              #{selectedForDetail.empleadoTarjeta ?? 'N/A'}
+                            </span>
                           </div>
                         </div>
-                      );
-                    })()}
-                  </div>
-                )}
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div>
-                    <div className='text-sm text-muted-foreground'>
-                      Empleado
-                    </div>
-                    <div className='font-medium'>
-                      {selectedForDetail.empleadoNombre}
-                    </div>
-                  </div>
-                  <div>
-                    <div className='text-sm text-muted-foreground'>Fecha</div>
-                    <div className='font-medium'>
-                      {format(
-                        parse(
-                          selectedForDetail.fecha,
-                          'yyyy-MM-dd',
-                          new Date()
-                        ),
-                        'dd/MM/yyyy',
-                        { locale: es }
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <div className='text-sm text-muted-foreground'>Estatus</div>
-                    <div className='font-medium'>
-                      {selectedForDetail.estatusAsistenciaNombre}
-                    </div>
-                  </div>
-                  <div>
-                    <div className='text-sm text-muted-foreground'>
-                      Horas trabajadas
-                    </div>
-                    <div className='font-medium'>
-                      {formatHorasTrabajadas(
-                        (selectedForDetail as any).horasTrabajadas as any
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <div className='text-sm text-muted-foreground'>
-                      Observaciones
-                    </div>
-                    <div className='font-medium'>
-                      {selectedForDetail.observaciones || '--'}
-                    </div>
-                  </div>
-                </div>
+                        <div className='text-right'>
+                          <div className='text-xs text-muted-foreground'>
+                            Fecha
+                          </div>
+                          <div className='font-medium'>{fechaDisplay}</div>
+                          <div className='mt-1'>
+                            <EnhancedBadge
+                              variant={estatusVariant as any}
+                              size='sm'
+                            >
+                              {estatus}
+                            </EnhancedBadge>
+                          </div>
+                        </div>
+                      </div>
 
-                <div className='border-t pt-4 space-y-2'>
-                  <div className='text-sm text-muted-foreground'>
-                    Detalle de horario
-                  </div>
-                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm'>
-                    <div>
-                      <div className='text-muted-foreground'>
-                        Entrada programada
-                      </div>
-                      <div className='font-medium'>
-                        {selectedForDetail.horaEntradaProgramada || '--:--:--'}
-                      </div>
-                    </div>
-                    <div>
-                      <div className='text-muted-foreground'>
-                        Salida programada
-                      </div>
-                      <div className='font-medium'>
-                        {selectedForDetail.horaSalidaProgramada || '--:--:--'}
-                      </div>
-                    </div>
-                    <div>
-                      <div className='text-muted-foreground'>Tarjeta</div>
-                      <div className='font-medium'>
-                        #{selectedForDetail.empleadoTarjeta ?? 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className='border-t pt-4 space-y-2'>
-                  <div className='text-sm text-muted-foreground'>
-                    Marcaciones del día
-                  </div>
-                  {detailLoading ? (
-                    <div className='text-sm text-muted-foreground'>
-                      Cargando...
-                    </div>
-                  ) : detailRegistros.length === 0 ? (
-                    <div className='text-sm text-muted-foreground'>
-                      Sin registros
-                    </div>
-                  ) : (
-                    <div className='space-y-2'>
-                      {(() => {
-                        const mapFuente = (nombre?: string | null) => {
-                          if (!nombre) return '--';
-                          const upper = nombre.toUpperCase();
-                          return upper === 'NIP' ? 'pin' : upper;
-                        };
-                        const entradas = detailRegistros.filter(
-                          (r) => r.tipoEoS === 'E'
-                        );
-                        const salidas = detailRegistros.filter(
-                          (r) => r.tipoEoS === 'S'
-                        );
-                        const firstEntrada = entradas.sort((a, b) =>
-                          a.fechaHora.localeCompare(b.fechaHora)
-                        )[0];
-                        const lastSalida = salidas
-                          .sort((a, b) =>
-                            a.fechaHora.localeCompare(b.fechaHora)
-                          )
-                          .slice(-1)[0];
-                        return (
-                          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                            <div className='space-y-1'>
-                              <div className='text-sm text-muted-foreground'>
-                                Entrada real
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <EnhancedCard variant='bordered' padding='md'>
+                          <div className='space-y-3'>
+                            <div className='flex items-center justify-between'>
+                              <div className='text-sm text-muted-foreground flex items-center gap-2'>
+                                <LogIn className='h-4 w-4' /> Entrada real
                               </div>
-                              <div className='font-medium'>
-                                {selectedForDetail.horaEntradaReal?.replace(
-                                  'T',
-                                  ' '
-                                ) ||
-                                  selectedForDetail.horaEntrada?.replace(
-                                    'T',
-                                    ' '
-                                  ) ||
-                                  '--:--:--'}
+                              <div className='font-mono font-semibold'>
+                                {entradaRealDisplay}
                               </div>
+                            </div>
+                            <div className='flex items-center justify-between'>
                               <div className='text-sm text-muted-foreground'>
                                 Fuente entrada
                               </div>
@@ -913,21 +832,15 @@ export default function ControlAsistenciaPage() {
                                 {mapFuente(firstEntrada?.tipoRegistroNombre)}
                               </div>
                             </div>
-                            <div className='space-y-1'>
-                              <div className='text-sm text-muted-foreground'>
-                                Salida real
+                            <div className='flex items-center justify-between'>
+                              <div className='text-sm text-muted-foreground flex items-center gap-2'>
+                                <LogOut className='h-4 w-4' /> Salida real
                               </div>
-                              <div className='font-medium'>
-                                {selectedForDetail.horaSalidaReal?.replace(
-                                  'T',
-                                  ' '
-                                ) ||
-                                  selectedForDetail.horaSalida?.replace(
-                                    'T',
-                                    ' '
-                                  ) ||
-                                  '--:--:--'}
+                              <div className='font-mono font-semibold'>
+                                {salidaRealDisplay}
                               </div>
+                            </div>
+                            <div className='flex items-center justify-between'>
                               <div className='text-sm text-muted-foreground'>
                                 Fuente salida
                               </div>
@@ -935,43 +848,170 @@ export default function ControlAsistenciaPage() {
                                 {mapFuente(lastSalida?.tipoRegistroNombre)}
                               </div>
                             </div>
-                          </div>
-                        );
-                      })()}
-                      <div className='border rounded-md divide-y'>
-                        <div className='px-3 py-2 text-xs text-muted-foreground grid grid-cols-4 gap-2'>
-                          <div>Hora</div>
-                          <div>Tipo</div>
-                          <div>Fuente</div>
-                          <div>Observaciones</div>
-                        </div>
-                        {detailRegistros.map((r) => (
-                          <div
-                            key={r.id}
-                            className='px-3 py-2 text-sm grid grid-cols-4 gap-2'
-                          >
-                            <div className='font-mono'>{r.fechaHora}</div>
-                            <div>
-                              {r.tipoEoS === 'E' ? 'Entrada' : 'Salida'}
-                            </div>
-                            <div>
-                              {(r.tipoRegistroNombre?.toUpperCase?.() || '') ===
-                              'NIP'
-                                ? 'pin'
-                                : r.tipoRegistroNombre || '--'}
-                            </div>
-                            <div
-                              className='truncate'
-                              title={r.observaciones || ''}
-                            >
-                              {r.observaciones || '--'}
+                            <div className='flex items-center justify-between pt-2 border-t'>
+                              <div className='text-sm text-muted-foreground flex items-center gap-2'>
+                                <Clock className='h-4 w-4' /> Horas trabajadas
+                              </div>
+                              <div className='font-mono font-semibold'>
+                                {formatHorasTrabajadas(
+                                  (selectedForDetail as any)
+                                    .horasTrabajadas as any
+                                )}
+                              </div>
                             </div>
                           </div>
-                        ))}
+                        </EnhancedCard>
+
+                        <EnhancedCard variant='bordered' padding='md'>
+                          <div className='space-y-3'>
+                            <div className='flex items-center justify-between'>
+                              <div className='text-sm text-muted-foreground'>
+                                Entrada programada
+                              </div>
+                              <div className='font-medium'>
+                                {selectedForDetail.horaEntradaProgramada ||
+                                  '--:--:--'}
+                              </div>
+                            </div>
+                            <div className='flex items-center justify-between'>
+                              <div className='text-sm text-muted-foreground'>
+                                Salida programada
+                              </div>
+                              <div className='font-medium'>
+                                {selectedForDetail.horaSalidaProgramada ||
+                                  '--:--:--'}
+                              </div>
+                            </div>
+                            <div className='flex items-center justify-between'>
+                              <div className='text-sm text-muted-foreground flex items-center gap-2'>
+                                <CreditCard className='h-4 w-4' /> Tarjeta
+                              </div>
+                              <div className='font-medium'>
+                                #{selectedForDetail.empleadoTarjeta ?? 'N/A'}
+                              </div>
+                            </div>
+                            <div>
+                              <div className='text-sm text-muted-foreground'>
+                                Observaciones
+                              </div>
+                              <div className='font-medium'>
+                                {selectedForDetail.observaciones || '--'}
+                              </div>
+                            </div>
+                          </div>
+                        </EnhancedCard>
                       </div>
+
+                      {(selectedForDetail as any).justificacionId && (
+                        <EnhancedCard variant='bordered' padding='md'>
+                          <div className='flex items-start gap-3'>
+                            <FileText className='h-4 w-4 mt-0.5 text-muted-foreground' />
+                            <div className='space-y-1'>
+                              {(() => {
+                                const j =
+                                  justificacionesMap[
+                                    (selectedForDetail as any)
+                                      .justificacionId as number
+                                  ];
+                                if (!j) {
+                                  return (
+                                    <div className='text-sm text-muted-foreground'>
+                                      {loadingJustificaciones
+                                        ? 'Cargando…'
+                                        : '—'}
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div className='text-sm'>
+                                    <div>
+                                      <span className='font-medium'>Tipo:</span>{' '}
+                                      {j.tipoJustificacionNombre ||
+                                        'Administrativa'}
+                                    </div>
+                                    {j.motivo && (
+                                      <div>
+                                        <span className='font-medium'>
+                                          Motivo:
+                                        </span>{' '}
+                                        {j.motivo}
+                                      </div>
+                                    )}
+                                    {j.numOficio && (
+                                      <div>
+                                        <span className='font-medium'>
+                                          Oficio:
+                                        </span>{' '}
+                                        {j.numOficio}
+                                      </div>
+                                    )}
+                                    <div className='text-xs text-muted-foreground'>
+                                      Vigencia: {j.fechaInicio}{' '}
+                                      {j.fechaFin ? `→ ${j.fechaFin}` : ''}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </EnhancedCard>
+                      )}
+
+                      <EnhancedCard variant='bordered' padding='md'>
+                        <div className='space-y-2'>
+                          <div className='text-sm text-muted-foreground'>
+                            Chequeos del día
+                          </div>
+                          {detailLoading ? (
+                            <div className='text-sm text-muted-foreground'>
+                              Cargando...
+                            </div>
+                          ) : detailRegistros.length === 0 ? (
+                            <div className='text-sm text-muted-foreground'>
+                              Sin registros
+                            </div>
+                          ) : (
+                            <>
+                              <div className='border rounded-md divide-y'>
+                                <div className='px-3 py-2 text-xs text-muted-foreground grid grid-cols-4 gap-2'>
+                                  <div>Hora</div>
+                                  <div>Tipo</div>
+                                  <div>Fuente</div>
+                                  <div>Observaciones</div>
+                                </div>
+                                {detailRegistros.map((r) => (
+                                  <div
+                                    key={r.id}
+                                    className='px-3 py-2 text-sm grid grid-cols-4 gap-2'
+                                  >
+                                    <div className='font-mono'>
+                                      {r.fechaHora}
+                                    </div>
+                                    <div>
+                                      {r.tipoEoS === 'E' ? 'Entrada' : 'Salida'}
+                                    </div>
+                                    <div>
+                                      {(r.tipoRegistroNombre?.toUpperCase?.() ||
+                                        '') === 'NIP'
+                                        ? 'pin'
+                                        : r.tipoRegistroNombre || '--'}
+                                    </div>
+                                    <div
+                                      className='truncate'
+                                      title={r.observaciones || ''}
+                                    >
+                                      {r.observaciones || '--'}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </EnhancedCard>
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
               </div>
             )}
           </DialogContent>
