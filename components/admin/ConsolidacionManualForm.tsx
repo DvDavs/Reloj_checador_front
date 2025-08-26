@@ -7,6 +7,7 @@ import {
   AlertCircle,
   CheckCircle2,
   DatabaseZap,
+  Info,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -44,6 +45,12 @@ import {
   consolidarAsistenciaManual,
   ConsolidacionResponse,
 } from '@/lib/api/asistencia.api';
+import {
+  getAutoGenerationStatus,
+  setAutoGenerationStatus,
+  AutoGenerationStatus,
+} from '@/lib/api/schedule-api';
+import { Switch } from '@/components/ui/switch';
 
 interface ConsolidacionManualFormProps {
   titleOverride?: string;
@@ -66,6 +73,34 @@ export function ConsolidacionManualForm({
   );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isConfirmOpen, setConfirmOpen] = useState(false);
+  const [isToggleConfirmOpen, setToggleConfirmOpen] = useState(false);
+  const [pendingToggleValue, setPendingToggleValue] = useState<boolean | null>(
+    null
+  );
+  const [autoGen, setAutoGen] = useState<AutoGenerationStatus | null>(null);
+  const [autoGenBusy, setAutoGenBusy] = useState(false);
+  const [lastConsolidatedDate, setLastConsolidatedDate] = useState<Date | null>(
+    null
+  );
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const status = await getAutoGenerationStatus();
+        if (mounted) setAutoGen(status);
+      } catch (err) {
+        // Silencioso en UI; mostrar como info en toast
+        toast({
+          title: 'No se pudo obtener el estado automático',
+          description: getApiErrorMessage(err),
+        });
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [toast]);
 
   const validateForm = (): boolean => {
     if (!selectedDate) {
@@ -93,6 +128,7 @@ export function ConsolidacionManualForm({
       const response = await consolidarAsistenciaManual(fechaFormateada);
 
       setSuccessInfo(response);
+      setLastConsolidatedDate(selectedDate!);
       toast({
         title: 'Generación de Asistencias Exitosa',
         description:
@@ -139,7 +175,13 @@ export function ConsolidacionManualForm({
               <CheckCircle2 className='h-4 w-4' />
               <AlertTitle>¡Proceso Completado!</AlertTitle>
               <AlertDescription>
-                <strong>{successInfo.totalConsolidados}</strong> registros
+                Fecha consolidada:{' '}
+                <strong>
+                  {lastConsolidatedDate
+                    ? format(lastConsolidatedDate, 'PPP', { locale: es })
+                    : ''}
+                </strong>
+                .<strong>{successInfo.totalConsolidados}</strong> registros
                 consolidados. Faltas: <strong>{successInfo.totalFaltas}</strong>
                 .
               </AlertDescription>
@@ -197,6 +239,42 @@ export function ConsolidacionManualForm({
         </CardContent>
       </Card>
 
+      {/* Configuración multi‑PC y generación automática (debajo de la consolidación manual) */}
+      <div className='mt-6'>
+        <div className='rounded-md border p-4'>
+          <div className='flex items-center justify-between'>
+            <div className='space-y-1 pr-4'>
+              <Label className='text-base'>Generación automática</Label>
+              <p className='text-sm text-muted-foreground'>
+                Controla si esta instancia ejecuta procesos automáticos (00:05).
+              </p>
+            </div>
+            <div className='flex items-center gap-3'>
+              <Switch
+                checked={!!autoGen?.enabled}
+                disabled={autoGen == null || autoGenBusy}
+                onCheckedChange={async (checked) => {
+                  setPendingToggleValue(checked);
+                  setToggleConfirmOpen(true);
+                }}
+              />
+            </div>
+          </div>
+          <div className='mt-4'>
+            <Alert className='mb-4 border-blue-500/50 text-blue-700 dark:text-blue-400 [&>svg]:text-blue-700 dark:[&>svg]:text-blue-400'>
+              <Info className='h-4 w-4' />
+              <AlertTitle>Configuración multi‑PC</AlertTitle>
+              <AlertDescription>
+                En instalaciones con múltiples equipos, habilite la generación
+                automática solo en una PC. En las demás, desactívela y utilice
+                esta pantalla para realizar la consolidación manual cuando sea
+                necesario.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </div>
+      </div>
+
       <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -219,6 +297,67 @@ export function ConsolidacionManualForm({
             <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmSubmit} disabled={loading}>
               {loading ? (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              ) : (
+                'Confirmar'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmación para toggle de auto generación */}
+      <AlertDialog
+        open={isToggleConfirmOpen}
+        onOpenChange={(open) => {
+          setToggleConfirmOpen(open);
+          if (!open) setPendingToggleValue(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingToggleValue
+                ? '¿Habilitar generación automática en esta PC?'
+                : '¿Deshabilitar generación automática en esta PC?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingToggleValue
+                ? 'Esta instancia ejecutará los procesos programados automáticamente (00:05, 01:00 y 02:00).'
+                : 'Esta instancia no ejecutará procesos automáticos. Podrá usar esta pantalla para consolidación manual cuando sea necesario.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={autoGenBusy}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (pendingToggleValue == null) return;
+                setAutoGenBusy(true);
+                try {
+                  const updated =
+                    await setAutoGenerationStatus(pendingToggleValue);
+                  setAutoGen(updated);
+                  toast({
+                    title: 'Configuración actualizada',
+                    description: `Generación automática ${updated.enabled ? 'habilitada' : 'deshabilitada'} para esta instancia.`,
+                  });
+                } catch (err) {
+                  toast({
+                    title: 'Error al actualizar',
+                    description: getApiErrorMessage(err),
+                    variant: 'destructive',
+                  });
+                } finally {
+                  setAutoGenBusy(false);
+                  setToggleConfirmOpen(false);
+                  setPendingToggleValue(null);
+                }
+              }}
+              disabled={autoGenBusy}
+            >
+              {autoGenBusy ? (
                 <Loader2 className='mr-2 h-4 w-4 animate-spin' />
               ) : (
                 'Confirmar'

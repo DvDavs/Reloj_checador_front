@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Edit,
@@ -89,6 +89,8 @@ export function CorreccionRegistrosForm() {
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<RegistroDetalle | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [editDate, setEditDate] = useState<Date | null>(null);
+  const [editTime, setEditTime] = useState<string>('');
   const [sortField, setSortField] = useState<string>('fechaHora');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
@@ -162,7 +164,7 @@ export function CorreccionRegistrosForm() {
         setLoading(false);
       }
     },
-    [filters, sortField, sortDirection]
+    [filters, sortField, sortDirection, mapSortFieldToBackend]
   );
 
   const handleClearFilters = () => {
@@ -272,7 +274,7 @@ export function CorreccionRegistrosForm() {
               setEditOpen(true);
             }}
           >
-            + Justificar
+            Corregir
           </Button>
         ),
       },
@@ -297,7 +299,23 @@ export function CorreccionRegistrosForm() {
         });
       }
     })();
-  }, []);
+  }, [toast]);
+
+  // Inicializa controles de fecha y hora cuando se abre el modal de edición
+  useEffect(() => {
+    if (editOpen && editing) {
+      const raw = (editing.fechaHora || '').trim();
+      // Admite "yyyy-MM-dd HH:mm:ss" y "yyyy-MM-ddTHH:mm:ss"
+      const normalized = raw.includes('T') ? raw.replace('T', ' ') : raw;
+      let parsedDate = parse(normalized, 'yyyy-MM-dd HH:mm:ss', new Date());
+      if (isNaN(parsedDate.getTime())) {
+        const fallback = new Date(raw);
+        parsedDate = isNaN(fallback.getTime()) ? new Date() : fallback;
+      }
+      setEditDate(parsedDate);
+      setEditTime(format(parsedDate, 'HH:mm'));
+    }
+  }, [editOpen, editing]);
 
   return (
     <>
@@ -528,21 +546,84 @@ export function CorreccionRegistrosForm() {
           </DialogHeader>
           {editing && (
             <div className='space-y-4'>
-              <div className='space-y-2'>
-                <Label>Fecha y Hora</Label>
-                <Input
-                  type='datetime-local'
-                  value={format(
-                    new Date(editing.fechaHora),
-                    "yyyy-MM-dd'T'HH:mm"
-                  )}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      fechaHora: e.target.value.replace('T', ' ') + ':00',
-                    })
-                  }
-                />
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div className='space-y-2'>
+                  <Label>Fecha</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={'outline'}
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !editDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className='mr-2 h-4 w-4' />
+                        {editDate ? (
+                          format(editDate, 'PPP', { locale: es })
+                        ) : (
+                          <span>Seleccionar fecha</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className='w-auto p-0'>
+                      <Calendar
+                        mode='single'
+                        selected={editDate ?? undefined}
+                        onSelect={(d) => {
+                          setEditDate(d || null);
+                          if (d && editing) {
+                            const [h, m] = (editTime || '00:00')
+                              .split(':')
+                              .map((v) => parseInt(v, 10));
+                            const combined = new Date(d);
+                            combined.setHours(
+                              isNaN(h) ? 0 : h,
+                              isNaN(m) ? 0 : m,
+                              0,
+                              0
+                            );
+                            setEditing({
+                              ...editing,
+                              fechaHora: format(
+                                combined,
+                                'yyyy-MM-dd HH:mm:ss'
+                              ),
+                            });
+                          }
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className='space-y-2'>
+                  <Label>Hora</Label>
+                  <Input
+                    type='time'
+                    value={editTime}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setEditTime(value);
+                      if (editing) {
+                        const base = editDate ?? new Date();
+                        const [h, m] = (value || '00:00')
+                          .split(':')
+                          .map((v) => parseInt(v, 10));
+                        const combined = new Date(base);
+                        combined.setHours(
+                          isNaN(h) ? 0 : h,
+                          isNaN(m) ? 0 : m,
+                          0,
+                          0
+                        );
+                        setEditing({
+                          ...editing,
+                          fechaHora: format(combined, 'yyyy-MM-dd HH:mm:ss'),
+                        });
+                      }
+                    }}
+                  />
+                </div>
               </div>
               <div className='space-y-2'>
                 <Label>Estatus Calculado</Label>

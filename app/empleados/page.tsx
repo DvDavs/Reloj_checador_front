@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Edit, Eye, Fingerprint } from 'lucide-react';
+import { UserPlus, Edit, Eye, Fingerprint, Calendar } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 import { EmployeeDetailsModal } from './components/employee-details-modal';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,6 +15,14 @@ import { ActionButtons } from '@/app/components/shared/action-buttons';
 import { useTableState } from '@/app/hooks/use-table-state';
 import type { EmpleadoDto } from '@/app/lib/types/timeClockTypes';
 import { EmployeeAvatar } from '@/app/components/shared/EmployeeAvatar';
+import { DetailsDialog } from '@/app/horarios/asignados/components/details-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 interface EmployeeDisplayData {
   id: number;
@@ -41,6 +49,13 @@ export default function EmpleadosPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<EmpleadoDto | null>(
     null
   );
+  const [isScheduleDetailsOpen, setScheduleDetailsOpen] = useState(false);
+  const [selectedScheduleItem, setSelectedScheduleItem] = useState<any | null>(
+    null
+  );
+  const [noScheduleOpen, setNoScheduleOpen] = useState(false);
+  const [noScheduleRow, setNoScheduleRow] = useState<EmpleadoDto | null>(null);
+  const [isResolvingSchedule, setIsResolvingSchedule] = useState(false);
 
   const {
     paginatedData,
@@ -132,6 +147,47 @@ export default function EmpleadosPage() {
     setSelectedEmployee(null);
   };
 
+  const resolveEmployeeActiveSchedule = useCallback(
+    async (employee: EmpleadoDto) => {
+      try {
+        const response = await apiClient.get(
+          `${API_BASE_URL}/api/horarios-asignados/empleado/${employee.id}`
+        );
+        const asignaciones: any[] = response.data || [];
+        if (!Array.isArray(asignaciones) || asignaciones.length === 0) {
+          return null;
+        }
+        const activa =
+          asignaciones.find((a: any) => a?.activo === true) || null;
+        if (!activa) return null;
+        if (!activa.empleadoNombre) {
+          activa.empleadoNombre = getFullName(employee);
+        }
+        if (activa.numTarjetaTrabajador == null) {
+          (activa as any).numTarjetaTrabajador =
+            (employee as any).tarjeta ?? null;
+        }
+        return activa;
+      } catch (_) {
+        return null;
+      }
+    },
+    [getFullName]
+  );
+
+  const handleViewSchedule = async (employee: EmpleadoDto) => {
+    setIsResolvingSchedule(true);
+    const item = await resolveEmployeeActiveSchedule(employee);
+    setIsResolvingSchedule(false);
+    if (item) {
+      setSelectedScheduleItem(item);
+      setScheduleDetailsOpen(true);
+    } else {
+      setNoScheduleRow(employee);
+      setNoScheduleOpen(true);
+    }
+  };
+
   // Definir las columnas de la tabla
   const columns = [
     {
@@ -202,32 +258,45 @@ export default function EmpleadosPage() {
       label: 'Acciones',
       className: 'text-right',
       render: (value: any, row: EmpleadoDto) => (
-        <ActionButtons
-          buttons={[
-            {
-              icon: <Eye className='h-4 w-4' />,
-              onClick: () => handleViewDetails(row),
-              variant: 'view',
-              title: 'Ver Detalles',
-            },
-            {
-              icon: <Edit className='h-4 w-4' />,
-              onClick: () => handleEdit(row.id),
-              variant: 'edit',
-              title: 'Editar Empleado',
-            },
-            {
-              icon: <Fingerprint className='h-4 w-4' />,
-              onClick: () =>
-                router.push(
-                  `/empleados/asignar-huella?id=${row.id}&nombre=${encodeURIComponent(getFullName(row))}`
-                ),
-              variant: 'custom',
-              title: 'Asignar Huella',
-              className: 'action-button-fingerprint',
-            },
-          ]}
-        />
+        <div className='flex justify-end items-center gap-2'>
+          <ActionButtons
+            buttons={[
+              {
+                icon: <Eye className='h-4 w-4' />,
+                onClick: () => handleViewDetails(row),
+                variant: 'view',
+                title: 'Ver Detalles',
+              },
+              {
+                icon: <Edit className='h-4 w-4' />,
+                onClick: () => handleEdit(row.id),
+                variant: 'edit',
+                title: 'Editar Empleado',
+              },
+              {
+                icon: <Fingerprint className='h-4 w-4' />,
+                onClick: () =>
+                  router.push(
+                    `/empleados/asignar-huella?id=${row.id}&nombre=${encodeURIComponent(getFullName(row))}`
+                  ),
+                variant: 'custom',
+                title: 'Asignar Huella',
+                className: 'action-button-fingerprint',
+              },
+            ]}
+          />
+          <span className='mx-1 text-muted-foreground'>|</span>
+          <Button
+            variant='ghost'
+            size='icon'
+            title='Ver Horario'
+            aria-label='Ver Horario'
+            onClick={() => handleViewSchedule(row)}
+            disabled={isResolvingSchedule}
+          >
+            <Calendar className='h-4 w-4' />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -277,6 +346,58 @@ export default function EmpleadosPage() {
           onClose={handleCloseDetailsModal}
         />
       )}
+
+      {/* Detalles del horario */}
+      <DetailsDialog
+        isOpen={isScheduleDetailsOpen}
+        onClose={() => {
+          setScheduleDetailsOpen(false);
+          setSelectedScheduleItem(null);
+        }}
+        item={selectedScheduleItem}
+      />
+
+      {/* Diálogo Sin Horario Asignado */}
+      <Dialog open={noScheduleOpen} onOpenChange={setNoScheduleOpen}>
+        <DialogContent className='sm:max-w-[500px] bg-card border-border text-card-foreground'>
+          <DialogHeader className='text-center space-y-2'>
+            <div className='mx-auto w-14 h-14 bg-muted rounded-full flex items-center justify-center border border-border'>
+              <Calendar className='w-7 h-7 text-muted-foreground' />
+            </div>
+            <DialogTitle className='text-xl font-bold text-foreground'>
+              Sin Horario Asignado
+            </DialogTitle>
+            <DialogDescription className='text-muted-foreground'>
+              {noScheduleRow
+                ? `${getFullName(noScheduleRow)} no tiene un horario activo asignado.`
+                : 'No hay un horario activo asignado para este empleado.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className='pt-2 grid grid-cols-1 gap-3'>
+            {noScheduleRow && (
+              <Button
+                onClick={() => {
+                  if (!noScheduleRow) return;
+                  const url = `/horarios/asignados/registrar?id=${noScheduleRow.id}&nombre=${encodeURIComponent(
+                    getFullName(noScheduleRow)
+                  )}`;
+                  window.location.href = url;
+                }}
+                className='w-full justify-center'
+              >
+                Asignar Horario
+              </Button>
+            )}
+            <Button
+              variant='outline'
+              onClick={() => setNoScheduleOpen(false)}
+              className='w-full'
+            >
+              Cerrar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

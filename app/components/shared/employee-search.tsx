@@ -101,12 +101,41 @@ export function EmployeeSearch({
             }
           }
         } else {
-          // Búsqueda tradicional (nombre, RFC, CURP). Además, mapear tarjeta -> numTarjetaTrabajador si viene
-          const data = term
-            ? await searchEmployees(term)
-            : showAllOnOpen
-              ? await searchEmployees('')
-              : [];
+          // Búsqueda tradicional (nombre, RFC, CURP) con fallback para múltiples tokens.
+          // Si el backend no soporta múltiples palabras ("David G"), intentamos con tokens individuales
+          // y dejamos que el filtro del componente haga el refinamiento en cliente.
+          let data: EmpleadoSimpleDTO[] = [];
+          if (term) {
+            data = await searchEmployees(term);
+            if ((!data || data.length === 0) && term.includes(' ')) {
+              const tokens = term.split(/\s+/).filter(Boolean);
+              const candidates = [tokens[tokens.length - 1], tokens[0]]; // probar apellido/nombre
+              for (const t of candidates) {
+                if (!t) continue;
+                try {
+                  const partial = await searchEmployees(t);
+                  if (Array.isArray(partial) && partial.length > 0) {
+                    data = partial as EmpleadoSimpleDTO[];
+                    break;
+                  }
+                } catch (_) {
+                  // Ignorado a propósito: continuar con el siguiente candidato
+                  continue;
+                }
+              }
+              // Como último recurso, si se permite, traer todos para filtrar en cliente
+              if ((!data || data.length === 0) && showAllOnOpen) {
+                try {
+                  data = await searchEmployees('');
+                } catch (_) {
+                  // En caso de fallo, no hay datos que mostrar
+                  data = [];
+                }
+              }
+            }
+          } else if (showAllOnOpen) {
+            data = await searchEmployees('');
+          }
           const mapped = (data || []).map((emp: any) => ({
             ...emp,
             numTarjetaTrabajador:

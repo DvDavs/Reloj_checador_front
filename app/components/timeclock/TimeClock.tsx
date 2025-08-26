@@ -22,6 +22,7 @@ import type {
 } from '@/app/lib/types/timeClockTypes';
 import { getUserFriendlyMessage } from '@/app/lib/timeClockUtils';
 import { submitPinPadCheckin } from '@/lib/api/pinpad-api';
+import { apiClient } from '@/lib/apiClient';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
@@ -258,11 +259,38 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
       try {
         const deviceKey = selectedReader;
         const resp = await submitPinPadCheckin(pin, deviceKey);
-        const message = getUserFriendlyMessage(resp.code, resp.data);
-        if (resp.type === 'OK') {
-          setSuccess({ message, statusCode: resp.code, statusData: resp.data });
+        const code = resp.code || '';
+        const message = getUserFriendlyMessage(code, resp.data);
+        const isSuccessfulRegistration =
+          code !== 'FR' &&
+          (code.startsWith('2') || code === '301' || code === '302');
+
+        if (isSuccessfulRegistration) {
+          setSuccess({ message, statusCode: code, statusData: resp.data });
+
+          // 1) Usar inmediatamente el empleadoId devuelto por el backend (RegistroDto)
+          const employeeIdFromResponse =
+            (resp as any)?.data?.empleadoId ?? (resp as any)?.empleadoId;
+          if (employeeIdFromResponse) {
+            setEmployeeIdToFetch(employeeIdFromResponse);
+            setShowAttendance(true);
+          } else {
+            // 2) Fallback: resolver por número de tarjeta (PIN)
+            try {
+              const empResp = await apiClient.get(
+                `/api/empleados/tarjeta/${encodeURIComponent(pin)}`
+              );
+              const employeeId = empResp.data?.id ?? empResp.data?.data?.id;
+              if (employeeId) {
+                setEmployeeIdToFetch(employeeId);
+                setShowAttendance(true);
+              }
+            } catch (_) {
+              // Si falla la resolución por tarjeta, confiar en un posible evento STOMP subsecuente
+            }
+          }
         } else {
-          setFailed({ message, statusCode: resp.code, statusData: resp.data });
+          setFailed({ message, statusCode: code, statusData: resp.data });
         }
       } catch (err: any) {
         const code = err?.body?.code || String(err?.status || '500');
