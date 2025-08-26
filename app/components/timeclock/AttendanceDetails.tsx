@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { User, LogIn, LogOut, AlertTriangle } from 'lucide-react';
+import { EmployeeAvatar } from '@/app/components/shared/EmployeeAvatar';
 import type { AttendanceDetailsProps } from './interfaces';
 import { formatTime } from '../../lib/timeClockUtils';
 import { attendanceDetailsPropsAreEqual } from './utils/memoComparisons';
@@ -177,19 +178,19 @@ function AttendanceDetailsComponent({
     <div className='w-full h-full bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800 flex flex-col'>
       {/* Información del usuario - con placeholders - Más compacto */}
       <div className='mb-3 flex items-center gap-4'>
-        <div
-          className={`flex h-20 w-20 items-center justify-center rounded-full ${
-            hasEmployeeData
-              ? 'bg-blue-500/30 border-2 border-blue-500'
-              : 'bg-zinc-800 border-2 border-zinc-700'
-          }`}
-        >
-          <User
-            className={`h-10 w-10 ${
-              hasEmployeeData ? 'text-blue-300' : 'text-zinc-400'
-            }`}
+        {hasEmployeeData ? (
+          <EmployeeAvatar
+            empleadoId={employee.id}
+            nombre={employee.nombreCompleto}
+            fotoUrl={employee.fotoUrl}
+            tieneFoto={employee.tieneFoto}
+            size={80}
           />
-        </div>
+        ) : (
+          <div className='flex h-20 w-20 items-center justify-center rounded-full bg-zinc-800 border-2 border-zinc-700'>
+            <User className='h-10 w-10 text-zinc-400' />
+          </div>
+        )}
         <div className='flex-1'>
           <h2 className='text-3xl font-bold text-white'>
             {hasEmployeeData ? employee.nombreCompleto : 'Usuario'}

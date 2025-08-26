@@ -14,6 +14,7 @@ import { EnhancedBadge } from '@/app/components/shared/enhanced-badge';
 import { ActionButtons } from '@/app/components/shared/action-buttons';
 import { useTableState } from '@/app/hooks/use-table-state';
 import type { EmpleadoDto } from '@/app/lib/types/timeClockTypes';
+import { EmployeeAvatar } from '@/app/components/shared/EmployeeAvatar';
 
 interface EmployeeDisplayData {
   id: number;
@@ -133,6 +134,20 @@ export default function EmpleadosPage() {
 
   // Definir las columnas de la tabla
   const columns = [
+    {
+      key: 'avatar',
+      label: '',
+      className: 'w-0',
+      render: (value: any, row: EmpleadoDto) => (
+        <EmployeeAvatar
+          empleadoId={row.id}
+          nombre={getFullName(row)}
+          fotoUrl={(row as any).fotoUrl}
+          tieneFoto={(row as any).tieneFoto}
+          size={36}
+        />
+      ),
+    },
     {
       key: 'tarjeta',
       label: 'No. Tarjeta',
