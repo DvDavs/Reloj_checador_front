@@ -118,7 +118,7 @@ export function EmployeeSearch({
                     data = partial as EmpleadoSimpleDTO[];
                     break;
                   }
-                } catch (_) {
+                } catch (error) {
                   // Ignorado a propósito: continuar con el siguiente candidato
                   continue;
                 }
@@ -127,7 +127,7 @@ export function EmployeeSearch({
               if ((!data || data.length === 0) && showAllOnOpen) {
                 try {
                   data = await searchEmployees('');
-                } catch (_) {
+                } catch (error) {
                   // En caso de fallo, no hay datos que mostrar
                   data = [];
                 }

@@ -285,7 +285,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
                 setEmployeeIdToFetch(employeeId);
                 setShowAttendance(true);
               }
-            } catch (_) {
+            } catch (error) {
               // Si falla la resolución por tarjeta, confiar en un posible evento STOMP subsecuente
             }
           }

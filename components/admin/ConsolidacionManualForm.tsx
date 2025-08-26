@@ -181,7 +181,7 @@ export function ConsolidacionManualForm({
                     ? format(lastConsolidatedDate, 'PPP', { locale: es })
                     : ''}
                 </strong>
-                .<strong>{successInfo.totalConsolidados}</strong> registros
+                . <strong>{successInfo.totalConsolidados}</strong> registros
                 consolidados. Faltas: <strong>{successInfo.totalFaltas}</strong>
                 .
               </AlertDescription>
