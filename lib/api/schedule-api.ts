@@ -130,3 +130,34 @@ export const getEmpleadosAsignados = async (
     throw new Error(getApiErrorMessage(error));
   }
 };
+
+// ==============================
+// App Settings (Auto Generation)
+// ==============================
+
+export interface AutoGenerationStatus {
+  enabled: boolean;
+}
+
+export const getAutoGenerationStatus =
+  async (): Promise<AutoGenerationStatus> => {
+    try {
+      const response = await apiClient.get('/api/app-settings/auto-generation');
+      return response.data;
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error));
+    }
+  };
+
+export const setAutoGenerationStatus = async (
+  enabled: boolean
+): Promise<AutoGenerationStatus> => {
+  try {
+    const response = await apiClient.put('/api/app-settings/auto-generation', {
+      enabled,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error));
+  }
+};
