@@ -56,6 +56,9 @@ export type EmpleadoDto = {
 
   nombreCompleto: string; // Campo calculado en el backend
   permiteChecarConPin?: boolean; // Indica si el empleado puede usar PIN para checar
+  // Foto de empleado
+  tieneFoto?: boolean | null;
+  fotoUrl?: string | null;
   // Los campos `correoInstitucional`, `departamentoAcademicoId`, `departamentoAdministrativoId`,
   // `tipoNombramientoPrincipal` (si se usaba como campo separado) son eliminados.
 };

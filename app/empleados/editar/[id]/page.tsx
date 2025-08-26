@@ -10,6 +10,11 @@ import { LoadingState } from '@/app/components/shared/loading-state';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { EmployeeForm } from '@/app/components/shared/employee-form';
 import { FormLayout } from '@/app/components/shared/form-layout';
+import PhotoUpload from '@/app/components/shared/PhotoUpload';
+import {
+  uploadEmpleadoFoto,
+  deleteEmpleadoFoto,
+} from '@/lib/api/empleados-foto.api';
 
 interface EmpleadoApiData {
   rfc?: string | null;
@@ -25,6 +30,12 @@ interface EmpleadoApiData {
   tipoNombramientoSecundario?: string | null;
   permiteChecarConPin?: boolean;
 }
+type FotoState = {
+  pendingFile: File | null;
+  hasPhoto: boolean;
+  initialHasPhoto: boolean;
+  fotoUrl?: string | null;
+};
 
 interface EmpleadoFormData {
   rfc?: string | null;
@@ -56,6 +67,12 @@ export default function EditarEmpleadoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [fotoState, setFotoState] = useState<FotoState>({
+    pendingFile: null,
+    hasPhoto: false,
+    initialHasPhoto: false,
+    fotoUrl: null,
+  });
 
   const fetchEmpleadoData = useCallback(async () => {
     if (!employeeId) return;
@@ -72,6 +89,26 @@ export default function EditarEmpleadoPage() {
       };
       setFormData(initialFormData);
       setOriginalData(initialFormData);
+      // Foto
+      const anyData: any = response.data as any;
+      const hasPhoto = !!anyData.tieneFoto;
+      const fotoUrl = anyData.fotoUrl
+        ? `${API_BASE_URL}${anyData.fotoUrl}`
+        : null;
+      console.log(
+        'Foto URL construida:',
+        fotoUrl,
+        'API_BASE_URL:',
+        API_BASE_URL,
+        'fotoUrl original:',
+        anyData.fotoUrl
+      );
+      setFotoState({
+        pendingFile: null,
+        hasPhoto,
+        initialHasPhoto: hasPhoto,
+        fotoUrl,
+      });
     } catch (err: any) {
       const errorMsg =
         err.response?.data?.message || err.message || 'Error desconocido';
@@ -147,8 +184,16 @@ export default function EditarEmpleadoPage() {
       permiteChecarConPin: originalData.permiteChecarConPin || false,
     };
 
-    const hasChanges =
+    // Verificar cambios en datos del formulario
+    const hasFormChanges =
       JSON.stringify(payload) !== JSON.stringify(originalPayloadComparable);
+
+    // Verificar cambios en la foto
+    const hasPhotoChanges =
+      fotoState.pendingFile !== null || // Nueva foto seleccionada
+      (!fotoState.hasPhoto && fotoState.initialHasPhoto); // Foto eliminada
+
+    const hasChanges = hasFormChanges || hasPhotoChanges;
 
     if (!hasChanges) {
       setError('No se detectaron cambios para guardar.');
@@ -172,6 +217,19 @@ export default function EditarEmpleadoPage() {
         `${API_BASE_URL}/api/empleados/${employeeId}`,
         payload
       );
+      // Subir o eliminar foto según corresponda
+      try {
+        if (fotoState.pendingFile) {
+          await uploadEmpleadoFoto(
+            parseInt(employeeId, 10),
+            fotoState.pendingFile
+          );
+        } else if (!fotoState.hasPhoto && fotoState.initialHasPhoto) {
+          await deleteEmpleadoFoto(parseInt(employeeId, 10));
+        }
+      } catch (err: any) {
+        console.error('Error subiendo foto:', err);
+      }
       router.push('/empleados');
       router.refresh();
     } catch (err: any) {
@@ -256,6 +314,25 @@ export default function EditarEmpleadoPage() {
           isSubmitting={isSubmitting}
           noneValue={NONE_VALUE_SELECT}
         />
+        <div className='mt-6'>
+          <PhotoUpload
+            onFileSelected={(f) => {
+              if (f) {
+                // Nueva foto seleccionada
+                setFotoState((s) => ({ ...s, pendingFile: f, hasPhoto: true }));
+              } else {
+                // Foto eliminada
+                setFotoState((s) => ({
+                  ...s,
+                  pendingFile: null,
+                  hasPhoto: false,
+                }));
+              }
+            }}
+            initialPreviewUrl={fotoState.fotoUrl || null}
+            disabled={isSubmitting}
+          />
+        </div>
       </form>
     </FormLayout>
   );

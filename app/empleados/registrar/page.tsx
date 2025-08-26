@@ -18,6 +18,8 @@ import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { PostRegistrationDialog } from '../components/post-registration-dialog';
 import { EmployeeForm } from '@/app/components/shared/employee-form';
+import PhotoUpload from '@/app/components/shared/PhotoUpload';
+import { uploadEmpleadoFoto } from '@/lib/api/empleados-foto.api';
 
 // Componentes mejorados
 import { FormLayout } from '@/app/components/shared/form-layout';
@@ -55,6 +57,7 @@ export default function RegistrarEmpleadoPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [createdEmployee, setCreatedEmployee] =
     useState<EmpleadoBackend | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
 
   const getFullName = useCallback((emp: EmpleadoBackend | null): string => {
     if (!emp) return '';
@@ -124,6 +127,14 @@ export default function RegistrarEmpleadoPage() {
         payload
       );
       setCreatedEmployee(response.data);
+      // Intentar subir foto si fue seleccionada
+      if (selectedPhoto) {
+        try {
+          await uploadEmpleadoFoto(response.data.id, selectedPhoto);
+        } catch (err) {
+          console.warn('No se pudo subir la foto en el registro:', err);
+        }
+      }
       setIsDialogOpen(true);
     } catch (err: any) {
       const backendError =
@@ -206,6 +217,12 @@ export default function RegistrarEmpleadoPage() {
             isSubmitting={isSubmitting}
             noneValue={NONE_VALUE_SELECT}
           />
+          <div className='mt-6'>
+            <PhotoUpload
+              onFileSelected={setSelectedPhoto}
+              disabled={isSubmitting}
+            />
+          </div>
         </form>
       </FormLayout>
 
