@@ -424,8 +424,15 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
       show: showAttendance,
       nextRecommendedAction,
       dailyWorkSessions: jornadasDelDia,
+      activeSessionId,
     }),
-    [currentEmployeeData, showAttendance, nextRecommendedAction, jornadasDelDia]
+    [
+      currentEmployeeData,
+      showAttendance,
+      nextRecommendedAction,
+      jornadasDelDia,
+      activeSessionId,
+    ]
   );
 
   // HistoryPanel oculto: mantenemos el estado pero no renderizamos

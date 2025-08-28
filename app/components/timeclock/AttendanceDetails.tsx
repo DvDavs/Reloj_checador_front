@@ -26,26 +26,47 @@ function getTimeBoxBorder(estatus: string, tipo: 'entrada' | 'salida'): string {
   return 'border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10';
 }
 
-function getPrimarySession(sessions: Session[]): Session | null {
+function getRelevantSession(
+  sessions: Session[],
+  activeSessionId: number | null
+): Session | null {
   if (!sessions || sessions.length === 0) return null;
-  const byPriority = [...sessions].sort((a, b) => {
-    const order = (s: string) =>
-      s === 'EN_CURSO' || s === 'RETARDO' || s === 'RETARDO_SIN_SALIDA'
-        ? 0
-        : s === 'PENDIENTE' || s.includes('AUSENTE')
-          ? 1
-          : s === 'COMPLETADA'
-            ? 2
-            : 3;
-    return order(a.estatusJornada) - order(b.estatusJornada);
-  });
-  return byPriority[0];
+
+  // Regla 1 (Prioridad Máxima): Si hay una sesión activa, esa es la que mostramos.
+  if (activeSessionId) {
+    const activeSession = sessions.find(
+      (s) => s.detalleHorarioId === activeSessionId
+    );
+    if (activeSession) {
+      return activeSession;
+    }
+  }
+
+  // Regla 2 (Fallback si no hay activa): Mostrar la primera jornada que aún no esté completada.
+  const nextIncompleteSession = sessions.find(
+    (s) => s.estatusJornada !== 'COMPLETADA'
+  );
+  if (nextIncompleteSession) {
+    return nextIncompleteSession;
+  }
+
+  // Regla 3 (Fallback final): Si todas están completadas, mostrar la última de la lista.
+  return sessions[sessions.length - 1];
 }
 
 // Memoized PrimarySessionBoxes component
 const PrimarySessionBoxes = React.memo(
-  function PrimarySessionBoxes({ sessions }: { sessions: Session[] }) {
-    const session = useMemo(() => getPrimarySession(sessions), [sessions]);
+  function PrimarySessionBoxes({
+    sessions,
+    activeSessionId,
+  }: {
+    sessions: Session[];
+    activeSessionId: number | null;
+  }) {
+    const session = useMemo(
+      () => getRelevantSession(sessions, activeSessionId),
+      [sessions, activeSessionId]
+    );
 
     // Memoize formatted times
     const formattedTimes = useMemo(() => {
@@ -151,6 +172,9 @@ const PrimarySessionBoxes = React.memo(
   },
   (prevProps, nextProps) => {
     // Custom comparison for PrimarySessionBoxes
+    if (prevProps.activeSessionId !== nextProps.activeSessionId) {
+      return false;
+    }
     return (
       prevProps.sessions.length === nextProps.sessions.length &&
       prevProps.sessions.every((session, index) => {
@@ -170,6 +194,7 @@ function AttendanceDetailsComponent({
   employee,
   show,
   dailyWorkSessions,
+  activeSessionId,
 }: AttendanceDetailsProps) {
   // Siempre mostrar el panel, pero con placeholders cuando no hay datos
   const hasEmployeeData = show && employee;
@@ -203,6 +228,7 @@ function AttendanceDetailsComponent({
         <div className='w-full'>
           <PrimarySessionBoxes
             sessions={hasEmployeeData ? dailyWorkSessions : []}
+            activeSessionId={activeSessionId}
           />
         </div>
       </div>
