@@ -181,6 +181,12 @@ export const formatTime = (timeString: string | null): string => {
   }
 };
 
+export const formatCurrentTime = (date: Date = new Date()): string => {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(
+    date.getMinutes()
+  ).padStart(2, '0')}`;
+};
+
 export const getScanColor = (state: ScanState, statusCode?: string) => {
   // Si hay un código de estado, usar el mapeo de estilos basado en código
   if (statusCode) {

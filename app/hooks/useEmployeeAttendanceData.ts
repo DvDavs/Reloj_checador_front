@@ -229,10 +229,10 @@ const useEmployeeAttendanceData = ({
       'entrada';
     let newActiveSessionId: number | null = null;
 
-    // ========== PRIORIDAD 1: JORNADA RECIÉN COMPLETADA ==========
-    // Buscar jornadas completadas muy recientemente (últimos 5 minutos)
-    // Esto ayuda a mostrar la jornada que el usuario acaba de completar
-    // en lugar de saltar inmediatamente a la siguiente pendiente
+    // ========== PRIORITY 1: RECENTLY COMPLETED SESSION ==========
+    // Look for sessions completed very recently (last 5 minutes)
+    // This helps to show the session that the user just completed
+    // instead of immediately jumping to the next pending one
     const now = new Date();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
@@ -259,13 +259,10 @@ const useEmployeeAttendanceData = ({
     });
 
     if (jornadaRecienCompletada) {
-      console.log(
-        `useEAData: PRIORIDAD 1 - Jornada recién completada detectada: ID ${jornadaRecienCompletada.detalleHorarioId}`
-      );
       newActiveSessionId = jornadaRecienCompletada.detalleHorarioId;
-      newAction = 'ALL_COMPLETE'; // Mostrar que se completó la jornada
+      newAction = 'ALL_COMPLETE'; // Show that the session was completed
     } else {
-      // ========== PRIORIDAD 2: JORNADA EN CURSO ==========
+      // ========== PRIORITY 2: SESSION IN PROGRESS ==========
       const jornadaEnCurso = jornadasDelDia.find(
         (jornada) =>
           jornada.estatusJornada === 'EN_CURSO' ||
@@ -273,13 +270,10 @@ const useEmployeeAttendanceData = ({
       );
 
       if (jornadaEnCurso) {
-        console.log(
-          `useEAData: PRIORIDAD 2 - Jornada en curso detectada: ID ${jornadaEnCurso.detalleHorarioId}`
-        );
         newActiveSessionId = jornadaEnCurso.detalleHorarioId;
         newAction = 'salida';
       } else {
-        // ========== PRIORIDAD 3: JORNADA CRONOLÓGICAMENTE MÁS CERCANA ==========
+        // ========== PRIORITY 3: CHRONOLOGICALLY CLOSEST SESSION ==========
         const jornadasPendientes = jornadasDelDia
           .filter(
             (jornada) =>
@@ -291,9 +285,6 @@ const useEmployeeAttendanceData = ({
           );
 
         if (jornadasPendientes.length > 0) {
-          console.log(
-            `useEAData: PRIORIDAD 3 - Jornada pendiente más temprana: ID ${jornadasPendientes[0].detalleHorarioId}`
-          );
           newActiveSessionId = jornadasPendientes[0].detalleHorarioId;
           newAction = 'entrada';
         } else {
