@@ -35,7 +35,7 @@ const PrimarySessionBoxes = React.memo(
     dailyWorkSessions: Session[];
     activeSessionId: number | null;
   }) {
-    // Selección simplificada: usar la sesión activa provista por backend; fallback a primera
+    // Simplified selection: use active session from backend; fallback to first session
     const session = useMemo(() => {
       if (!dailyWorkSessions || dailyWorkSessions.length === 0) return null;
       if (activeSessionId != null) {
