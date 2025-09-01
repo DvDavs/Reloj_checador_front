@@ -135,10 +135,15 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
 
   const handleChecadorEvent = useCallback(
     (event: BackendChecadorEvent | FullAttendanceStateEvent) => {
-      if (
-        (event as FullAttendanceStateEvent).type ===
-        'FULL_ATTENDANCE_STATE_UPDATE'
-      ) {
+      // Detectar evento de estado completo de forma robusta (no solo por 'type')
+      const maybeFull = event as Partial<FullAttendanceStateEvent> &
+        Record<string, any>;
+      const isFullStateEvent =
+        maybeFull?.type === 'FULL_ATTENDANCE_STATE_UPDATE' ||
+        (Array.isArray(maybeFull?.dailyWorkSessions) &&
+          typeof maybeFull?.nextRecommendedActionBackend !== 'undefined');
+
+      if (isFullStateEvent) {
         return handleFullAttendanceEvent(event as FullAttendanceStateEvent);
       }
 
@@ -158,11 +163,20 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
         code !== 'FR' &&
         (code.startsWith('2') || code === '301' || code === '302');
 
+      // Normalize backend action: can come as 'E'/'S' or 'entrada'/'salida'
+      const rawAccionStr = e.accion as unknown as string | undefined;
+      let actionNormalized: 'entrada' | 'salida' | undefined;
+      if (rawAccionStr === 'E' || rawAccionStr === 'entrada')
+        actionNormalized = 'entrada';
+      else if (rawAccionStr === 'S' || rawAccionStr === 'salida')
+        actionNormalized = 'salida';
+      else actionNormalized = undefined;
+
       if (
         e.identificado &&
         e.empleadoId &&
         e.nombreCompleto &&
-        e.accion &&
+        (actionNormalized || e.accion) &&
         isSuccessfulRegistration
       ) {
         setSuccess({
@@ -176,7 +190,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
           name: e.nombreCompleto,
           time: new Date(),
           success: true,
-          action: e.accion,
+          action: (actionNormalized || 'entrada') as 'entrada' | 'salida',
           employeeId: String(e.empleadoId),
           statusCode: e.statusCode,
         });
@@ -195,7 +209,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
           name: e.nombreCompleto || 'Desconocido',
           time: new Date(),
           success: false,
-          action: e.accion || 'entrada',
+          action: (actionNormalized || 'entrada') as 'entrada' | 'salida',
           employeeId: e.empleadoId ? String(e.empleadoId) : '0',
           statusCode: e.statusCode,
         });
@@ -424,8 +438,15 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
       show: showAttendance,
       nextRecommendedAction,
       dailyWorkSessions: jornadasDelDia,
+      activeSessionId,
     }),
-    [currentEmployeeData, showAttendance, nextRecommendedAction, jornadasDelDia]
+    [
+      currentEmployeeData,
+      showAttendance,
+      nextRecommendedAction,
+      jornadasDelDia,
+      activeSessionId,
+    ]
   );
 
   // HistoryPanel oculto: mantenemos el estado pero no renderizamos
@@ -464,7 +485,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
     <div className='h-screen w-full bg-black text-white p-3 xl:p-4 overflow-hidden'>
       <div className='max-w-7xl mx-auto h-full transform origin-top xl:scale-95'>
         {/* Rectángulo contenedor sin overflow */}
-        <div className='h-full rounded-xl border-2 border-zinc-800 bg-zinc-950/60 p-3 xl:p-4 overflow-hidden'>
+        <div className='h-full rounded-xl border-2 border-orange-800/40 bg-zinc-950/60 p-3 xl:p-4 overflow-hidden'>
           <div className='grid grid-rows-[auto,1fr] gap-3 xl:gap-4 h-full min-h-0'>
             <HeaderClock {...headerProps} />
 

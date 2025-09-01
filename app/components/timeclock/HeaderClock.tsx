@@ -19,6 +19,7 @@ import {
   Minimize,
   RefreshCw,
 } from 'lucide-react';
+import Image from 'next/image';
 import type { HeaderClockProps } from './interfaces';
 import { headerClockPropsAreEqual } from './utils/memoComparisons';
 
@@ -52,9 +53,17 @@ function HeaderClockComponent({
   }, [selectedReader]);
 
   return (
-    <div className='flex justify-between items-center bg-zinc-900 rounded-lg px-4 py-5 border-2 border-zinc-800'>
+    <div className='flex justify-between items-center bg-zinc-900 rounded-lg px-4 py-5 border-2 border-orange-800/40'>
       <div className='flex items-center gap-3'>
-        <Clock className='h-12 w-12 text-zinc-400' />
+        <div className='h-16 w-16 relative'>
+          <Image
+            src='/Logo_ITO.png'
+            alt='Logo ITO'
+            width={64}
+            height={64}
+            className='object-contain'
+          />
+        </div>
         <span className='text-5xl xl:text-6xl font-bold text-white leading-none'>
           {formattedTime}
         </span>
@@ -134,8 +143,8 @@ function HeaderClockComponent({
             className='flex items-center space-x-2 bg-zinc-800/60 p-2 rounded-lg border border-zinc-700 connected'
             data-testid='connection-status'
           >
-            <Fingerprint className='h-5 w-5 text-blue-400' />
-            <span className='text-sm font-medium text-blue-300'>
+            <Fingerprint className='h-5 w-5 text-orange-400' />
+            <span className='text-sm font-medium text-orange-300'>
               {shortReaderId}
             </span>
           </div>

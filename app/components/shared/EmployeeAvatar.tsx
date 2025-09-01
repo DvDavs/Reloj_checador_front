@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { fetchEmpleadoFotoBlob } from '@/lib/api/empleados-foto.api';
+import { User } from 'lucide-react';
 
 type Size = 'sm' | 'md' | 'lg' | number;
 
@@ -28,13 +29,7 @@ export function EmployeeAvatar({
     return size === 'sm' ? 32 : size === 'lg' ? 80 : 48;
   }, [size]);
 
-  const initials = useMemo(() => {
-    if (!nombre) return 'U';
-    const parts = nombre.trim().split(/\s+/);
-    const first = parts[0]?.[0];
-    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] : '';
-    return `${first || ''}${last || ''}`.toUpperCase() || 'U';
-  }, [nombre]);
+  // Cuando no hay foto, mostramos el icono por defecto (User) en lugar de iniciales
 
   useEffect(() => {
     let revokedUrl: string | null = null;
@@ -72,7 +67,9 @@ export function EmployeeAvatar({
       {imgSrc ? (
         <AvatarImage src={imgSrc} alt={nombre || 'Employee'} />
       ) : (
-        <AvatarFallback>{initials}</AvatarFallback>
+        <AvatarFallback>
+          <User className='h-1/2 w-1/2 text-zinc-500' />
+        </AvatarFallback>
       )}
     </Avatar>
   );

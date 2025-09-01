@@ -133,6 +133,11 @@ export function attendanceDetailsPropsAreEqual(
     return false;
   }
 
+  // Re-render if active session changes
+  if (prevProps.activeSessionId !== nextProps.activeSessionId) {
+    return false;
+  }
+
   // Compare employee objects
   const prevEmployee = prevProps.employee;
   const nextEmployee = nextProps.employee;

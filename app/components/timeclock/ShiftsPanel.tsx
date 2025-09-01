@@ -91,7 +91,7 @@ function getTimeBoxColor(estatus: string, tipo: 'entrada' | 'salida'): string {
     return tipo === 'entrada' ? 'border-blue-600/50' : 'border-blue-600/30';
   if (estatus === 'RETARDO' || estatus === 'RETARDO_SIN_SALIDA')
     return 'border-yellow-600/50';
-  if (estatus.includes('AUSENTE')) return 'border-orange-600/50';
+  if (estatus.includes('AUSENTE')) return 'border-gray-500/70';
   return 'border-zinc-700';
 }
 
@@ -338,10 +338,10 @@ const TurnoItem = React.memo(
                     jornada.estatusJornada === 'AUSENTE') &&
                   shouldShowAsAbsent ? (
                   <div className='flex items-center gap-2'>
-                    <p className='text-2xl font-bold text-orange-400'>
+                    <p className='text-2xl font-bold text-gray-300'>
                       Sin entrada
                     </p>
-                    <Ban className='h-5 w-5 text-orange-400' />
+                    <Ban className='h-5 w-5 text-gray-400' />
                   </div>
                 ) : (
                   <p className='text-2xl font-bold text-zinc-500'>
@@ -363,10 +363,10 @@ const TurnoItem = React.memo(
                 ) : jornada.estatusJornada === 'AUSENTE_SALIDA' &&
                   shouldShowAsAbsent ? (
                   <div className='flex items-center gap-2'>
-                    <p className='text-2xl font-bold text-orange-400'>
+                    <p className='text-2xl font-bold text-gray-300'>
                       Sin salida
                     </p>
-                    <Ban className='h-5 w-5 text-orange-400' />
+                    <Ban className='h-5 w-5 text-gray-400' />
                   </div>
                 ) : (
                   <p className='text-2xl font-bold text-zinc-500'>

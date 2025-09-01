@@ -22,30 +22,31 @@ function getTimeBoxBorder(estatus: string, tipo: 'entrada' | 'salida'): string {
       ? 'border-yellow-600/50 bg-yellow-900/20 shadow-inner shadow-yellow-900/10'
       : 'border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10';
   if (estatus.includes('AUSENTE'))
-    return 'border-orange-600/40 bg-orange-900/15 shadow-inner shadow-orange-900/10';
+    return 'border-gray-500/60 bg-gray-800/30 shadow-inner shadow-gray-700/20';
   return 'border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10';
-}
-
-function getPrimarySession(sessions: Session[]): Session | null {
-  if (!sessions || sessions.length === 0) return null;
-  const byPriority = [...sessions].sort((a, b) => {
-    const order = (s: string) =>
-      s === 'EN_CURSO' || s === 'RETARDO' || s === 'RETARDO_SIN_SALIDA'
-        ? 0
-        : s === 'PENDIENTE' || s.includes('AUSENTE')
-          ? 1
-          : s === 'COMPLETADA'
-            ? 2
-            : 3;
-    return order(a.estatusJornada) - order(b.estatusJornada);
-  });
-  return byPriority[0];
 }
 
 // Memoized PrimarySessionBoxes component
 const PrimarySessionBoxes = React.memo(
-  function PrimarySessionBoxes({ sessions }: { sessions: Session[] }) {
-    const session = useMemo(() => getPrimarySession(sessions), [sessions]);
+  function PrimarySessionBoxes({
+    dailyWorkSessions,
+    activeSessionId,
+  }: {
+    dailyWorkSessions: Session[];
+    activeSessionId: number | null;
+  }) {
+    // Simplified selection: use active session from backend; fallback to first session
+    const session = useMemo(() => {
+      if (!dailyWorkSessions || dailyWorkSessions.length === 0) return null;
+      if (activeSessionId != null) {
+        return (
+          dailyWorkSessions.find(
+            (s) => s.detalleHorarioId === activeSessionId
+          ) || null
+        );
+      }
+      return dailyWorkSessions[0] || null;
+    }, [dailyWorkSessions, activeSessionId]);
 
     // Memoize formatted times
     const formattedTimes = useMemo(() => {
@@ -65,19 +66,29 @@ const PrimarySessionBoxes = React.memo(
     if (!session || !formattedTimes) {
       return (
         <div className='grid grid-cols-2 gap-4'>
-          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-zinc-700'>
+          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-gray-700/50'>
             <div className='flex items-center gap-2 mb-2'>
-              <LogIn className='h-6 w-6 text-zinc-400' />
+              <LogIn className='h-6 w-6 text-gray-500' />
               <p className='text-lg font-medium'>Entrada</p>
             </div>
-            <p className='text-3xl font-bold text-zinc-600'>00:00</p>
+            <div className='flex flex-col'>
+              <p className='text-3xl font-bold text-gray-600'>00:00</p>
+              <span className='text-xs text-gray-600 font-medium mt-1'>
+                Sin datos
+              </span>
+            </div>
           </div>
-          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-zinc-700'>
+          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-gray-700/50'>
             <div className='flex items-center gap-2 mb-2'>
-              <LogOut className='h-6 w-6 text-zinc-400' />
+              <LogOut className='h-6 w-6 text-gray-500' />
               <p className='text-lg font-medium'>Salida</p>
             </div>
-            <p className='text-3xl font-bold text-zinc-600'>00:00</p>
+            <div className='flex flex-col'>
+              <p className='text-3xl font-bold text-gray-600'>00:00</p>
+              <span className='text-xs text-gray-600 font-medium mt-1'>
+                Sin datos
+              </span>
+            </div>
           </div>
         </div>
       );
@@ -104,22 +115,36 @@ const PrimarySessionBoxes = React.memo(
                   ? hasRetardo
                     ? 'text-yellow-400'
                     : 'text-green-400'
-                  : 'text-blue-400'
+                  : 'text-gray-500'
               }`}
             />
             <p className='text-lg font-medium'>Entrada</p>
           </div>
-          <p
-            className={`text-3xl font-bold ${
-              session.horaEntradaReal
-                ? hasRetardo
-                  ? 'text-yellow-300'
-                  : 'text-green-300'
-                : 'text-blue-300'
-            }`}
-          >
-            {formattedTimes.entradaReal || formattedTimes.entradaProgramada}
-          </p>
+          <div className='flex flex-col'>
+            <p
+              className={`text-3xl font-bold ${
+                session.horaEntradaReal
+                  ? hasRetardo
+                    ? 'text-yellow-300'
+                    : 'text-green-300'
+                  : 'text-gray-400'
+              }`}
+            >
+              {session.estatusJornada === 'AUSENTE_ENTRADA'
+                ? formattedTimes.entradaProgramada
+                : formattedTimes.entradaReal ||
+                  formattedTimes.entradaProgramada}
+            </p>
+            {session.estatusJornada === 'AUSENTE_ENTRADA' ? (
+              <span className='text-xs text-orange-400 font-semibold mt-1'>
+                SIN ENTRADA REGISTRADA
+              </span>
+            ) : !session.horaEntradaReal ? (
+              <span className='text-xs text-gray-500 font-medium mt-1'>
+                Programada • Sin registro
+              </span>
+            ) : null}
+          </div>
           {hasRetardo && session.horaEntradaReal && (
             <div className='mt-1 text-xs text-yellow-400 flex items-center gap-1'>
               <AlertTriangle className='h-3 w-3' /> Entrada con retardo
@@ -133,36 +158,45 @@ const PrimarySessionBoxes = React.memo(
           <div className='flex items-center gap-2 mb-2'>
             <LogOut
               className={`h-6 w-6 ${
-                session.horaSalidaReal ? 'text-green-400' : 'text-blue-400'
+                session.horaSalidaReal ? 'text-green-400' : 'text-gray-500'
               }`}
             />
             <p className='text-lg font-medium'>Salida</p>
           </div>
-          <p
-            className={`text-3xl font-bold ${
-              session.horaSalidaReal ? 'text-green-300' : 'text-blue-300'
-            }`}
-          >
-            {formattedTimes.salidaReal || formattedTimes.salidaProgramada}
-          </p>
+          <div className='flex flex-col'>
+            <p
+              className={`text-3xl font-bold ${
+                session.horaSalidaReal ? 'text-green-300' : 'text-gray-400'
+              }`}
+            >
+              {formattedTimes.salidaReal || formattedTimes.salidaProgramada}
+            </p>
+            {!session.horaSalidaReal && (
+              <span className='text-xs text-gray-500 font-medium mt-1'>
+                Programada • Sin registro
+              </span>
+            )}
+          </div>
         </div>
       </motion.div>
     );
   },
   (prevProps, nextProps) => {
     // Custom comparison for PrimarySessionBoxes
-    return (
-      prevProps.sessions.length === nextProps.sessions.length &&
-      prevProps.sessions.every((session, index) => {
-        const nextSession = nextProps.sessions[index];
-        return (
-          session.detalleHorarioId === nextSession.detalleHorarioId &&
-          session.estatusJornada === nextSession.estatusJornada &&
-          session.horaEntradaReal === nextSession.horaEntradaReal &&
-          session.horaSalidaReal === nextSession.horaSalidaReal
-        );
-      })
-    );
+    if (prevProps.activeSessionId !== nextProps.activeSessionId) return false;
+    if (
+      prevProps.dailyWorkSessions.length !== nextProps.dailyWorkSessions.length
+    )
+      return false;
+    return prevProps.dailyWorkSessions.every((session, index) => {
+      const nextSession = nextProps.dailyWorkSessions[index];
+      return (
+        session.detalleHorarioId === nextSession.detalleHorarioId &&
+        session.estatusJornada === nextSession.estatusJornada &&
+        session.horaEntradaReal === nextSession.horaEntradaReal &&
+        session.horaSalidaReal === nextSession.horaSalidaReal
+      );
+    });
   }
 );
 
@@ -170,12 +204,13 @@ function AttendanceDetailsComponent({
   employee,
   show,
   dailyWorkSessions,
+  activeSessionId,
 }: AttendanceDetailsProps) {
   // Siempre mostrar el panel, pero con placeholders cuando no hay datos
   const hasEmployeeData = show && employee;
 
   return (
-    <div className='w-full h-full bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800 flex flex-col'>
+    <div className='w-full h-full bg-zinc-900 rounded-lg p-4 border-2 border-orange-800/40 flex flex-col'>
       {/* Información del usuario - con placeholders - Más compacto */}
       <div className='mb-3 flex items-center gap-4'>
         {hasEmployeeData ? (
@@ -202,7 +237,8 @@ function AttendanceDetailsComponent({
       <div className='flex-1 flex items-center justify-center'>
         <div className='w-full'>
           <PrimarySessionBoxes
-            sessions={hasEmployeeData ? dailyWorkSessions : []}
+            dailyWorkSessions={hasEmployeeData ? dailyWorkSessions : []}
+            activeSessionId={hasEmployeeData ? activeSessionId : null}
           />
         </div>
       </div>

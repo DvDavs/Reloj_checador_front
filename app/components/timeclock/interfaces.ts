@@ -99,6 +99,7 @@ export interface AttendanceDetailsProps {
   show: boolean;
   nextRecommendedAction: NextRecommendedAction;
   dailyWorkSessions: JornadaEstadoDto[];
+  activeSessionId: number | null;
 }
 
 // Props: HistoryPanel (historial de escaneos y control de sonido)
