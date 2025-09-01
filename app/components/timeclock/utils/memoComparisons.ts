@@ -133,7 +133,7 @@ export function attendanceDetailsPropsAreEqual(
     return false;
   }
 
-  // Re-render si cambia la sesión activa
+  // Re-render if active session changes
   if (prevProps.activeSessionId !== nextProps.activeSessionId) {
     return false;
   }

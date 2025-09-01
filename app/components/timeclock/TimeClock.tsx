@@ -163,7 +163,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
         code !== 'FR' &&
         (code.startsWith('2') || code === '301' || code === '302');
 
-      // Normalizar accion del backend: puede venir como 'E'/'S' o 'entrada'/'salida'
+      // Normalize backend action: can come as 'E'/'S' or 'entrada'/'salida'
       const rawAccionStr = e.accion as unknown as string | undefined;
       let actionNormalized: 'entrada' | 'salida' | undefined;
       if (rawAccionStr === 'E' || rawAccionStr === 'entrada')
