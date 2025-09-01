@@ -74,7 +74,7 @@ export type BackendChecadorEvent = {
   nombreCompleto?: string;
   rfc?: string;
   errorMessage?: string;
-  accion?: 'entrada' | 'salida';
+  accion?: 'entrada' | 'salida' | 'E' | 'S';
   statusCode?: string; // Código de estado del backend
   statusType?: string; // Tipo de estado (OK, INFO, ERROR)
   data?: Record<string, any>; // Datos adicionales del evento

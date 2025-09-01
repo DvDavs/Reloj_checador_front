@@ -200,5 +200,7 @@ export const getScanColor = (state: ScanState, statusCode?: string) => {
 
   if (state === 'success') return 'green';
   if (state === 'failed') return 'red';
-  return 'blue'; // Color neutro
+  // Estados idle/ready ahora usan anaranjado en lugar de azul
+  if (state === 'idle' || state === 'ready') return 'orange';
+  return 'blue'; // Color neutro para otros estados
 };

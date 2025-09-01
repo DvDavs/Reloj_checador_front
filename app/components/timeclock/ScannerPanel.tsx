@@ -71,7 +71,7 @@ function ScannerPanelComponent({
     if (panelFlash === 'failed') {
       return 'bg-red-900/50 border-red-500';
     }
-    return 'bg-zinc-900 border-zinc-800';
+    return 'bg-zinc-900 border-orange-800/40';
   }, [panelFlash, statusCode]);
 
   // Mensaje grande tipo overlay (como en la vista original)
@@ -119,7 +119,7 @@ function ScannerPanelComponent({
       case 'yellow':
         return 'drop-shadow-[0_0_40px_rgba(234,179,8,0.85)]';
       default:
-        return 'drop-shadow-[0_0_40px_rgba(59,130,246,0.85)]'; // blue
+        return 'drop-shadow-[0_0_40px_rgba(251,146,60,0.85)]'; // orange
     }
   }, [baseColor]);
 
@@ -137,6 +137,12 @@ function ScannerPanelComponent({
         bg: 'bg-blue-500/10',
         border: 'border-blue-500/30',
         shadow: '0 0 60px rgba(59,130,246,0.35)',
+      },
+      orange: {
+        ring: 'ring-orange-500/25',
+        bg: 'bg-orange-500/10',
+        border: 'border-orange-500/30',
+        shadow: '0 0 60px rgba(251,146,60,0.35)',
       },
       red: {
         ring: 'ring-red-500/25',
@@ -213,7 +219,7 @@ function ScannerPanelComponent({
                 >
                   <g
                     className='fingerprint-base'
-                    stroke='rgba(59, 130, 246, 0.3)'
+                    stroke='rgba(251, 146, 60, 0.3)'
                     fill='none'
                     strokeWidth='2'
                   >
@@ -232,7 +238,7 @@ function ScannerPanelComponent({
               {(scanState === 'idle' || scanState === 'ready') && (
                 <>
                   <motion.div
-                    className='absolute h-56 w-56 rounded-full bg-blue-500/10'
+                    className='absolute h-56 w-56 rounded-full bg-orange-500/10'
                     animate={{
                       scale: [1, 1.1, 1],
                       opacity: [0.7, 0.5, 0.7],
@@ -254,7 +260,7 @@ function ScannerPanelComponent({
                       ease: 'easeInOut',
                     }}
                   >
-                    <Fingerprint className='h-32 w-32 text-blue-500/80' />
+                    <Fingerprint className='h-32 w-32 text-orange-500/80' />
                   </motion.div>
                 </>
               )}
@@ -356,7 +362,7 @@ function ScannerPanelComponent({
           <p className='text-center text-xl font-semibold text-zinc-200 flex items-center gap-3'>
             {(scanState === 'idle' || scanState === 'ready') && (
               <>
-                <Fingerprint className='h-6 w-6 text-blue-400 animate-pulse' />
+                <Fingerprint className='h-6 w-6 text-orange-400 animate-pulse' />
                 Coloque su dedo en el escáner
               </>
             )}

@@ -21,7 +21,7 @@ interface UseEmployeeAttendanceDataReturn {
   currentEmployeeData: EmpleadoDto | null;
   jornadasDelDia: JornadaEstadoDto[];
   activeSessionId: number | null;
-  nextRecommendedAction: 'entrada' | 'salida';
+  nextRecommendedAction: FullAttendanceStateEvent['nextRecommendedActionBackend'];
   isLoading: boolean;
   errorLoadingData: string | null;
   updateFromFullAttendanceEvent: (event: FullAttendanceStateEvent) => void;
@@ -41,9 +41,10 @@ const useEmployeeAttendanceData = ({
     useState<EmpleadoDto | null>(null);
   const [jornadasDelDia, setJornadasDelDia] = useState<JornadaEstadoDto[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
-  const [nextRecommendedAction, setNextRecommendedAction] = useState<
-    'entrada' | 'salida'
-  >('entrada');
+  const [nextRecommendedAction, setNextRecommendedAction] =
+    useState<FullAttendanceStateEvent['nextRecommendedActionBackend']>(
+      'entrada'
+    );
   const [isLoading, setIsLoading] = useState(false);
   const [errorLoadingData, setErrorLoadingData] = useState<string | null>(null);
 
@@ -178,23 +179,10 @@ const useEmployeeAttendanceData = ({
       setJornadasDelDia(event.dailyWorkSessions);
 
       if (event.nextRecommendedActionBackend) {
-        if (
-          event.nextRecommendedActionBackend === 'entrada' ||
-          event.nextRecommendedActionBackend === 'salida'
-        ) {
-          setNextRecommendedAction(event.nextRecommendedActionBackend);
-          console.log(
-            `useEAData: nextRecommendedAction establecido explícitamente desde el backend a: ${event.nextRecommendedActionBackend}`
-          );
-        } else if (
-          event.nextRecommendedActionBackend === 'ALL_COMPLETE' ||
-          event.nextRecommendedActionBackend === 'NO_ACTION'
-        ) {
-          setNextRecommendedAction('entrada');
-          console.log(
-            `useEAData: nextRecommendedAction establecido a entrada (default) porque el backend indicó: ${event.nextRecommendedActionBackend}`
-          );
-        }
+        setNextRecommendedAction(event.nextRecommendedActionBackend);
+        console.log(
+          `useEAData: nextRecommendedAction establecido desde backend a: ${event.nextRecommendedActionBackend}`
+        );
       }
 
       setActiveSessionId(event.activeSessionIdBackend);
@@ -224,11 +212,11 @@ const useEmployeeAttendanceData = ({
         );
         setActiveSessionId(null);
       }
-      if (nextRecommendedAction !== 'entrada') {
+      if (nextRecommendedAction !== 'NO_ACTION') {
         console.log(
-          `useEAData: Acción recomendada reseteada a entrada (no hay jornadas o empleado)`
+          `useEAData: Acción recomendada reseteada a NO_ACTION (no hay jornadas o empleado)`
         );
-        setNextRecommendedAction('entrada');
+        setNextRecommendedAction('NO_ACTION');
       }
       return;
     }
@@ -237,7 +225,8 @@ const useEmployeeAttendanceData = ({
       'useEAData: Calculando activeSession/nextAction localmente (no STOMP o carga inicial)'
     );
 
-    let newAction: 'entrada' | 'salida' = 'entrada';
+    let newAction: FullAttendanceStateEvent['nextRecommendedActionBackend'] =
+      'entrada';
     let newActiveSessionId: number | null = null;
 
     const jornadaEnCurso = jornadasDelDia.find(
@@ -269,7 +258,7 @@ const useEmployeeAttendanceData = ({
         );
         if (todasCompletas) {
           newActiveSessionId = null;
-          newAction = 'entrada';
+          newAction = 'ALL_COMPLETE';
         } else {
           const primeraNoCompletada = jornadasDelDia.find(
             (j) => j.estatusJornada !== 'COMPLETADA'
@@ -282,7 +271,7 @@ const useEmployeeAttendanceData = ({
                 : 'salida';
           } else {
             newActiveSessionId = null;
-            newAction = 'entrada';
+            newAction = 'NO_ACTION';
           }
         }
       }

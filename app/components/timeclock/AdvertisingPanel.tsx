@@ -84,7 +84,7 @@ export function AdvertisingPanel({
   const active = slides[currentIndex];
 
   return (
-    <div className='w-full h-full flex flex-col bg-zinc-900 rounded-lg border-2 border-zinc-800 p-3 sm:p-4'>
+    <div className='w-full h-full flex flex-col bg-zinc-900 rounded-lg border-2 border-orange-800/40 p-3 sm:p-4'>
       <div className='relative flex-1 flex items-center justify-center'>
         {/* Contenedor con relación 9:16 que se adapta al alto disponible */}
         <div
