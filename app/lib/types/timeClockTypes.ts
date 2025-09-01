@@ -28,6 +28,7 @@ export type JornadaEstadoDto = {
   horaSalidaReal: string | null; // Formato "yyyy-MM-dd HH:mm:ss"
   estatusJornada: EstatusJornada; // Usando la union type definida arriba
   minutosRetardoPreliminar: number | null;
+  esHorarioJefe?: boolean;
 };
 
 /**
