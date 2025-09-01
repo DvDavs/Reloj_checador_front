@@ -229,49 +229,99 @@ const useEmployeeAttendanceData = ({
       'entrada';
     let newActiveSessionId: number | null = null;
 
-    const jornadaEnCurso = jornadasDelDia.find(
-      (jornada) =>
-        jornada.estatusJornada === 'EN_CURSO' ||
-        jornada.estatusJornada === 'RETARDO'
-    );
+    // ========== PRIORIDAD 1: JORNADA RECIÉN COMPLETADA ==========
+    // Buscar jornadas completadas muy recientemente (últimos 5 minutos)
+    // Esto ayuda a mostrar la jornada que el usuario acaba de completar
+    // en lugar de saltar inmediatamente a la siguiente pendiente
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-    if (jornadaEnCurso) {
-      newActiveSessionId = jornadaEnCurso.detalleHorarioId;
-      newAction = 'salida';
+    const jornadaRecienCompletada = jornadasDelDia.find((jornada) => {
+      if (jornada.estatusJornada !== 'COMPLETADA') return false;
+      if (!jornada.horaSalidaReal) return false;
+
+      try {
+        // Parsear horaSalidaReal asumiendo formato "HH:mm" y fecha de hoy
+        const [hours, minutes] = jornada.horaSalidaReal.split(':').map(Number);
+        const salidaDateTime = new Date();
+        salidaDateTime.setHours(hours, minutes, 0, 0);
+
+        // Verificar si la salida fue registrada en los últimos 5 minutos
+        return salidaDateTime >= fiveMinutesAgo;
+      } catch (error) {
+        console.warn(
+          'Error parseando horaSalidaReal:',
+          jornada.horaSalidaReal,
+          error
+        );
+        return false;
+      }
+    });
+
+    if (jornadaRecienCompletada) {
+      console.log(
+        `useEAData: PRIORIDAD 1 - Jornada recién completada detectada: ID ${jornadaRecienCompletada.detalleHorarioId}`
+      );
+      newActiveSessionId = jornadaRecienCompletada.detalleHorarioId;
+      newAction = 'ALL_COMPLETE'; // Mostrar que se completó la jornada
     } else {
-      const jornadasPendientes = jornadasDelDia
-        .filter(
-          (jornada) =>
-            jornada.estatusJornada === 'PENDIENTE' &&
-            jornada.horaEntradaReal === null
-        )
-        .sort((a, b) =>
-          a.horaEntradaProgramada.localeCompare(b.horaEntradaProgramada)
-        );
+      // ========== PRIORIDAD 2: JORNADA EN CURSO ==========
+      const jornadaEnCurso = jornadasDelDia.find(
+        (jornada) =>
+          jornada.estatusJornada === 'EN_CURSO' ||
+          jornada.estatusJornada === 'RETARDO'
+      );
 
-      if (jornadasPendientes.length > 0) {
-        newActiveSessionId = jornadasPendientes[0].detalleHorarioId;
-        newAction = 'entrada';
-      } else {
-        const todasCompletas = jornadasDelDia.every(
-          (j) => j.estatusJornada === 'COMPLETADA'
+      if (jornadaEnCurso) {
+        console.log(
+          `useEAData: PRIORIDAD 2 - Jornada en curso detectada: ID ${jornadaEnCurso.detalleHorarioId}`
         );
-        if (todasCompletas) {
-          newActiveSessionId = null;
-          newAction = 'ALL_COMPLETE';
-        } else {
-          const primeraNoCompletada = jornadasDelDia.find(
-            (j) => j.estatusJornada !== 'COMPLETADA'
+        newActiveSessionId = jornadaEnCurso.detalleHorarioId;
+        newAction = 'salida';
+      } else {
+        // ========== PRIORIDAD 3: JORNADA CRONOLÓGICAMENTE MÁS CERCANA ==========
+        const jornadasPendientes = jornadasDelDia
+          .filter(
+            (jornada) =>
+              jornada.estatusJornada === 'PENDIENTE' &&
+              jornada.horaEntradaReal === null
+          )
+          .sort((a, b) =>
+            a.horaEntradaProgramada.localeCompare(b.horaEntradaProgramada)
           );
-          if (primeraNoCompletada) {
-            newActiveSessionId = primeraNoCompletada.detalleHorarioId;
-            newAction =
-              primeraNoCompletada.horaEntradaReal === null
-                ? 'entrada'
-                : 'salida';
-          } else {
+
+        if (jornadasPendientes.length > 0) {
+          console.log(
+            `useEAData: PRIORIDAD 3 - Jornada pendiente más temprana: ID ${jornadasPendientes[0].detalleHorarioId}`
+          );
+          newActiveSessionId = jornadasPendientes[0].detalleHorarioId;
+          newAction = 'entrada';
+        } else {
+          const todasCompletas = jornadasDelDia.every(
+            (j) => j.estatusJornada === 'COMPLETADA'
+          );
+          if (todasCompletas) {
+            console.log('useEAData: Todas las jornadas completadas');
             newActiveSessionId = null;
-            newAction = 'NO_ACTION';
+            newAction = 'ALL_COMPLETE';
+          } else {
+            const primeraNoCompletada = jornadasDelDia.find(
+              (j) => j.estatusJornada !== 'COMPLETADA'
+            );
+            if (primeraNoCompletada) {
+              console.log(
+                `useEAData: Fallback - Primera jornada no completada: ID ${primeraNoCompletada.detalleHorarioId}`
+              );
+              newActiveSessionId = primeraNoCompletada.detalleHorarioId;
+              newAction =
+                primeraNoCompletada.horaEntradaReal === null
+                  ? 'entrada'
+                  : 'salida';
+            } else {
+              console.log('useEAData: No hay jornadas válidas disponibles');
+              newActiveSessionId = null;
+              newAction = 'NO_ACTION';
+            }
           }
         }
       }
