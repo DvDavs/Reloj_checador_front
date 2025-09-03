@@ -244,21 +244,7 @@ export function CorreccionRegistrosForm() {
           </div>
         ),
       },
-      {
-        key: 'tipoRegistroNombre',
-        label: 'Fuente',
-        sortable: true,
-        render: (item: RegistroDetalle) => {
-          const upper = (item.tipoRegistroNombre || '').toUpperCase();
-          if (upper === 'NIP') return 'pin';
-          return upper;
-        },
-      },
-      {
-        key: 'observaciones',
-        label: 'Observaciones',
-        className: 'max-w-xs truncate',
-      },
+
       {
         key: 'acciones',
         label: 'Acciones',
@@ -269,7 +255,7 @@ export function CorreccionRegistrosForm() {
             onClick={() => {
               setEditing({
                 ...item,
-                observaciones: item.observaciones ?? 'Corrección manual',
+                observaciones: item.observaciones ?? '',
               });
               setEditOpen(true);
             }}
@@ -663,13 +649,14 @@ export function CorreccionRegistrosForm() {
                 </Select>
               </div>
               <div className='space-y-2'>
-                <Label>Observaciones</Label>
+                <Label>Observaciones (opcional)</Label>
                 <Textarea
                   value={editing.observaciones ?? ''}
                   onChange={(e) =>
                     setEditing({ ...editing, observaciones: e.target.value })
                   }
                   rows={3}
+                  placeholder='Observaciones opcionales...'
                 />
               </div>
             </div>
@@ -681,24 +668,13 @@ export function CorreccionRegistrosForm() {
             <Button
               onClick={async () => {
                 if (!editing) return;
-                if (
-                  !editing.observaciones ||
-                  editing.observaciones.trim() === ''
-                ) {
-                  toast({
-                    title: 'Observaciones requeridas',
-                    description:
-                      'Agrega una observación (por ejemplo: "Corrección manual").',
-                    variant: 'destructive',
-                  });
-                  return;
-                }
+
                 try {
                   setEditSaving(true);
                   await updateRegistroDetalle(editing.id, {
                     fechaHora: editing.fechaHora,
                     estatusCalculado: editing.estatusCalculado,
-                    observaciones: editing.observaciones ?? null,
+                    observaciones: editing.observaciones?.trim() || null,
                     tipoEoS: editing.tipoEoS,
                   });
                   setEditOpen(false);

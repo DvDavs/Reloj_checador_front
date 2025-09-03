@@ -66,8 +66,8 @@ export function CorreccionRegistrosModal({
   }, [open]);
 
   const handleSubmit = async () => {
-    if (!nuevoEstatus || !motivo.trim()) {
-      setError('Debe seleccionar un nuevo estatus y proporcionar un motivo.');
+    if (!nuevoEstatus) {
+      setError('Debe seleccionar un nuevo estatus.');
       return;
     }
     setLoading(true);
@@ -76,7 +76,7 @@ export function CorreccionRegistrosModal({
       await corregirEstatusRegistros({
         registroIds: selectedIds,
         nuevoEstatusClave: nuevoEstatus,
-        motivo,
+        motivo: motivo.trim() || '',
       });
       onSuccess();
       onClose();
@@ -125,10 +125,10 @@ export function CorreccionRegistrosModal({
             </Select>
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='motivo'>Motivo (minimo 10 caracteres)</Label>
+            <Label htmlFor='motivo'>Motivo (opcional)</Label>
             <Textarea
               id='motivo'
-              placeholder='Describa la razón de la corrección...'
+              placeholder='Describa la razón de la corrección (opcional)...'
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               disabled={loading}
@@ -139,10 +139,7 @@ export function CorreccionRegistrosModal({
           <Button variant='outline' onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading || !nuevoEstatus || !motivo.trim()}
-          >
+          <Button onClick={handleSubmit} disabled={loading || !nuevoEstatus}>
             {loading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
             {loading ? 'Guardando...' : 'Guardar Cambios'}
           </Button>

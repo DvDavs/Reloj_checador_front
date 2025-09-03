@@ -77,10 +77,6 @@ export function InlineJustificacionModal({
       setError('Faltan datos de la asistencia o la fecha de inicio.');
       return;
     }
-    if (!motivo.trim() || motivo.trim().length < 10) {
-      setError('El motivo es requerido y debe tener al menos 5 caracteres.');
-      return;
-    }
 
     setLoading(true);
     try {
@@ -88,7 +84,7 @@ export function InlineJustificacionModal({
         empleadoId: asistencia.empleadoId,
         fechaInicio: format(fechaInicio, 'yyyy-MM-dd'),
         fechaFin: format(fechaFin || fechaInicio, 'yyyy-MM-dd'),
-        motivo: motivo.trim(),
+        motivo: motivo.trim() || undefined,
       };
       if (numOficio.trim()) payload.numOficio = numOficio.trim();
       await createJustificacionIndividual(payload);
@@ -170,9 +166,9 @@ export function InlineJustificacionModal({
               </div>
 
               <div className='space-y-2 sm:col-span-2'>
-                <Label>Motivo</Label>
+                <Label>Motivo (opcional)</Label>
                 <Textarea
-                  placeholder='Describa el motivo de la justificación (mínimo 15caracteres)'
+                  placeholder='Describa el motivo de la justificación (opcional)'
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
                   rows={3}

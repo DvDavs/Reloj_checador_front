@@ -220,7 +220,13 @@ export function JustificacionForm() {
     if (!formData.tipoDescripcion) {
       newErrors.tipoDescripcion = 'Debe seleccionar el tipo de justificación.';
     }
-    if (!formData.motivo.trim() || formData.motivo.trim().length < 1) {
+    // El motivo es opcional para justificaciones de todo el día
+    if (
+      formData.tipo === 'masiva' &&
+      (!formData.motivo.trim() || formData.motivo.trim().length < 1)
+    ) {
+      // Para justificaciones masivas (todo el día), el motivo es opcional
+    } else if (!formData.motivo.trim() || formData.motivo.trim().length < 1) {
       newErrors.motivo = 'El motivo es requerido.';
     }
     switch (formData.tipo) {

@@ -328,41 +328,6 @@ export default function ControlAsistenciaPage() {
         ),
       },
       {
-        key: 'justificacion',
-        label: 'Justificación',
-        className: 'text-muted-foreground max-w-48 truncate',
-        render: (_: any, item: AsistenciaRecord) => {
-          const jId = (item as any).justificacionId as number | undefined;
-          if (!jId) return <span className='text-muted-foreground'>—</span>;
-          const j = justificacionesMap[jId];
-          if (!j) {
-            return (
-              <span className='text-muted-foreground'>
-                {loadingJustificaciones ? 'Cargando…' : '—'}
-              </span>
-            );
-          }
-          const text = j.tipoJustificacionNombre
-            ? `${j.tipoJustificacionNombre}${j.motivo ? ' — ' + j.motivo : ''}`
-            : j.motivo || '—';
-          return (
-            <span className='text-muted-foreground' title={text}>
-              {text}
-            </span>
-          );
-        },
-      },
-      {
-        key: 'observaciones',
-        label: 'Observaciones',
-        className: 'text-muted-foreground max-w-32 truncate',
-        render: (value: any) => (
-          <span className='text-muted-foreground' title={value || ''}>
-            {value || '--'}
-          </span>
-        ),
-      },
-      {
         key: 'acciones',
         label: 'Acciones',
         className: 'text-right',
@@ -407,13 +372,7 @@ export default function ControlAsistenciaPage() {
         ),
       },
     ],
-    [
-      setSelectedForJust,
-      setJustModalOpen,
-      justificacionesMap,
-      loadingJustificaciones,
-      formatHorasTrabajadas,
-    ]
+    [setSelectedForJust, setJustModalOpen, formatHorasTrabajadas]
   );
 
   return (
@@ -825,27 +784,11 @@ export default function ControlAsistenciaPage() {
                               </div>
                             </div>
                             <div className='flex items-center justify-between'>
-                              <div className='text-sm text-muted-foreground'>
-                                Fuente entrada
-                              </div>
-                              <div className='font-medium'>
-                                {mapFuente(firstEntrada?.tipoRegistroNombre)}
-                              </div>
-                            </div>
-                            <div className='flex items-center justify-between'>
                               <div className='text-sm text-muted-foreground flex items-center gap-2'>
                                 <LogOut className='h-4 w-4' /> Salida real
                               </div>
                               <div className='font-mono font-semibold'>
                                 {salidaRealDisplay}
-                              </div>
-                            </div>
-                            <div className='flex items-center justify-between'>
-                              <div className='text-sm text-muted-foreground'>
-                                Fuente salida
-                              </div>
-                              <div className='font-medium'>
-                                {mapFuente(lastSalida?.tipoRegistroNombre)}
                               </div>
                             </div>
                             <div className='flex items-center justify-between pt-2 border-t'>
@@ -888,14 +831,6 @@ export default function ControlAsistenciaPage() {
                               </div>
                               <div className='font-medium'>
                                 #{selectedForDetail.empleadoTarjeta ?? 'N/A'}
-                              </div>
-                            </div>
-                            <div>
-                              <div className='text-sm text-muted-foreground'>
-                                Observaciones
-                              </div>
-                              <div className='font-medium'>
-                                {selectedForDetail.observaciones || '--'}
                               </div>
                             </div>
                           </div>
@@ -973,34 +908,20 @@ export default function ControlAsistenciaPage() {
                           ) : (
                             <>
                               <div className='border rounded-md divide-y'>
-                                <div className='px-3 py-2 text-xs text-muted-foreground grid grid-cols-4 gap-2'>
+                                <div className='px-3 py-2 text-xs text-muted-foreground grid grid-cols-2 gap-2'>
                                   <div>Hora</div>
                                   <div>Tipo</div>
-                                  <div>Fuente</div>
-                                  <div>Observaciones</div>
                                 </div>
                                 {detailRegistros.map((r) => (
                                   <div
                                     key={r.id}
-                                    className='px-3 py-2 text-sm grid grid-cols-4 gap-2'
+                                    className='px-3 py-2 text-sm grid grid-cols-2 gap-2'
                                   >
                                     <div className='font-mono'>
                                       {r.fechaHora}
                                     </div>
                                     <div>
                                       {r.tipoEoS === 'E' ? 'Entrada' : 'Salida'}
-                                    </div>
-                                    <div>
-                                      {(r.tipoRegistroNombre?.toUpperCase?.() ||
-                                        '') === 'NIP'
-                                        ? 'pin'
-                                        : r.tipoRegistroNombre || '--'}
-                                    </div>
-                                    <div
-                                      className='truncate'
-                                      title={r.observaciones || ''}
-                                    >
-                                      {r.observaciones || '--'}
                                     </div>
                                   </div>
                                 ))}

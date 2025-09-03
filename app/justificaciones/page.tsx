@@ -97,12 +97,7 @@ export default function JustificacionesPage() {
           </Badge>
         ),
       },
-      {
-        key: 'motivo',
-        label: 'Motivo',
-        render: (j: JustificacionItem) => j.motivo || '—',
-        className: 'max-w-[300px] truncate',
-      },
+
       {
         key: 'numOficio',
         label: 'Oficio',
