@@ -1,7 +1,17 @@
 import axios from 'axios';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+const getBaseUrl = () => {
+  if (typeof window === 'undefined') return 'http://localhost:8080'; // Server-side default
+
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8080';
+  }
+  // For any other IP (like 10.168.10.130 or 10.168.10.161), assume the API is on the same host at port 8080
+  return `http://${hostname}:8080`;
+};
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || getBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

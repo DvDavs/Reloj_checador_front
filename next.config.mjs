@@ -20,6 +20,13 @@ const nextConfig = {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
+    allowedDevOrigins: (() => {
+      const ips = [];
+      for (let i = 1; i <= 255; i++) {
+        ips.push(`10.168.10.${i}:3000`);
+      }
+      return ips;
+    })(),
   },
 }
 
