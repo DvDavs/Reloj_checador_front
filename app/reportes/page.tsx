@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/apiClient';
@@ -46,21 +46,31 @@ type EstatusDisponible = { clave: string; nombre: string };
 type TipoRegistro = { id: number; name: string };
 
 export default function ReportesPage() {
-  const [activeTab, setActiveTab] = useState<'completa' | 'jornadas'>('completa');
-  const [modoFiltro, setModoFiltro] = useState<'departamento' | 'usuario'>('departamento');
+  const [activeTab, setActiveTab] = useState<'completa' | 'jornadas'>(
+    'completa'
+  );
+  const [modoFiltro, setModoFiltro] = useState<
+    'departamento' | 'usuario' | 'global'
+  >('departamento');
 
   const [departamento, setDepartamento] = useState<Departamento>(null);
-  const [empleado, setEmpleado] = useState<EmpleadoSimpleDTO>(null); // Changed state type
+  const [empleado, setEmpleado] = useState<EmpleadoSimpleDTO>(null);
 
   const [fechaDesde, setFechaDesde] = useState<Date | undefined>(undefined);
   const [fechaHasta, setFechaHasta] = useState<Date | undefined>(undefined);
   const [formato, setFormato] = useState('xlsx');
 
   // Filtros adicionales
-  const [estatusClave, setEstatusClave] = useState<string>(''); // opcional para asistencias
-  const [tipoRegistroId, setTipoRegistroId] = useState<number | ''>(''); // fuente para jornadas
+  // Refactored Status State
+  const [categoriaEstatus, setCategoriaEstatus] = useState<
+    'TODOS' | 'ASISTENCIA' | 'FALTA'
+  >('TODOS');
+  const [tiposAsistenciaSeleccionados, setTiposAsistenciaSeleccionados] =
+    useState<string[]>([]);
+
+  const [tipoRegistroId, setTipoRegistroId] = useState<number | ''>('');
   const [esJefe, setEsJefe] = useState(false);
-  const [tipoEoS, setTipoEoS] = useState<'E' | 'S' | ''>(''); // 'E' o 'S'
+  const [tipoEoS, setTipoEoS] = useState<'E' | 'S' | ''>('');
 
   // Para selects simples
   const [tipoFuentes, setTipoFuentes] = useState<TipoRegistro[]>([
@@ -72,6 +82,10 @@ export default function ReportesPage() {
   const [loadingEstatus, setLoadingEstatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Constants for status grouping
+  const FALTAS_KEYS = ['FC', 'FE', 'FS'];
+  const EXCLUDED_KEYS = ['FR', 'ST']; // Fuera de rango, Salida temprana. "Horas incompletas" might be derived or another key.
+
   // Cargar estatus disponibles desde backend
   useEffect(() => {
     const loadEstatus = async () => {
@@ -79,15 +93,36 @@ export default function ReportesPage() {
       setLoadingEstatus(true);
       setError(null);
       try {
-        const response = await apiClient.get('/api/asistencias/estatus/disponibles');
+        const response = await apiClient.get(
+          '/api/asistencias/estatus/disponibles'
+        );
         const data = response?.data?.data || response?.data || [];
-        const opts = Array.isArray(data)
+        let opts = Array.isArray(data)
           ? data.map((x: any) => ({
               clave: x.clave ?? x.key ?? '',
               nombre: x.nombre ?? x.name ?? '',
             }))
           : [];
+
+        // Filter and Rename
+        opts = opts.filter(
+          (o: EstatusDisponible) => !EXCLUDED_KEYS.includes(o.clave)
+        );
+        opts = opts.map((o: EstatusDisponible) => ({
+          ...o,
+          nombre:
+            o.nombre === 'Falta justificada'
+              ? 'Asistencia justificada'
+              : o.nombre,
+        }));
+
         setEstatusOptions(opts);
+
+        // Initialize selected assistance types (all non-falta types)
+        const asistenciaKeys = opts
+          .filter((o: EstatusDisponible) => !FALTAS_KEYS.includes(o.clave))
+          .map((o: EstatusDisponible) => o.clave);
+        setTiposAsistenciaSeleccionados(asistenciaKeys);
       } catch (err: any) {
         console.error('Error fetching estatus:', err);
         setError('Error al cargar los estatus disponibles.');
@@ -96,11 +131,15 @@ export default function ReportesPage() {
       }
     };
     loadEstatus();
-  }, [estatusOptions.length, loadingEstatus]);
+  }, []);
 
   const downloadReport = useCallback(async () => {
     if (!fechaDesde || !fechaHasta) {
       alert('Por favor, selecciona un rango de fechas.');
+      return;
+    }
+    if (fechaDesde > fechaHasta) {
+      alert('La fecha de inicio no puede ser mayor a la fecha de fin.');
       return;
     }
     try {
@@ -111,26 +150,41 @@ export default function ReportesPage() {
 
       // Filtro por modo
       if (modoFiltro === 'departamento') {
-        if (departamento?.clave) params.append('departamentoClave', departamento.clave);
-      } else {
+        if (departamento?.clave)
+          params.append('departamentoClave', departamento.clave);
+      } else if (modoFiltro === 'usuario') {
         if (empleado?.id) params.append('empleadoId', String(empleado.id));
       }
+      // If global, we don't send department or employee
 
       let url = '/api/reportes/asistencias';
 
       if (activeTab === 'completa') {
-        if (estatusClave) params.append('estatusClave', estatusClave);
-        if (tipoRegistroId) params.append('tipoRegistroId', String(tipoRegistroId));
-        url = '/api/reportes/asistencias';
-      } else { // jornadas
-        if (tipoRegistroId) params.append('tipoRegistroId', String(tipoRegistroId));
+        // Status Logic
+        if (categoriaEstatus === 'FALTA' || categoriaEstatus === 'ASISTENCIA') {
+          tiposAsistenciaSeleccionados.forEach((k) =>
+            params.append('estatusClave', k)
+          );
+        }
+        // If TODOS, we send nothing (implies all)
+
+        if (tipoRegistroId)
+          params.append('tipoRegistroId', String(tipoRegistroId));
+      } else {
+        // jornadas
+        if (tipoRegistroId)
+          params.append('tipoRegistroId', String(tipoRegistroId));
         if (esJefe) params.append('esJefe', 'true');
         if (tipoEoS) params.append('tipo', tipoEoS);
         url = '/api/reportes/registros';
       }
 
-      const res = await apiClient.get(`${url}?${params.toString()}`, { responseType: 'blob' });
-      const blob = new Blob([res.data], { type: res.headers['content-type'] || 'application/octet-stream' });
+      const res = await apiClient.get(`${url}?${params.toString()}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], {
+        type: res.headers['content-type'] || 'application/octet-stream',
+      });
       const link = document.createElement('a');
       const contentDisposition = res.headers['content-disposition'];
       let filename = '';
@@ -148,7 +202,7 @@ export default function ReportesPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-
+      window.URL.revokeObjectURL(link.href);
     } catch (err: any) {
       console.error(err);
       setError('Error generando el reporte: ' + (err.message || ''));
@@ -162,7 +216,8 @@ export default function ReportesPage() {
     departamento,
     empleado,
     activeTab,
-    estatusClave,
+    categoriaEstatus,
+    tiposAsistenciaSeleccionados,
     tipoRegistroId,
     esJefe,
     tipoEoS,
@@ -174,7 +229,9 @@ export default function ReportesPage() {
     setFechaDesde(undefined);
     setFechaHasta(undefined);
     setFormato('xlsx');
-    setEstatusClave('');
+    setCategoriaEstatus('TODOS');
+    setTiposAsistenciaSeleccionados([]);
+
     setTipoRegistroId('');
     setEsJefe(false);
     setTipoEoS('');
@@ -184,83 +241,25 @@ export default function ReportesPage() {
   };
 
   return (
-    <div className="p-6 md:p-8"> {/* Replaced PageLayout with a div for consistent styling */}
+    <div className='p-6 md:p-8'>
+      {' '}
+      {/* Replaced PageLayout with a div for consistent styling */}
       <EnhancedCard variant='elevated' padding='lg'>
-        <div className="space-y-1">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+        <div className='space-y-1'>
+          <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
             Reportes
           </h1>
-          <div className="h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full"></div>
+          <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
         </div>
       </EnhancedCard>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <EnhancedCard
-          variant='bordered'
-          padding='md'
-          hover
-          role='button'
-          tabIndex={0}
-          onClick={() => setActiveTab('completa')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setActiveTab('completa');
-            }
-          }}
-          className={`cursor-pointer ${activeTab === 'completa' ? 'ring-2 ring-primary/60 border-primary/60 bg-primary/5' : ''}`}
-        >
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-900/30">
-              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">
-                Reporte de Asistencias Completas
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Detalle de entradas, salidas y estatus por empleado.
-              </p>
-            </div>
-          </div>
-        </EnhancedCard>
-
-        <EnhancedCard
-          variant='bordered'
-          padding='md'
-          hover
-          role='button'
-          tabIndex={0}
-          onClick={() => setActiveTab('jornadas')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setActiveTab('jornadas');
-            }
-          }}
-          className={`cursor-pointer ${activeTab === 'jornadas' ? 'ring-2 ring-primary/60 border-primary/60 bg-primary/5' : ''}`}
-        >
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-green-100 rounded-lg dark:bg-green-900/30">
-              <Clock className="h-5 w-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">
-                Reporte de Jornadas
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Detalle de horas trabajadas y registros por fuente.
-              </p>
-            </div>
-          </div>
-        </EnhancedCard>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-6'>
+        {/* Tab selection removed as per request */}
       </div>
-
       <EnhancedCard variant='bordered' padding='lg' className='mt-6'>
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold text-foreground">
+        <div className='space-y-4'>
+          <div className='flex items-center gap-2 mb-4'>
+            <Filter className='h-5 w-5 text-primary' />
+            <h3 className='text-lg font-semibold text-foreground'>
               Filtros de Búsqueda
             </h3>
           </div>
@@ -270,44 +269,55 @@ export default function ReportesPage() {
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='space-y-2'>
               <Label>Filtrar por</Label>
-              <Select value={modoFiltro} onValueChange={(val) => setModoFiltro(val as any)}>
+              <Select
+                value={modoFiltro}
+                onValueChange={(val) => setModoFiltro(val as any)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona cómo filtrar" />
+                  <SelectValue placeholder='Selecciona cómo filtrar' />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="departamento">Departamento</SelectItem>
-                  <SelectItem value="usuario">Usuario</SelectItem>
+                  <SelectItem value='departamento'>Departamento</SelectItem>
+                  <SelectItem value='usuario'>Usuario</SelectItem>
+                  <SelectItem value='global'>Global</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              {modoFiltro === 'departamento' ? (
-                <>
-                  <Label>Departamento</Label>
-                  <DepartmentSearchableSelect
-                    value={departamento}
-                    onChange={setDepartamento}
-                    placeholder="Selecciona departamento"
-                  />
-                </>
-              ) : (
+
+            <div
+              className={cn(
+                'space-y-2',
+                modoFiltro === 'global' &&
+                  'opacity-50 pointer-events-none grayscale'
+              )}
+            >
+              {modoFiltro === 'usuario' ? (
                 <>
                   <Label>Empleado</Label>
                   <EmployeeSearch
                     value={empleado}
                     onChange={setEmpleado}
-                    placeholder="Buscar empleado..."
+                    placeholder='Buscar empleado...'
+                  />
+                </>
+              ) : (
+                <>
+                  <Label>Departamento</Label>
+                  <DepartmentSearchableSelect
+                    value={departamento}
+                    onChange={setDepartamento}
+                    placeholder='Selecciona departamento'
                   />
                 </>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='space-y-2'>
               <Label>Fecha Inicio</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -335,7 +345,7 @@ export default function ReportesPage() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
+            <div className='space-y-2'>
               <Label>Fecha Fin</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -365,113 +375,188 @@ export default function ReportesPage() {
             </div>
           </div>
 
-          {activeTab === 'completa' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Estatus (Opcional)</Label>
-                <Select value={estatusClave === '' ? undefined : estatusClave} onValueChange={(val) => setEstatusClave(val === 'ALL' ? '' : val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos los estatus" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Todos</SelectItem>
-                    {estatusOptions.map((s) => (
-                      <SelectItem key={s.clave} value={s.clave}>
-                        {s.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='space-y-4 col-span-1 md:col-span-2'>
+              <Label>Estatus</Label>
+              <div className='flex flex-wrap gap-4'>
+                <div className='flex items-center space-x-2'>
+                  <input
+                    type='radio'
+                    id='cat_todos'
+                    name='categoriaEstatus'
+                    checked={categoriaEstatus === 'TODOS'}
+                    onChange={() => {
+                      setCategoriaEstatus('TODOS');
+                      setTiposAsistenciaSeleccionados([]);
+                    }}
+                    className='h-4 w-4 border-gray-300 text-primary focus:ring-primary'
+                  />
+                  <Label
+                    htmlFor='cat_todos'
+                    className='font-normal cursor-pointer'
+                  >
+                    Todos
+                  </Label>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <input
+                    type='radio'
+                    id='cat_asistencia'
+                    name='categoriaEstatus'
+                    checked={categoriaEstatus === 'ASISTENCIA'}
+                    onChange={() => {
+                      setCategoriaEstatus('ASISTENCIA');
+                      const asistenciaKeys = estatusOptions
+                        .filter((o) => !FALTAS_KEYS.includes(o.clave))
+                        .map((o) => o.clave);
+                      setTiposAsistenciaSeleccionados(asistenciaKeys);
+                    }}
+                    className='h-4 w-4 border-gray-300 text-primary focus:ring-primary'
+                  />
+                  <Label
+                    htmlFor='cat_asistencia'
+                    className='font-normal cursor-pointer'
+                  >
+                    Asistencia
+                  </Label>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <input
+                    type='radio'
+                    id='cat_falta'
+                    name='categoriaEstatus'
+                    checked={categoriaEstatus === 'FALTA'}
+                    onChange={() => {
+                      setCategoriaEstatus('FALTA');
+                      setTiposAsistenciaSeleccionados(FALTAS_KEYS);
+                    }}
+                    className='h-4 w-4 border-gray-300 text-primary focus:ring-primary'
+                  />
+                  <Label
+                    htmlFor='cat_falta'
+                    className='font-normal cursor-pointer'
+                  >
+                    Falta
+                  </Label>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Fuente de Registro (Opcional)</Label>
-                <Select value={tipoRegistroId === '' ? undefined : String(tipoRegistroId)} onValueChange={(val) => setTipoRegistroId(val === 'ALL' ? '' : (val === '' ? '' : Number(val)))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas las fuentes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Todas</SelectItem>
-                    {tipoFuentes.map((t) => (
-                      <SelectItem key={t.id} value={String(t.id)}>
-                        {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
 
-          {activeTab === 'jornadas' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Fuente de Registro</Label>
-                <Select value={tipoRegistroId === '' ? undefined : String(tipoRegistroId)} onValueChange={(val) => setTipoRegistroId(val === 'ALL' ? '' : (val === '' ? '' : Number(val)))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas las fuentes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Todas</SelectItem>
-                    {tipoFuentes.map((t) => (
-                      <SelectItem key={t.id} value={String(t.id)}>
-                        {t.name}
-                      </SelectItem>
+              {categoriaEstatus === 'ASISTENCIA' && (
+                <div className='mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 p-4 border rounded-md bg-muted/20'>
+                  {estatusOptions
+                    .filter((o) => !FALTAS_KEYS.includes(o.clave))
+                    .map((opt) => (
+                      <div
+                        key={opt.clave}
+                        className='flex items-center space-x-2'
+                      >
+                        <input
+                          type='checkbox'
+                          id={`sub_${opt.clave}`}
+                          checked={tiposAsistenciaSeleccionados.includes(
+                            opt.clave
+                          )}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setTiposAsistenciaSeleccionados([
+                                ...tiposAsistenciaSeleccionados,
+                                opt.clave,
+                              ]);
+                            } else {
+                              setTiposAsistenciaSeleccionados(
+                                tiposAsistenciaSeleccionados.filter(
+                                  (k) => k !== opt.clave
+                                )
+                              );
+                            }
+                          }}
+                          className='h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary'
+                        />
+                        <Label
+                          htmlFor={`sub_${opt.clave}`}
+                          className='text-sm font-normal cursor-pointer'
+                        >
+                          {opt.nombre}
+                        </Label>
+                      </div>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2 flex items-center pt-6">
-                <input
-                  id="esJefeCheckbox"
-                  type="checkbox"
-                  checked={esJefe}
-                  onChange={(e) => setEsJefe(e.target.checked)}
-                  className="mr-2 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-primary"
-                />
-                <Label htmlFor="esJefeCheckbox">Es Jefe (ANJ)</Label>
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo (Entrada/Salida)</Label>
-                <Select value={tipoEoS === '' ? undefined : tipoEoS} onValueChange={(val) => setTipoEoS(val === 'ALL' ? '' : val as any)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ambos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Ambos</SelectItem>
-                    <SelectItem value="E">Entrada</SelectItem>
-                    <SelectItem value="S">Salida</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
+                </div>
+              )}
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-4">
-            <div className="space-y-2 w-full sm:w-auto">
+              {categoriaEstatus === 'FALTA' && (
+                <div className='mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 p-4 border rounded-md bg-muted/20'>
+                  {[
+                    { clave: 'FC', nombre: 'Falta Completa' },
+                    { clave: 'FE', nombre: 'Falta Entrada' },
+                    { clave: 'FS', nombre: 'Falta Salida' },
+                  ].map((opt) => (
+                    <div
+                      key={opt.clave}
+                      className='flex items-center space-x-2'
+                    >
+                      <input
+                        type='checkbox'
+                        id={`sub_${opt.clave}`}
+                        checked={tiposAsistenciaSeleccionados.includes(
+                          opt.clave
+                        )}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setTiposAsistenciaSeleccionados([
+                              ...tiposAsistenciaSeleccionados,
+                              opt.clave,
+                            ]);
+                          } else {
+                            setTiposAsistenciaSeleccionados(
+                              tiposAsistenciaSeleccionados.filter(
+                                (k) => k !== opt.clave
+                              )
+                            );
+                          }
+                        }}
+                        className='h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary'
+                      />
+                      <Label
+                        htmlFor={`sub_${opt.clave}`}
+                        className='text-sm font-normal cursor-pointer'
+                      >
+                        {opt.nombre}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className='flex flex-col sm:flex-row sm:items-end gap-4 mt-6 pt-4 border-t'>
+            <div className='space-y-2 w-full sm:w-48'>
               <Label>Formato de Descarga</Label>
               <Select value={formato} onValueChange={setFormato}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona formato" />
+                  <SelectValue placeholder='Selecciona formato' />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
-                  <SelectItem value="csv">CSV (.csv)</SelectItem>
-                  <SelectItem value="pdf">PDF (.pdf)</SelectItem>
-                  <SelectItem value="docx">Word (.docx)</SelectItem>
+                  <SelectItem value='xlsx'>Excel (.xlsx)</SelectItem>
+                  <SelectItem value='pdf'>PDF (.pdf)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex gap-4 mt-4 sm:mt-0 w-full sm:w-auto">
-              <Button onClick={downloadReport} className="shadow-md hover:shadow-lg transition-all duration-200 w-full sm:w-auto">
-                <Download className='mr-2 h-4 w-4' />
-                Generar y Descargar
-              </Button>
+            <div className='flex gap-4 w-full sm:w-auto flex-1 justify-end'>
               <Button
                 variant='outline'
                 onClick={handleClearFilters}
                 className='border-2 border-border hover:border-primary hover:bg-primary/5 w-full sm:w-auto'
               >
                 Limpiar
+              </Button>
+              <Button
+                onClick={downloadReport}
+                className='shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-white font-bold py-2 px-6 rounded-lg transform hover:-translate-y-0.5'
+                aria-label='Generar y descargar reporte'
+              >
+                <Download className='mr-2 h-5 w-5' />
+                Exportar Reporte
               </Button>
             </div>
           </div>

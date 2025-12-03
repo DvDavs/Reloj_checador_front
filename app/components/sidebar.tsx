@@ -132,7 +132,7 @@ const navItems: NavItemData[] = [
     href: '/reportes',
     icon: <ClipboardList size={20} />,
     text: 'Reportes',
-    keywords: ['reportes','export','excel','csv','pdf','word'],
+    keywords: ['reportes', 'export', 'excel', 'csv', 'pdf', 'word'],
   },
 ];
 
