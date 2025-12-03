@@ -127,6 +127,13 @@ const navItems: NavItemData[] = [
     text: 'Chequeos',
     keywords: ['chequeos', 'registros', 'entradas', 'salidas', 'correccion'],
   },
+  {
+    id: 'reportes',
+    href: '/reportes',
+    icon: <ClipboardList size={20} />,
+    text: 'Reportes',
+    keywords: ['reportes', 'export', 'excel', 'csv', 'pdf', 'word'],
+  },
 ];
 
 // Navegación mínima para el lanzador
