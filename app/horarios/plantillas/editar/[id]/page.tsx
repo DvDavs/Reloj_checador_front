@@ -14,9 +14,6 @@ import { EmpleadosWarningAlert } from '../../components/empleados-warning-alert'
 import { useToast } from '@/components/ui/use-toast';
 import { getApiErrorMessage } from '@/lib/api/schedule-api';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-
 export default function EditarPlantillaPage() {
   const params = useParams();
   const router = useRouter();
@@ -60,10 +57,7 @@ export default function EditarPlantillaPage() {
     setError(null);
 
     try {
-      await apiClient.put(
-        `${API_BASE_URL}/api/horarios/${templateId}`,
-        payload
-      );
+      await apiClient.put(`/api/horarios/${templateId}`, payload);
       toast({
         title: 'Éxito',
         description: 'La plantilla de horario ha sido actualizada.',

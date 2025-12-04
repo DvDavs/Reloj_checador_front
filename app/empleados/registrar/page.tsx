@@ -32,7 +32,6 @@ interface EmpleadoBackend {
   segundoApellido: string | null;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const NONE_VALUE_SELECT = '__NONE__';
 
 export default function RegistrarEmpleadoPage() {
@@ -123,7 +122,7 @@ export default function RegistrarEmpleadoPage() {
     }
     try {
       const response = await apiClient.post<EmpleadoBackend>(
-        `${API_BASE_URL}/api/empleados`,
+        `/api/empleados`,
         payload
       );
       setCreatedEmployee(response.data);

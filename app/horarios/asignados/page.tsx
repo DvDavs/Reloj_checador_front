@@ -32,8 +32,6 @@ import { SortableHeader } from '@/app/components/shared/sortable-header';
 import { PaginationWrapper } from '@/app/components/shared/pagination-wrapper';
 import { useTableState } from '@/app/hooks/use-table-state';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 const ITEMS_PER_PAGE = 10;
 
 export default function HorariosAsignadosPage() {
@@ -84,7 +82,7 @@ export default function HorariosAsignadosPage() {
     setError(null);
     try {
       const response = await apiClient.get<HorarioAsignadoDto[]>(
-        `${API_BASE_URL}/api/horarios-asignados`
+        '/api/horarios-asignados'
       );
       const baseList = response.data || [];
       // Enriquecer con número de tarjeta del trabajador
@@ -95,9 +93,7 @@ export default function HorariosAsignadosPage() {
         const cardEntries = await Promise.all(
           uniqueEmpleadoIds.map(async (empId) => {
             try {
-              const empResp = await apiClient.get(
-                `${API_BASE_URL}/api/empleados/${empId}`
-              );
+              const empResp = await apiClient.get(`/api/empleados/${empId}`);
               const tarjeta = empResp.data?.tarjeta ?? null;
               return [empId, tarjeta] as const;
             } catch (_) {
@@ -175,9 +171,7 @@ export default function HorariosAsignadosPage() {
 
     setIsDeleting(true);
     try {
-      await apiClient.delete(
-        `${API_BASE_URL}/api/horarios-asignados/${selectedItem.id}`
-      );
+      await apiClient.delete(`/api/horarios-asignados/${selectedItem.id}`);
 
       // Refetch the data for the current page
       fetchHorariosAsignados();

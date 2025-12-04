@@ -24,8 +24,6 @@ interface FingerprintScanner {
   status: ScannerStatus;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
 function LanzadorChecadorContent() {
   const [scanners, setScanners] = useState<FingerprintScanner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +44,7 @@ function LanzadorChecadorContent() {
     setScanners([]);
     try {
       const response = await apiClient.get<string[]>(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/readers`
+        `/api/v1/multi-fingerprint/readers`
       );
       const availableScanners = response.data.map((name) => ({
         id: name,
@@ -70,7 +68,7 @@ function LanzadorChecadorContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [API_BASE_URL]);
+  }, []);
 
   useEffect(() => {
     if (browserSessionId) {

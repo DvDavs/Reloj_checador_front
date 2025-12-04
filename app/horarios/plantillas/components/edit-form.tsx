@@ -19,9 +19,6 @@ import {
 } from '../types';
 import { PageHeader } from '@/app/components/shared/page-header';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-
 export function EditTemplateForm({
   initialData,
   templateId,
@@ -62,10 +59,7 @@ export function EditTemplateForm({
     };
 
     try {
-      await apiClient.put(
-        `${API_BASE_URL}/api/horarios/${templateId}`,
-        payload
-      );
+      await apiClient.put(`/api/horarios/${templateId}`, payload);
       toast({
         title: 'Éxito',
         description: 'La plantilla de horario ha sido actualizada.',

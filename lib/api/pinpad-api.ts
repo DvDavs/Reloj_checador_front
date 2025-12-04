@@ -2,8 +2,7 @@
  * API functions for PIN pad check-in functionality
  */
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+import { getBaseUrl } from '../apiClient';
 
 export interface PinPadRequest {
   tarjeta: number;
@@ -30,6 +29,7 @@ export const submitPinPadCheckin = async (
     tarjeta: parseInt(cardNumber, 10),
   };
 
+  const API_BASE_URL = getBaseUrl();
   console.log('PIN API Request:', {
     url: `${API_BASE_URL}/api/registros/pinpad`,
     headers: {

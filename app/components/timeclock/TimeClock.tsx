@@ -22,10 +22,7 @@ import type {
 } from '@/app/lib/types/timeClockTypes';
 import { getUserFriendlyMessage } from '@/app/lib/timeClockUtils';
 import { submitPinPadCheckin } from '@/lib/api/pinpad-api';
-import { apiClient } from '@/lib/apiClient';
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+import { apiClient, getBaseUrl } from '@/lib/apiClient';
 
 export type TimeClockProps = {
   selectedReader: string;
@@ -110,7 +107,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
     updateFromFullAttendanceEvent,
   } = useEmployeeAttendanceData({
     employeeIdToFetch,
-    apiBaseUrl: API_BASE_URL,
+    apiBaseUrl: getBaseUrl(),
   });
 
   // Handlers: eventos del backend
@@ -245,7 +242,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
     onChecadorEvent: handleChecadorEvent,
     onConnectionError: handleConnectionError,
     onReadyStateChange: handleReadyStateChange,
-    apiBaseUrl: API_BASE_URL,
+    apiBaseUrl: getBaseUrl(),
   });
 
   // PIN input handlers

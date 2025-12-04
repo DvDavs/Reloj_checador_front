@@ -28,8 +28,6 @@ interface FingerprintScanner {
   status: ScannerStatus;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
 export default function AdminDashboard() {
   const [scanners, setScanners] = useState<FingerprintScanner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +51,7 @@ export default function AdminDashboard() {
     try {
       // GET /readers ya devuelve solo los disponibles (no reservados)
       const response = await apiClient.get<string[]>(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/readers`
+        `/api/v1/multi-fingerprint/readers`
       );
       const availableScanners = response.data.map((name) => ({
         id: name,
@@ -77,7 +75,7 @@ export default function AdminDashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [API_BASE_URL]); // Dependencia directa de la constante
+  }, []);
 
   // Cargar al montar
   useEffect(() => {

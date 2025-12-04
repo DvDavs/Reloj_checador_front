@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient, getBaseUrl } from '@/lib/apiClient';
 import {
   EmpleadoDto,
   JornadaEstadoDto,
@@ -29,7 +29,7 @@ interface UseEmployeeAttendanceDataReturn {
 
 const useEmployeeAttendanceData = ({
   employeeIdToFetch,
-  apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080',
+  apiBaseUrl = getBaseUrl(),
 }: UseEmployeeAttendanceDataProps): UseEmployeeAttendanceDataReturn => {
   const [currentEmployee, setCurrentEmployee] = useState<{
     id: string;

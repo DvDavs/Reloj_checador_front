@@ -35,15 +35,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    if (mounted) return; // Evitar re-inicialización
+    if (mounted) return;
 
     setMounted(true);
 
     const initializeAuth = async () => {
       try {
-        // Solo acceder a localStorage/cookies después de montar
         if (typeof window !== 'undefined') {
-          const storedToken = Cookies.get('authToken');
+          let storedToken = Cookies.get('authToken');
+
+          if (!storedToken) {
+            storedToken = localStorage.getItem('authToken') ?? undefined;
+            if (storedToken) {
+              try {
+                Cookies.set('authToken', storedToken, {
+                  expires: 1,
+                  path: '/',
+                  sameSite: 'lax',
+                });
+              } catch (e) {
+                console.error('❌ Error al restaurar cookie:', e);
+              }
+            }
+          }
+
           const storedRoles = localStorage.getItem('userRoles');
           const storedUsername = localStorage.getItem('username');
 
@@ -58,10 +73,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
-        // Si hay error, limpiar datos corruptos
         if (typeof window !== 'undefined') {
           Cookies.remove('authToken');
+          localStorage.removeItem('authToken');
           localStorage.removeItem('userRoles');
           localStorage.removeItem('username');
         }
@@ -94,21 +108,67 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (username) {
       localStorage.setItem('username', username);
     }
-    Cookies.set('authToken', authToken, {
+
+    localStorage.setItem('authToken', authToken);
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isHttps = window.location.protocol === 'https:';
+
+    const cookieOptions: Cookies.CookieAttributes = {
       expires: 1,
-      secure: process.env.NODE_ENV === 'production',
-    });
+      path: '/',
+    };
+
+    if (isProduction && isHttps) {
+      cookieOptions.secure = true;
+      cookieOptions.sameSite = 'lax';
+    } else {
+      cookieOptions.sameSite = 'lax';
+    }
+
+    let cookieSaved = false;
+    try {
+      Cookies.set('authToken', authToken, cookieOptions);
+      const verifyToken = Cookies.get('authToken');
+      if (verifyToken === authToken) {
+        cookieSaved = true;
+      } else {
+        Cookies.set('authToken', authToken);
+        cookieSaved = Cookies.get('authToken') === authToken;
+      }
+    } catch (error) {
+      console.error('❌ Error al guardar cookie:', error);
+      try {
+        Cookies.set('authToken', authToken);
+        cookieSaved = Cookies.get('authToken') === authToken;
+      } catch (e) {
+        console.error('❌ Error crítico al guardar cookie:', e);
+      }
+    }
+
+    if (!cookieSaved) {
+      console.warn(
+        '⚠️ La cookie no se pudo guardar, pero el token está en localStorage'
+      );
+      console.warn(
+        '⚠️ El middleware puede no funcionar correctamente sin la cookie'
+      );
+    }
 
     setToken(authToken);
     setUser({ roles: new Set(roles), username });
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
 
-    router.push('/');
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 100);
   };
 
   const logout = useCallback(() => {
     localStorage.removeItem('userRoles');
-    Cookies.remove('authToken');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
+    Cookies.remove('authToken', { path: '/' });
 
     setToken(null);
     setUser(null);
@@ -116,7 +176,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push('/login');
   }, [router]);
 
-  // Configurar interceptores después de que logout esté definido
   useEffect(() => {
     if (mounted) {
       setupInterceptors(logout);
