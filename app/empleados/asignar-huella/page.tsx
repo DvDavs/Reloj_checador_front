@@ -61,6 +61,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { getBrowserSessionId } from '@/lib/sessionId';
+import { getBaseUrl } from '@/lib/apiClient';
 
 import { HandSelector, fingerIndexToName } from './components/hand-selector';
 import { WizardStepper } from '@/app/components/shared/wizard-stepper';
@@ -112,9 +113,6 @@ type CaptureStepState =
   | 'save_success'
   | 'save_failed'
   | 'error';
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 const ENROLLMENT_STEPS_NEEDED = 4;
 
@@ -195,8 +193,8 @@ function AsignarHuellaContent() {
 
     try {
       const endpoint = query.trim()
-        ? `${API_BASE_URL}/api/empleados?search=${encodeURIComponent(query)}`
-        : `${API_BASE_URL}/api/empleados`;
+        ? `/api/empleados?search=${encodeURIComponent(query)}`
+        : `/api/empleados`;
 
       const response = await apiClient.get(endpoint);
 
@@ -226,7 +224,7 @@ function AsignarHuellaContent() {
     setIsSearching(true);
     setGeneralError(null);
     try {
-      const response = await apiClient.get(`${API_BASE_URL}/api/empleados`);
+      const response = await apiClient.get('/api/empleados');
       const data = response.data.map((emp: any) => ({
         id: emp.id.toString(),
         nombre: `${emp.primerNombre || ''} ${emp.segundoNombre || ''} ${
@@ -251,7 +249,7 @@ function AsignarHuellaContent() {
     setIsLoading(true);
     try {
       const response = await apiClient.get<HuellaInfo[]>(
-        `${API_BASE_URL}/api/empleados/${empId}/huellas`
+        `/api/empleados/${empId}/huellas`
       );
       setExistingHuellas(response.data);
     } catch (err) {
@@ -332,12 +330,12 @@ function AsignarHuellaContent() {
     setGeneralError(null);
     try {
       const allReadersResponse = await apiClient.get<string[]>(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/auto-select`
+        `/api/v1/multi-fingerprint/auto-select`
       );
       const allReaderNames = allReadersResponse.data || [];
 
       const availableResponse = await apiClient.get<string[]>(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/readers`
+        `/api/v1/multi-fingerprint/readers`
       );
       const availableReaderNames = new Set(availableResponse.data || []);
 
@@ -384,7 +382,7 @@ function AsignarHuellaContent() {
     async (readerName: string, sessionId: string): Promise<boolean> => {
       try {
         await apiClient.post(
-          `${API_BASE_URL}/api/v1/multi-fingerprint/reserve/${encodeURIComponent(
+          `/api/v1/multi-fingerprint/reserve/${encodeURIComponent(
             readerName
           )}?sessionId=${sessionId}`
         );
@@ -412,7 +410,7 @@ function AsignarHuellaContent() {
   const releaseReaderApiCall = useCallback(
     async (readerName: string, sessionId: string) => {
       try {
-        const url = `${API_BASE_URL}/api/v1/multi-fingerprint/release/${encodeURIComponent(
+        const url = `${getBaseUrl()}/api/v1/multi-fingerprint/release/${encodeURIComponent(
           readerName
         )}?sessionId=${sessionId}`;
         if (navigator.sendBeacon && isUnmounting.current) {
@@ -542,7 +540,7 @@ function AsignarHuellaContent() {
     setCaptureFeedbackMsg('Iniciando enrolamiento...');
     try {
       const resp = await apiClient.post<{ sessionId: string }>(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/enroll/start/${encodeURIComponent(
+        `/api/v1/multi-fingerprint/enroll/start/${encodeURIComponent(
           selectedScanner
         )}?sessionId=${browserSessionId}`
       );
@@ -595,7 +593,7 @@ function AsignarHuellaContent() {
       const dedoNombre = fingerIndexToName[selectedFinger].toUpperCase();
       try {
         const resp = await apiClient.post(
-          `${API_BASE_URL}/api/empleados/${empIdNum}/huellas`,
+          `/api/empleados/${empIdNum}/huellas`,
           {
             nombreDedo: dedoNombre,
             templateBase64: templateBase64,
@@ -666,7 +664,7 @@ function AsignarHuellaContent() {
 
     try {
       const response = await apiClient.post<EnrollmentResponse>(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/enroll/capture/${encodeURIComponent(
+        `/api/v1/multi-fingerprint/enroll/capture/${encodeURIComponent(
           selectedScanner
         )}/${encodeURIComponent(enrollmentSessionId)}`
       );
@@ -767,7 +765,7 @@ function AsignarHuellaContent() {
       return;
     }
     const stompInstance = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws-fingerprint`),
+      webSocketFactory: () => new SockJS(`${getBaseUrl()}/ws-fingerprint`),
       debug: () => {},
       reconnectDelay: 5000,
       connectHeaders: { login: 'guest', passcode: 'guest' },

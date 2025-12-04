@@ -28,8 +28,6 @@ interface ReservedReader {
   sessionId: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
 export default function SessionMonitoringPage() {
   const [reservedReaders, setReservedReaders] = useState<ReservedReader[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,7 +41,7 @@ export default function SessionMonitoringPage() {
     setError(null);
     try {
       const response = await apiClient.get<ReservedReader[]>(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/readers/reserved`
+        `/api/v1/multi-fingerprint/readers/reserved`
       );
       setReservedReaders(response.data);
       if (response.data.length === 0) {
@@ -72,13 +70,9 @@ export default function SessionMonitoringPage() {
     setError(null);
 
     try {
-      await apiClient.post(
-        `${API_BASE_URL}/api/v1/multi-fingerprint/readers/release`,
-        null,
-        {
-          params: { readerName: showReleaseConfirm.readerName },
-        }
-      );
+      await apiClient.post(`/api/v1/multi-fingerprint/readers/release`, null, {
+        params: { readerName: showReleaseConfirm.readerName },
+      });
       setShowReleaseConfirm(null);
       await fetchReservedReaders(); // Refrescar la lista
     } catch (err: any) {

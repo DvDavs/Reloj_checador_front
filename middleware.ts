@@ -10,6 +10,22 @@ export function middleware(request: NextRequest) {
   const publicPaths = ['/login', '/reloj-checador', '/lanzador', '/ads/'];
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
+  // Debug: Log para verificar si la cookie está disponible
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Middleware] Path:', pathname);
+    console.log(
+      '[Middleware] Cookie authToken:',
+      authToken ? '✅ Presente' : '❌ No encontrada'
+    );
+    console.log(
+      '[Middleware] Todas las cookies:',
+      request.cookies
+        .getAll()
+        .map((c) => c.name)
+        .join(', ')
+    );
+  }
+
   // Si el usuario TIENE token y trata de ir a la página de login,
   // redirígelo al dashboard principal.
   if (authToken && isLoginPage) {
@@ -19,6 +35,9 @@ export function middleware(request: NextRequest) {
   // Si el usuario NO tiene token y NO está en una ruta pública,
   // redirígelo a la página de login.
   if (!authToken && !isPublicPath) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Middleware] ⚠️ Redirigiendo a login - No hay token');
+    }
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

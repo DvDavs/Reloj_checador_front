@@ -53,8 +53,6 @@ interface EmployeeDetailsModalProps {
   onClose: () => void;
   onFingerprintDeleted?: () => void;
 }
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 const FINGER_NAME_TO_INDEX: { [key: string]: number } = {
   'PULGAR DERECHO': 1,
   'ÍNDICE DERECHO': 2,
@@ -140,7 +138,7 @@ export function EmployeeDetailsModal({
     setError(null);
     try {
       const response = await apiClient.get<Huella[]>(
-        `${API_BASE_URL}/api/empleados/${employee.id}/huellas`
+        `/api/empleados/${employee.id}/huellas`
       );
       setHuellas(response.data || []);
     } catch (err) {
@@ -155,7 +153,7 @@ export function EmployeeDetailsModal({
     setIsDeletingFingerprint(true);
     try {
       await apiClient.delete(
-        `${API_BASE_URL}/api/empleados/${employee.id}/huellas/${fingerprintToDelete.id}`
+        `/api/empleados/${employee.id}/huellas/${fingerprintToDelete.id}`
       );
       setHuellas((prev) => prev.filter((h) => h.id !== fingerprintToDelete.id));
       toast({ title: 'Huella Eliminada' });

@@ -34,8 +34,6 @@ interface EmployeeDisplayData {
   estado: string;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 const ITEMS_PER_PAGE = 10;
 
 export default function EmpleadosPage() {
@@ -95,9 +93,7 @@ export default function EmpleadosPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get<EmpleadoDto[]>(
-        `${API_BASE_URL}/api/empleados`
-      );
+      const response = await apiClient.get<EmpleadoDto[]>(`/api/empleados`);
       setAllEmployees(response.data || []);
     } catch (err: any) {
       const errorMsg =
@@ -151,7 +147,7 @@ export default function EmpleadosPage() {
     async (employee: EmpleadoDto) => {
       try {
         const response = await apiClient.get(
-          `${API_BASE_URL}/api/horarios-asignados/empleado/${employee.id}`
+          `/api/horarios-asignados/empleado/${employee.id}`
         );
         const asignaciones: any[] = response.data || [];
         if (!Array.isArray(asignaciones) || asignaciones.length === 0) {

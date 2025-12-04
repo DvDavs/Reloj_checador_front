@@ -30,8 +30,6 @@ import { DeleteConfirmationDialog } from './components/delete-confirmation-dialo
 import { DetailsDialog } from './components/details-dialog';
 import { EmpleadosAsignadosCell } from './components/empleados-asignados-cell';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 const ITEMS_PER_PAGE = 10;
 
 export default function HorariosPlantillasPage() {
@@ -74,7 +72,7 @@ export default function HorariosPlantillasPage() {
       });
 
       const response = await apiClient.get(
-        `${API_BASE_URL}/api/horarios/paginado?${params.toString()}`
+        `/api/horarios/paginado?${params.toString()}`
       );
       setData(response.data);
     } catch (err: any) {
@@ -136,7 +134,7 @@ export default function HorariosPlantillasPage() {
 
     setIsDeleting(true);
     try {
-      await apiClient.delete(`${API_BASE_URL}/api/horarios/${itemToDelete.id}`);
+      await apiClient.delete(`/api/horarios/${itemToDelete.id}`);
 
       fetchHorarios();
       setIsDeleteDialogOpen(false);

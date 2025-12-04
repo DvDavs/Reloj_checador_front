@@ -24,9 +24,6 @@ interface DetailsDialogProps {
   templateId: number | null;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-
 export function DetailsDialog({
   isOpen,
   onClose,
@@ -40,9 +37,7 @@ export function DetailsDialog({
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get<HorarioDto>(
-        `${API_BASE_URL}/api/horarios/${id}`
-      );
+      const response = await apiClient.get<HorarioDto>(`/api/horarios/${id}`);
       setTemplate(response.data);
     } catch (err: any) {
       console.error('Error fetching template details:', err);

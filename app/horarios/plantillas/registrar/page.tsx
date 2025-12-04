@@ -12,9 +12,6 @@ import { PageHeader } from '@/app/components/shared/page-header';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { TemplateForm } from '../components/template-form';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-
 export default function RegistrarPlantillaPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -37,7 +34,7 @@ export default function RegistrarPlantillaPage() {
     setError(null);
 
     try {
-      await apiClient.post(`${API_BASE_URL}/api/horarios`, payload);
+      await apiClient.post('/api/horarios', payload);
       toast({
         title: 'Éxito',
         description: 'La nueva plantilla de horario ha sido creada.',

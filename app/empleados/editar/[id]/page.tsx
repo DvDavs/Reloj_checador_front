@@ -15,6 +15,7 @@ import {
   uploadEmpleadoFoto,
   deleteEmpleadoFoto,
 } from '@/lib/api/empleados-foto.api';
+import { getBaseUrl } from '@/lib/apiClient';
 
 interface EmpleadoApiData {
   rfc?: string | null;
@@ -52,8 +53,6 @@ interface EmpleadoFormData {
   permiteChecarConPin?: boolean;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 const NONE_VALUE_SELECT = '__NONE__';
 
 export default function EditarEmpleadoPage() {
@@ -80,7 +79,7 @@ export default function EditarEmpleadoPage() {
     setFetchError(null);
     try {
       const response = await apiClient.get<EmpleadoApiData>(
-        `${API_BASE_URL}/api/empleados/${employeeId}`
+        `/api/empleados/${employeeId}`
       );
       const initialFormData: EmpleadoFormData = {
         ...response.data,
@@ -92,6 +91,7 @@ export default function EditarEmpleadoPage() {
       // Foto
       const anyData: any = response.data as any;
       const hasPhoto = !!anyData.tieneFoto;
+      const API_BASE_URL = getBaseUrl();
       const fotoUrl = anyData.fotoUrl
         ? `${API_BASE_URL}${anyData.fotoUrl}`
         : null;
@@ -213,10 +213,7 @@ export default function EditarEmpleadoPage() {
     }
 
     try {
-      await apiClient.put(
-        `${API_BASE_URL}/api/empleados/${employeeId}`,
-        payload
-      );
+      await apiClient.put(`/api/empleados/${employeeId}`, payload);
       // Subir o eliminar foto según corresponda
       try {
         if (fotoState.pendingFile) {
