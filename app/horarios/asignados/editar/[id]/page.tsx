@@ -611,28 +611,31 @@ export default function ScheduleAssignmentEditPage() {
     loadAssignmentData();
   }, [id, router, toast]);
 
-  const WIZARD_STEPS = [
-    {
-      label: 'Empleado (Bloqueado)',
-      id: 'selectEmployee',
-      description: 'El empleado no puede ser cambiado en modo edición.',
-    },
-    {
-      label: 'Horario',
-      id: 'selectSchedule',
-      description: 'Modifica la plantilla de horario asignada.',
-    },
-    {
-      label: 'Fechas',
-      id: 'setDates',
-      description: 'Ajusta las fechas y el tipo de horario.',
-    },
-    {
-      label: 'Resumen',
-      id: 'summary',
-      description: 'Revisa los cambios antes de guardar.',
-    },
-  ];
+  const WIZARD_STEPS = React.useMemo(
+    () => [
+      {
+        label: 'Empleado (Bloqueado)',
+        id: 'selectEmployee',
+        description: 'El empleado no puede ser cambiado en modo edición.',
+      },
+      {
+        label: 'Horario',
+        id: 'selectSchedule',
+        description: 'Modifica la plantilla de horario asignada.',
+      },
+      {
+        label: 'Fechas',
+        id: 'setDates',
+        description: 'Ajusta las fechas y el tipo de horario.',
+      },
+      {
+        label: 'Resumen',
+        id: 'summary',
+        description: 'Revisa los cambios antes de guardar.',
+      },
+    ],
+    []
+  );
 
   const currentStepConfig = React.useMemo(() => {
     const stepIndex = WIZARD_STEPS.findIndex((s) => s.id === state.step);
@@ -641,7 +644,7 @@ export default function ScheduleAssignmentEditPage() {
       number: stepIndex + 1,
       title: `Paso ${stepIndex + 1}: ${WIZARD_STEPS[stepIndex].label}`,
     };
-  }, [state.step]);
+  }, [state.step, WIZARD_STEPS]);
 
   const handleSave = async () => {
     dispatch({ type: 'SUBMIT_START' });

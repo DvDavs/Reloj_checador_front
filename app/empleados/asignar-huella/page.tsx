@@ -376,7 +376,7 @@ function AsignarHuellaContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [browserSessionId, selectedScanner]);
+  }, [browserSessionId, selectedScanner, resetCaptureProcess]);
 
   const reserveReaderApiCall = useCallback(
     async (readerName: string, sessionId: string): Promise<boolean> => {
@@ -508,6 +508,7 @@ function AsignarHuellaContent() {
       registeredThisSessionIndices,
       selectedFinger,
       captureState,
+      resetCaptureProcess,
     ]
   );
 

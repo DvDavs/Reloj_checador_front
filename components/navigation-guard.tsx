@@ -80,9 +80,11 @@ export function NavigationGuard({ children }: { children: React.ReactNode }) {
     // Reemplazar temporalmente router.push
     (router as any).push = interceptedPush;
 
+    const originalPushValue = originalPush.current;
+
     return () => {
       // Restaurar router.push original
-      (router as any).push = originalPush.current;
+      (router as any).push = originalPushValue;
     };
   }, [router]);
 

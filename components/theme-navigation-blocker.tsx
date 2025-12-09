@@ -43,9 +43,11 @@ export function ThemeNavigationBlocker({
     // Agregar listener de clicks
     document.addEventListener('click', handleClick, true);
 
+    const originalPushValue = originalPush.current;
+
     return () => {
       // Restaurar router.push original
-      (router as any).push = originalPush.current;
+      (router as any).push = originalPushValue;
       document.removeEventListener('click', handleClick, true);
     };
   }, [router]);
