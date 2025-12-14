@@ -275,3 +275,87 @@ export const listTiposJustificacion = async (): Promise<
     );
   }
 };
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}
+
+export interface JustificacionFilters {
+  page?: number;
+  size?: number;
+  fechaInicio?: string;
+  fechaFin?: string;
+  tipo?: string;
+  tipoJustificacionId?: number;
+  departamentoClave?: string;
+  empleadoId?: number;
+}
+
+/**
+ * Lista justificaciones con paginación y filtros
+ */
+export const listJustificacionesPaginated = async (
+  filters: JustificacionFilters
+): Promise<PaginatedResponse<JustificacionItem>> => {
+  try {
+    const params = new URLSearchParams();
+    if (filters.page !== undefined)
+      params.append('page', filters.page.toString());
+    if (filters.size !== undefined)
+      params.append('size', filters.size.toString());
+    if (filters.fechaInicio) params.append('fechaInicio', filters.fechaInicio);
+    if (filters.fechaFin) params.append('fechaFin', filters.fechaFin);
+    if (filters.tipo) params.append('tipo', filters.tipo);
+    if (filters.tipoJustificacionId)
+      params.append(
+        'tipoJustificacionId',
+        filters.tipoJustificacionId.toString()
+      );
+    if (filters.departamentoClave)
+      params.append('departamentoClave', filters.departamentoClave);
+    if (filters.empleadoId)
+      params.append('empleadoId', filters.empleadoId.toString());
+
+    const response = await apiClient.get(
+      `/api/justificaciones/paginated?${params.toString()}`
+    );
+    const backend = response.data || {};
+    const items: any[] = backend.data || [];
+
+    const mappedItems = items.map((j: any) => {
+      const empleado = j.empleado || {};
+      const tipo = j.tipoJustificacion || {};
+      return {
+        id: j.id,
+        fechaInicio: j.fechaInicio,
+        fechaFin: j.fechaFin,
+        motivo: j.motivo ?? null,
+        numOficio: j.numOficio ?? null,
+        esMasiva: Boolean(j.esMasiva),
+        departamentoId: j.departamentoId ?? null,
+        empleadoId: j.empleadoId ?? empleado.id ?? null,
+        empleadoNombre:
+          j.empleadoNombre ?? empleado.nombreCompleto ?? undefined,
+        tipoJustificacionNombre:
+          j.tipoJustificacionNombre ?? tipo.nombre ?? undefined,
+        createdAt: j.createdAt,
+      } as JustificacionItem;
+    });
+
+    return {
+      data: mappedItems,
+      total: backend.total || 0,
+      totalPages: backend.totalPages || 0,
+      currentPage: backend.currentPage || 0,
+    };
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(
+        error,
+        'Ocurrió un error inesperado al listar las justificaciones paginadas.'
+      )
+    );
+  }
+};

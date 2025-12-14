@@ -45,6 +45,9 @@ type EmpleadoSimpleDTO = { id: number; nombreCompleto: string } | null; // Chang
 type EstatusDisponible = { clave: string; nombre: string };
 type TipoRegistro = { id: number; name: string };
 
+const FALTAS_KEYS = ['FC', 'FE', 'FS'];
+const EXCLUDED_KEYS = ['FR', 'ST']; // Fuera de rango, Salida temprana. "Horas incompletas" might be derived or another key.
+
 export default function ReportesPage() {
   const [activeTab, setActiveTab] = useState<'completa' | 'jornadas'>(
     'completa'
@@ -83,8 +86,7 @@ export default function ReportesPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Constants for status grouping
-  const FALTAS_KEYS = ['FC', 'FE', 'FS'];
-  const EXCLUDED_KEYS = ['FR', 'ST']; // Fuera de rango, Salida temprana. "Horas incompletas" might be derived or another key.
+  // Moved outside component to avoid dependency issues or useMemo
 
   // Cargar estatus disponibles desde backend
   useEffect(() => {
@@ -131,7 +133,7 @@ export default function ReportesPage() {
       }
     };
     loadEstatus();
-  }, []);
+  }, [loadingEstatus, estatusOptions.length]);
 
   const downloadReport = useCallback(async () => {
     if (!fechaDesde || !fechaHasta) {
@@ -552,7 +554,7 @@ export default function ReportesPage() {
               </Button>
               <Button
                 onClick={downloadReport}
-                className='shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-white font-bold py-2 px-6 rounded-lg transform hover:-translate-y-0.5'
+                className='w-full sm:w-auto'
                 aria-label='Generar y descargar reporte'
               >
                 <Download className='mr-2 h-5 w-5' />
