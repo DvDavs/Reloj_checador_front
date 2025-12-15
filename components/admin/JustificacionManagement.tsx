@@ -90,6 +90,21 @@ export function JustificacionManagement() {
   const fetchData = useCallback(async () => {
     if (!hasSearched) return;
 
+    // Validaciones
+    // 1. Que no pueda filtrarse si no se coloca desde
+    if (!fechaInicio) {
+      setError(
+        "Debe seleccionar una fecha de inicio ('Desde') para realizar la búsqueda."
+      );
+      return;
+    }
+
+    // 2. que hasta siempre sea una fecha superiro, nunca menor a desde
+    if (fechaFin && fechaInicio && fechaFin < fechaInicio) {
+      setError('La fecha final no puede ser menor a la fecha de inicio.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -150,12 +165,15 @@ export function JustificacionManagement() {
     hasSearched,
   ]);
 
-  // Cargar datos SOLAMENTE cuando cambia la página y ya se ha buscado antes
+  // ELIMINADO: useEffect que cargaba datos automáticamente al cambiar página
+  // Ahora la carga se controla exclusivamente por triggerSearch
+  /*
   useEffect(() => {
     if (hasSearched) {
       fetchData();
     }
   }, [page, fetchData]);
+  */
 
   const onSearchClick = () => {
     setPage(1);
