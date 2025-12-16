@@ -528,8 +528,10 @@ export default function ScheduleAssignmentWizardPage() {
   );
   const searchParams = useSearchParams();
 
-  const stableSetTemplates = React.useCallback(setTemplates, []);
-  const stableSetScheduleTypes = React.useCallback(setScheduleTypes, []);
+  const stableSetTemplates = React.useCallback(setTemplates, [setTemplates]);
+  const stableSetScheduleTypes = React.useCallback(setScheduleTypes, [
+    setScheduleTypes,
+  ]);
 
   // Prefill employee from query params (?id=..&nombre=..)
   React.useEffect(() => {
@@ -570,37 +572,40 @@ export default function ScheduleAssignmentWizardPage() {
     enrich();
   }, [state.selectedEmployee, dispatch]);
 
-  const WIZARD_STEPS = [
-    {
-      label: 'Empleado',
-      id: 'selectEmployee',
-      description:
-        'Busca y selecciona el empleado al que se le asignará el horario personalizado.',
-    },
-    {
-      label: 'Crear Horario',
-      id: 'selectSchedule',
-      description:
-        'Define una nueva plantilla de horario personalizada con turnos específicos.',
-    },
-    {
-      label: 'Fechas y Tipo',
-      id: 'setDates',
-      description:
-        'Establece el período de vigencia y selecciona la categoría del horario.',
-    },
-    {
-      label: 'Confirmar',
-      id: 'summary',
-      description:
-        'Revisa todos los detalles antes de crear la asignación definitiva.',
-    },
-    {
-      label: 'Completado',
-      id: 'completed',
-      description: 'La asignación de horario ha sido creada exitosamente.',
-    },
-  ];
+  const WIZARD_STEPS = React.useMemo(
+    () => [
+      {
+        label: 'Empleado',
+        id: 'selectEmployee',
+        description:
+          'Busca y selecciona el empleado al que se le asignará el horario personalizado.',
+      },
+      {
+        label: 'Crear Horario',
+        id: 'selectSchedule',
+        description:
+          'Define una nueva plantilla de horario personalizada con turnos específicos.',
+      },
+      {
+        label: 'Fechas y Tipo',
+        id: 'setDates',
+        description:
+          'Establece el período de vigencia y selecciona la categoría del horario.',
+      },
+      {
+        label: 'Confirmar',
+        id: 'summary',
+        description:
+          'Revisa todos los detalles antes de crear la asignación definitiva.',
+      },
+      {
+        label: 'Completado',
+        id: 'completed',
+        description: 'La asignación de horario ha sido creada exitosamente.',
+      },
+    ],
+    []
+  );
 
   const currentStepConfig = React.useMemo(() => {
     const stepIndex = WIZARD_STEPS.findIndex((s) => s.id === state.step);
@@ -609,7 +614,7 @@ export default function ScheduleAssignmentWizardPage() {
       number: stepIndex + 1,
       title: `Paso ${stepIndex + 1}: ${WIZARD_STEPS[stepIndex].label}`,
     };
-  }, [state.step]);
+  }, [state.step, WIZARD_STEPS]);
 
   const handleSave = async () => {
     dispatch({ type: 'SUBMIT_START' });

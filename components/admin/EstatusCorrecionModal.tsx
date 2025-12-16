@@ -368,6 +368,10 @@ export function EstatusCorrecionModal({
     toast,
     onSuccess,
     handleClose,
+    estadisticasCorreccion.empleadosAfectados,
+    estadisticasCorreccion.fechasAfectadas.length,
+    isMasivo,
+    selectedEstatus?.nombre,
   ]);
 
   // ============================================================================
