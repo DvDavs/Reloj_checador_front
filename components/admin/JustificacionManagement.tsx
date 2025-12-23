@@ -336,7 +336,15 @@ export function JustificacionManagement() {
                   'opacity-50 pointer-events-none grayscale'
               )}
             >
-              <Label>
+              <Label
+                className={
+                  error &&
+                  ((tipoAlcance === 'INDIVIDUAL' && !empleado) ||
+                    (tipoAlcance === 'DEPARTAMENTAL' && !departamento))
+                    ? 'text-destructive'
+                    : ''
+                }
+              >
                 {tipoAlcance === 'INDIVIDUAL'
                   ? 'Empleado'
                   : tipoAlcance === 'DEPARTAMENTAL'
@@ -346,18 +354,32 @@ export function JustificacionManagement() {
 
               {tipoAlcance === 'INDIVIDUAL' ? (
                 // @ts-ignore
-                <EmployeeSearch
-                  value={empleado}
-                  onChange={setEmpleado}
-                  placeholder='Buscar empleado...'
-                />
+                <div
+                  className={cn(
+                    error && !empleado && 'rounded-md ring-2 ring-destructive'
+                  )}
+                >
+                  <EmployeeSearch
+                    value={empleado}
+                    onChange={setEmpleado}
+                    placeholder='Buscar empleado...'
+                  />
+                </div>
               ) : tipoAlcance === 'DEPARTAMENTAL' ? (
                 // @ts-ignore
-                <DepartmentSearchableSelect
-                  value={departamento}
-                  onChange={setDepartamento}
-                  placeholder='Selecciona departamento'
-                />
+                <div
+                  className={cn(
+                    error &&
+                      !departamento &&
+                      'rounded-md ring-2 ring-destructive'
+                  )}
+                >
+                  <DepartmentSearchableSelect
+                    value={departamento}
+                    onChange={setDepartamento}
+                    placeholder='Selecciona departamento'
+                  />
+                </div>
               ) : (
                 // Placeholder disabled input
                 <div className='h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 bg-muted/50'>
@@ -372,14 +394,21 @@ export function JustificacionManagement() {
           {/* Fila 2 */}
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <div className='space-y-2'>
-              <Label>Desde</Label>
+              <Label
+                className={error && !fechaInicio ? 'text-destructive' : ''}
+              >
+                Desde
+              </Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant={'outline'}
                     className={cn(
                       'w-full justify-start text-left font-normal',
-                      !fechaInicio && 'text-muted-foreground'
+                      !fechaInicio && 'text-muted-foreground',
+                      error &&
+                        !fechaInicio &&
+                        'border-destructive ring-destructive'
                     )}
                   >
                     <CalendarIcon className='mr-2 h-4 w-4' />

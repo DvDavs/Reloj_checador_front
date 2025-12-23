@@ -31,6 +31,7 @@ import { Card } from '@/components/ui/card';
 
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/apiClient';
+import { useToast } from '@/components/ui/use-toast';
 
 // Componentes mejorados
 // Removed PageLayout as it was causing TS errors and is not used in the reference page (app/asistencias/page.tsx)
@@ -49,6 +50,7 @@ const FALTAS_KEYS = ['FC', 'FE', 'FS'];
 const EXCLUDED_KEYS = ['FR', 'ST']; // Fuera de rango, Salida temprana. "Horas incompletas" might be derived or another key.
 
 export default function ReportesPage() {
+  // const { toast } = useToast(); // Removed unused toast hook if we use setError
   const [activeTab, setActiveTab] = useState<'completa' | 'jornadas'>(
     'completa'
   );
@@ -136,12 +138,13 @@ export default function ReportesPage() {
   }, [loadingEstatus, estatusOptions.length]);
 
   const downloadReport = useCallback(async () => {
+    setError(null);
     if (!fechaDesde || !fechaHasta) {
-      alert('Por favor, selecciona un rango de fechas.');
+      setError('Por favor, selecciona un rango de fechas.');
       return;
     }
     if (fechaDesde > fechaHasta) {
-      alert('La fecha de inicio no puede ser mayor a la fecha de fin.');
+      setError('La fecha de inicio no puede ser mayor a la fecha de fin.');
       return;
     }
     try {
@@ -152,10 +155,17 @@ export default function ReportesPage() {
 
       // Filtro por modo
       if (modoFiltro === 'departamento') {
-        if (departamento?.clave)
-          params.append('departamentoClave', departamento.clave);
+        if (!departamento?.clave) {
+          setError('Es necesario seleccionar un departamento.');
+          return;
+        }
+        params.append('departamentoClave', departamento.clave);
       } else if (modoFiltro === 'usuario') {
-        if (empleado?.id) params.append('empleadoId', String(empleado.id));
+        if (!empleado?.id) {
+          setError('Es necesario seleccionar un empleado.');
+          return;
+        }
+        params.append('empleadoId', String(empleado.id));
       }
       // If global, we don't send department or employee
 
@@ -266,11 +276,6 @@ export default function ReportesPage() {
                   Filtros de Búsqueda
                 </h3>
               </div>
-              {error && (
-                <Alert variant='destructive'>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div className='space-y-2'>
@@ -299,21 +304,47 @@ export default function ReportesPage() {
                 >
                   {modoFiltro === 'usuario' ? (
                     <>
-                      <Label>Empleado</Label>
-                      <EmployeeSearch
-                        value={empleado}
-                        onChange={setEmpleado}
-                        placeholder='Buscar empleado...'
-                      />
+                      <Label
+                        className={error && !empleado ? 'text-destructive' : ''}
+                      >
+                        Empleado
+                      </Label>
+                      <div
+                        className={cn(
+                          error &&
+                            !empleado &&
+                            'rounded-md ring-2 ring-destructive'
+                        )}
+                      >
+                        <EmployeeSearch
+                          value={empleado}
+                          onChange={setEmpleado}
+                          placeholder='Buscar empleado...'
+                        />
+                      </div>
                     </>
                   ) : (
                     <>
-                      <Label>Departamento</Label>
-                      <DepartmentSearchableSelect
-                        value={departamento}
-                        onChange={setDepartamento}
-                        placeholder='Selecciona departamento'
-                      />
+                      <Label
+                        className={
+                          error && !departamento ? 'text-destructive' : ''
+                        }
+                      >
+                        Departamento
+                      </Label>
+                      <div
+                        className={cn(
+                          error &&
+                            !departamento &&
+                            'rounded-md ring-2 ring-destructive'
+                        )}
+                      >
+                        <DepartmentSearchableSelect
+                          value={departamento}
+                          onChange={setDepartamento}
+                          placeholder='Selecciona departamento'
+                        />
+                      </div>
                     </>
                   )}
                 </div>
@@ -321,14 +352,21 @@ export default function ReportesPage() {
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div className='space-y-2'>
-                  <Label>Fecha Inicio</Label>
+                  <Label
+                    className={error && !fechaDesde ? 'text-destructive' : ''}
+                  >
+                    Fecha Inicio
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant={'outline'}
                         className={cn(
                           'w-full justify-start text-left font-normal',
-                          !fechaDesde && 'text-muted-foreground'
+                          !fechaDesde && 'text-muted-foreground',
+                          error &&
+                            !fechaDesde &&
+                            'border-destructive ring-destructive'
                         )}
                       >
                         <CalendarIcon className='mr-2 h-4 w-4' />
@@ -349,14 +387,21 @@ export default function ReportesPage() {
                   </Popover>
                 </div>
                 <div className='space-y-2'>
-                  <Label>Fecha Fin</Label>
+                  <Label
+                    className={error && !fechaHasta ? 'text-destructive' : ''}
+                  >
+                    Fecha Fin
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant={'outline'}
                         className={cn(
                           'w-full justify-start text-left font-normal',
-                          !fechaHasta && 'text-muted-foreground'
+                          !fechaHasta && 'text-muted-foreground',
+                          error &&
+                            !fechaHasta &&
+                            'border-destructive ring-destructive'
                         )}
                       >
                         <CalendarIcon className='mr-2 h-4 w-4' />
@@ -563,6 +608,12 @@ export default function ReportesPage() {
                   </Button>
                 </div>
               </div>
+
+              {error && (
+                <Alert variant='destructive' className='mt-4'>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
             </div>
           </EnhancedCard>
         </div>
