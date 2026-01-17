@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, Filter, X, Calendar as CalendarIcon } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
 import { DataTable } from '@/app/components/shared/data-table';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from '@/components/ui/popover';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -34,6 +36,7 @@ import { DepartmentSearchableSelect } from '@/app/components/shared/department-s
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
 
 export function JustificacionManagement() {
+  const { toast } = useToast();
   // Estado de datos
   const [rows, setRows] = useState<JustificacionItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -205,6 +208,7 @@ export function JustificacionManagement() {
     setHasSearched(false);
     setRows([]);
     setTotalRecords(0);
+    setTotalPages(1);
   };
 
   const handleSort = (field: string) => {
@@ -453,16 +457,22 @@ export function JustificacionManagement() {
             </div>
           </div>
 
-          <div className='flex justify-end gap-2 pt-2'>
-            <Button variant='outline' onClick={handleClearFilters} size='sm'>
-              <X className='h-4 w-4 mr-2' />
-              Limpiar
-            </Button>
+          <div className='flex justify-start gap-2 pt-2'>
             <Button onClick={onSearchClick} size='sm'>
               <Search className='h-4 w-4 mr-2' />
               Buscar
             </Button>
+            <Button variant='outline' onClick={handleClearFilters} size='sm'>
+              <X className='h-4 w-4 mr-2' />
+              Limpiar
+            </Button>
           </div>
+
+          {error && (
+            <Alert variant='destructive' className='mt-4'>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
         </div>
       </EnhancedCard>
 
@@ -475,11 +485,7 @@ export function JustificacionManagement() {
             </h2>
           </div>
 
-          {error && (
-            <div className='p-4 bg-red-50 text-red-600 rounded-md text-sm'>
-              {error}
-            </div>
-          )}
+          {/* error display moved to filter card */}
 
           <DataTable
             data={sortedRows}

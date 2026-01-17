@@ -545,7 +545,7 @@ export default function ReportesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className='flex gap-4 w-full sm:w-auto flex-1 justify-end'>
+                <div className='flex gap-4 w-full sm:w-auto flex-1 justify-start'>
                   <Button
                     variant='outline'
                     onClick={handleClearFilters}
