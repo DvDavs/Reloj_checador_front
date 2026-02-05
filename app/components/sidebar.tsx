@@ -17,6 +17,7 @@ import {
   Search,
   Calendar,
   LogOut,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/use-sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -52,6 +53,13 @@ const navItems: NavItemData[] = [
     icon: <Clock size={20} />,
     text: 'Reloj Checador',
     keywords: ['reloj', 'checador', 'lanzar', 'sesion'],
+  },
+  {
+    id: 'anuncios',
+    href: '/admin/anuncios',
+    icon: <ImageIcon size={20} />,
+    text: 'Anuncios',
+    keywords: ['anuncios', 'publicidad', 'ads', 'imagenes', 'videos'],
   },
 
   // 3. Gestión de Personal
