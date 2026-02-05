@@ -7,6 +7,7 @@ export type AdvertisingItem = {
   src: string;
   alt?: string;
   durationMs?: number;
+  active?: boolean;
 };
 
 export interface AdvertisingPanelProps {
@@ -31,7 +32,8 @@ export function AdvertisingPanel({
         if (!r.ok) return;
         const json = await r.json();
         if (isMounted && Array.isArray(json?.items)) {
-          setRemoteItems(json.items as AdvertisingItem[]);
+          const allItems = json.items as AdvertisingItem[];
+          setRemoteItems(allItems.filter((i) => i.active !== false));
         }
       } catch (_) {
         // Ignorar errores: usaremos fallback
