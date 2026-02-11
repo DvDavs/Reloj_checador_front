@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Filter,
@@ -44,6 +44,12 @@ type Departamento = { clave: string; nombre: string } | null;
 type EmpleadoSimpleDTO = { id: number; nombreCompleto: string } | null; // Changed to match EmployeeSearch expectation
 type EstatusDisponible = { clave: string; nombre: string };
 type TipoRegistro = { id: number; name: string };
+type ReportValidationErrors = {
+  fechaDesde?: boolean;
+  fechaHasta?: boolean;
+  departamento?: boolean;
+  empleado?: boolean;
+};
 
 const FALTAS_KEYS = ['FC', 'FE', 'FS'];
 const EXCLUDED_KEYS = ['FR', 'ST']; // Fuera de rango, Salida temprana. "Horas incompletas" might be derived or another key.
@@ -84,6 +90,8 @@ export default function ReportesPage() {
   const [estatusOptions, setEstatusOptions] = useState<EstatusDisponible[]>([]);
   const [loadingEstatus, setLoadingEstatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] =
+    useState<ReportValidationErrors>({});
 
   // Constants for status grouping
   // Moved outside component to avoid dependency issues or useMemo
@@ -136,12 +144,21 @@ export default function ReportesPage() {
   }, [loadingEstatus, estatusOptions.length]);
 
   const downloadReport = useCallback(async () => {
+    setError(null);
+    setValidationErrors({});
+
+    const nextValidationErrors: ReportValidationErrors = {};
+
     if (!fechaDesde || !fechaHasta) {
-      alert('Por favor, selecciona un rango de fechas.');
+      if (!fechaDesde) nextValidationErrors.fechaDesde = true;
+      if (!fechaHasta) nextValidationErrors.fechaHasta = true;
+      setValidationErrors(nextValidationErrors);
+      setError('Por favor, selecciona un rango de fechas.');
       return;
     }
     if (fechaDesde > fechaHasta) {
-      alert('La fecha de inicio no puede ser mayor a la fecha de fin.');
+      setValidationErrors({ fechaDesde: true, fechaHasta: true });
+      setError('La fecha de inicio no puede ser mayor a la fecha de fin.');
       return;
     }
     try {
@@ -152,10 +169,19 @@ export default function ReportesPage() {
 
       // Filtro por modo
       if (modoFiltro === 'departamento') {
-        if (departamento?.clave)
-          params.append('departamentoClave', departamento.clave);
+        if (!departamento?.clave) {
+          setValidationErrors({ departamento: true });
+          setError('Es necesario seleccionar un departamento.');
+          return;
+        }
+        params.append('departamentoClave', departamento.clave);
       } else if (modoFiltro === 'usuario') {
-        if (empleado?.id) params.append('empleadoId', String(empleado.id));
+        if (!empleado?.id) {
+          setValidationErrors({ empleado: true });
+          setError('Es necesario seleccionar un empleado.');
+          return;
+        }
+        params.append('empleadoId', String(empleado.id));
       }
       // If global, we don't send department or employee
 
@@ -208,7 +234,6 @@ export default function ReportesPage() {
     } catch (err: any) {
       console.error(err);
       setError('Error generando el reporte: ' + (err.message || ''));
-      alert('Error generando el reporte: ' + (err.message || ''));
     }
   }, [
     fechaDesde,
@@ -240,6 +265,7 @@ export default function ReportesPage() {
     setActiveTab('completa');
     setModoFiltro('departamento');
     setError(null);
+    setValidationErrors({});
   };
 
   return (
@@ -266,11 +292,6 @@ export default function ReportesPage() {
                   Filtros de Búsqueda
                 </h3>
               </div>
-              {error && (
-                <Alert variant='destructive'>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div className='space-y-2'>
@@ -299,21 +320,49 @@ export default function ReportesPage() {
                 >
                   {modoFiltro === 'usuario' ? (
                     <>
-                      <Label>Empleado</Label>
-                      <EmployeeSearch
-                        value={empleado}
-                        onChange={setEmpleado}
-                        placeholder='Buscar empleado...'
-                      />
+                      <Label
+                        className={
+                          validationErrors.empleado ? 'text-destructive' : ''
+                        }
+                      >
+                        Empleado
+                      </Label>
+                      <div
+                        className={cn(
+                          validationErrors.empleado &&
+                            'rounded-md ring-2 ring-destructive'
+                        )}
+                      >
+                        <EmployeeSearch
+                          value={empleado}
+                          onChange={setEmpleado}
+                          placeholder='Buscar empleado...'
+                        />
+                      </div>
                     </>
                   ) : (
                     <>
-                      <Label>Departamento</Label>
-                      <DepartmentSearchableSelect
-                        value={departamento}
-                        onChange={setDepartamento}
-                        placeholder='Selecciona departamento'
-                      />
+                      <Label
+                        className={
+                          validationErrors.departamento
+                            ? 'text-destructive'
+                            : ''
+                        }
+                      >
+                        Departamento
+                      </Label>
+                      <div
+                        className={cn(
+                          validationErrors.departamento &&
+                            'rounded-md ring-2 ring-destructive'
+                        )}
+                      >
+                        <DepartmentSearchableSelect
+                          value={departamento}
+                          onChange={setDepartamento}
+                          placeholder='Selecciona departamento'
+                        />
+                      </div>
                     </>
                   )}
                 </div>
@@ -321,14 +370,22 @@ export default function ReportesPage() {
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div className='space-y-2'>
-                  <Label>Fecha Inicio</Label>
+                  <Label
+                    className={
+                      validationErrors.fechaDesde ? 'text-destructive' : ''
+                    }
+                  >
+                    Fecha Inicio
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant={'outline'}
                         className={cn(
                           'w-full justify-start text-left font-normal',
-                          !fechaDesde && 'text-muted-foreground'
+                          !fechaDesde && 'text-muted-foreground',
+                          validationErrors.fechaDesde &&
+                            'border-destructive ring-destructive'
                         )}
                       >
                         <CalendarIcon className='mr-2 h-4 w-4' />
@@ -349,14 +406,22 @@ export default function ReportesPage() {
                   </Popover>
                 </div>
                 <div className='space-y-2'>
-                  <Label>Fecha Fin</Label>
+                  <Label
+                    className={
+                      validationErrors.fechaHasta ? 'text-destructive' : ''
+                    }
+                  >
+                    Fecha Fin
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant={'outline'}
                         className={cn(
                           'w-full justify-start text-left font-normal',
-                          !fechaHasta && 'text-muted-foreground'
+                          !fechaHasta && 'text-muted-foreground',
+                          validationErrors.fechaHasta &&
+                            'border-destructive ring-destructive'
                         )}
                       >
                         <CalendarIcon className='mr-2 h-4 w-4' />
@@ -563,6 +628,12 @@ export default function ReportesPage() {
                   </Button>
                 </div>
               </div>
+
+              {error && (
+                <Alert variant='destructive' className='mt-4'>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
             </div>
           </EnhancedCard>
         </div>
