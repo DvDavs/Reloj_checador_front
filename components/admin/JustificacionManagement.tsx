@@ -35,12 +35,21 @@ import {
 import { DepartmentSearchableSelect } from '@/app/components/shared/department-searchable-select';
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
 
+type JustificacionValidationErrors = {
+  fechaInicio?: boolean;
+  fechaFin?: boolean;
+  empleado?: boolean;
+  departamento?: boolean;
+};
+
 export function JustificacionManagement() {
   const { toast } = useToast();
   // Estado de datos
   const [rows, setRows] = useState<JustificacionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] =
+    useState<JustificacionValidationErrors>({});
   const [tiposJustificacion, setTiposJustificacion] = useState<
     TipoJustificacion[]
   >([]);
@@ -92,10 +101,12 @@ export function JustificacionManagement() {
 
   const fetchData = useCallback(async () => {
     if (!hasSearched) return;
+    setValidationErrors({});
 
     // Validaciones
     // 1. Que no pueda filtrarse si no se coloca desde
     if (!fechaInicio) {
+      setValidationErrors({ fechaInicio: true });
       setError(
         "Debe seleccionar una fecha de inicio ('Desde') para realizar la búsqueda."
       );
@@ -104,6 +115,7 @@ export function JustificacionManagement() {
 
     // 2. que hasta siempre sea una fecha superiro, nunca menor a desde
     if (fechaFin && fechaInicio && fechaFin < fechaInicio) {
+      setValidationErrors({ fechaInicio: true, fechaFin: true });
       setError('La fecha final no puede ser menor a la fecha de inicio.');
       return;
     }
@@ -209,6 +221,8 @@ export function JustificacionManagement() {
     setRows([]);
     setTotalRecords(0);
     setTotalPages(1);
+    setError(null);
+    setValidationErrors({});
   };
 
   const handleSort = (field: string) => {
@@ -338,9 +352,9 @@ export function JustificacionManagement() {
             >
               <Label
                 className={
-                  error &&
-                  ((tipoAlcance === 'INDIVIDUAL' && !empleado) ||
-                    (tipoAlcance === 'DEPARTAMENTAL' && !departamento))
+                  (tipoAlcance === 'INDIVIDUAL' && validationErrors.empleado) ||
+                  (tipoAlcance === 'DEPARTAMENTAL' &&
+                    validationErrors.departamento)
                     ? 'text-destructive'
                     : ''
                 }
@@ -356,7 +370,8 @@ export function JustificacionManagement() {
                 // @ts-ignore
                 <div
                   className={cn(
-                    error && !empleado && 'rounded-md ring-2 ring-destructive'
+                    validationErrors.empleado &&
+                      'rounded-md ring-2 ring-destructive'
                   )}
                 >
                   <EmployeeSearch
@@ -369,8 +384,7 @@ export function JustificacionManagement() {
                 // @ts-ignore
                 <div
                   className={cn(
-                    error &&
-                      !departamento &&
+                    validationErrors.departamento &&
                       'rounded-md ring-2 ring-destructive'
                   )}
                 >
@@ -395,7 +409,9 @@ export function JustificacionManagement() {
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <div className='space-y-2'>
               <Label
-                className={error && !fechaInicio ? 'text-destructive' : ''}
+                className={
+                  validationErrors.fechaInicio ? 'text-destructive' : ''
+                }
               >
                 Desde
               </Label>
@@ -406,8 +422,7 @@ export function JustificacionManagement() {
                     className={cn(
                       'w-full justify-start text-left font-normal',
                       !fechaInicio && 'text-muted-foreground',
-                      error &&
-                        !fechaInicio &&
+                      validationErrors.fechaInicio &&
                         'border-destructive ring-destructive'
                     )}
                   >
@@ -432,7 +447,13 @@ export function JustificacionManagement() {
 
             <div className='space-y-2'>
               <Label>
-                Hasta{' '}
+                <span
+                  className={
+                    validationErrors.fechaFin ? 'text-destructive' : ''
+                  }
+                >
+                  Hasta{' '}
+                </span>
                 <span className='text-xs text-muted-foreground'>
                   (Opcional)
                 </span>
@@ -443,7 +464,9 @@ export function JustificacionManagement() {
                     variant={'outline'}
                     className={cn(
                       'w-full justify-start text-left font-normal',
-                      !fechaFin && 'text-muted-foreground'
+                      !fechaFin && 'text-muted-foreground',
+                      validationErrors.fechaFin &&
+                        'border-destructive ring-destructive'
                     )}
                   >
                     <CalendarIcon className='mr-2 h-4 w-4' />

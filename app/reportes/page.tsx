@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Filter,
@@ -31,7 +31,6 @@ import { Card } from '@/components/ui/card';
 
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/apiClient';
-import { useToast } from '@/components/ui/use-toast';
 
 // Componentes mejorados
 // Removed PageLayout as it was causing TS errors and is not used in the reference page (app/asistencias/page.tsx)
@@ -45,12 +44,17 @@ type Departamento = { clave: string; nombre: string } | null;
 type EmpleadoSimpleDTO = { id: number; nombreCompleto: string } | null; // Changed to match EmployeeSearch expectation
 type EstatusDisponible = { clave: string; nombre: string };
 type TipoRegistro = { id: number; name: string };
+type ReportValidationErrors = {
+  fechaDesde?: boolean;
+  fechaHasta?: boolean;
+  departamento?: boolean;
+  empleado?: boolean;
+};
 
 const FALTAS_KEYS = ['FC', 'FE', 'FS'];
 const EXCLUDED_KEYS = ['FR', 'ST']; // Fuera de rango, Salida temprana. "Horas incompletas" might be derived or another key.
 
 export default function ReportesPage() {
-  // const { toast } = useToast(); // Removed unused toast hook if we use setError
   const [activeTab, setActiveTab] = useState<'completa' | 'jornadas'>(
     'completa'
   );
@@ -86,6 +90,8 @@ export default function ReportesPage() {
   const [estatusOptions, setEstatusOptions] = useState<EstatusDisponible[]>([]);
   const [loadingEstatus, setLoadingEstatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] =
+    useState<ReportValidationErrors>({});
 
   // Constants for status grouping
   // Moved outside component to avoid dependency issues or useMemo
@@ -139,11 +145,19 @@ export default function ReportesPage() {
 
   const downloadReport = useCallback(async () => {
     setError(null);
+    setValidationErrors({});
+
+    const nextValidationErrors: ReportValidationErrors = {};
+
     if (!fechaDesde || !fechaHasta) {
+      if (!fechaDesde) nextValidationErrors.fechaDesde = true;
+      if (!fechaHasta) nextValidationErrors.fechaHasta = true;
+      setValidationErrors(nextValidationErrors);
       setError('Por favor, selecciona un rango de fechas.');
       return;
     }
     if (fechaDesde > fechaHasta) {
+      setValidationErrors({ fechaDesde: true, fechaHasta: true });
       setError('La fecha de inicio no puede ser mayor a la fecha de fin.');
       return;
     }
@@ -156,12 +170,14 @@ export default function ReportesPage() {
       // Filtro por modo
       if (modoFiltro === 'departamento') {
         if (!departamento?.clave) {
+          setValidationErrors({ departamento: true });
           setError('Es necesario seleccionar un departamento.');
           return;
         }
         params.append('departamentoClave', departamento.clave);
       } else if (modoFiltro === 'usuario') {
         if (!empleado?.id) {
+          setValidationErrors({ empleado: true });
           setError('Es necesario seleccionar un empleado.');
           return;
         }
@@ -218,7 +234,6 @@ export default function ReportesPage() {
     } catch (err: any) {
       console.error(err);
       setError('Error generando el reporte: ' + (err.message || ''));
-      alert('Error generando el reporte: ' + (err.message || ''));
     }
   }, [
     fechaDesde,
@@ -250,6 +265,7 @@ export default function ReportesPage() {
     setActiveTab('completa');
     setModoFiltro('departamento');
     setError(null);
+    setValidationErrors({});
   };
 
   return (
@@ -305,14 +321,15 @@ export default function ReportesPage() {
                   {modoFiltro === 'usuario' ? (
                     <>
                       <Label
-                        className={error && !empleado ? 'text-destructive' : ''}
+                        className={
+                          validationErrors.empleado ? 'text-destructive' : ''
+                        }
                       >
                         Empleado
                       </Label>
                       <div
                         className={cn(
-                          error &&
-                            !empleado &&
+                          validationErrors.empleado &&
                             'rounded-md ring-2 ring-destructive'
                         )}
                       >
@@ -327,15 +344,16 @@ export default function ReportesPage() {
                     <>
                       <Label
                         className={
-                          error && !departamento ? 'text-destructive' : ''
+                          validationErrors.departamento
+                            ? 'text-destructive'
+                            : ''
                         }
                       >
                         Departamento
                       </Label>
                       <div
                         className={cn(
-                          error &&
-                            !departamento &&
+                          validationErrors.departamento &&
                             'rounded-md ring-2 ring-destructive'
                         )}
                       >
@@ -353,7 +371,9 @@ export default function ReportesPage() {
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div className='space-y-2'>
                   <Label
-                    className={error && !fechaDesde ? 'text-destructive' : ''}
+                    className={
+                      validationErrors.fechaDesde ? 'text-destructive' : ''
+                    }
                   >
                     Fecha Inicio
                   </Label>
@@ -364,8 +384,7 @@ export default function ReportesPage() {
                         className={cn(
                           'w-full justify-start text-left font-normal',
                           !fechaDesde && 'text-muted-foreground',
-                          error &&
-                            !fechaDesde &&
+                          validationErrors.fechaDesde &&
                             'border-destructive ring-destructive'
                         )}
                       >
@@ -388,7 +407,9 @@ export default function ReportesPage() {
                 </div>
                 <div className='space-y-2'>
                   <Label
-                    className={error && !fechaHasta ? 'text-destructive' : ''}
+                    className={
+                      validationErrors.fechaHasta ? 'text-destructive' : ''
+                    }
                   >
                     Fecha Fin
                   </Label>
@@ -399,8 +420,7 @@ export default function ReportesPage() {
                         className={cn(
                           'w-full justify-start text-left font-normal',
                           !fechaHasta && 'text-muted-foreground',
-                          error &&
-                            !fechaHasta &&
+                          validationErrors.fechaHasta &&
                             'border-destructive ring-destructive'
                         )}
                       >
