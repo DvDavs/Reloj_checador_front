@@ -31,7 +31,6 @@ import { Card } from '@/components/ui/card';
 
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/apiClient';
-import { useToast } from '@/components/ui/use-toast';
 
 // Componentes mejorados
 // Removed PageLayout as it was causing TS errors and is not used in the reference page (app/asistencias/page.tsx)
