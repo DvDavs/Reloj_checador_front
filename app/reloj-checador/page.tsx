@@ -1,38 +1,19 @@
 'use client';
 
-import { Suspense, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { TimeClock } from '@/app/components/timeclock';
 import { Loader2 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 
-// Componente interno que usa useSearchParams
+/**
+ * Página del Reloj Checador con WebSDK.
+ *
+ * Ya no requiere parámetros de URL (reader, sessionId) porque el WebSDK
+ * detecta automáticamente los lectores conectados al equipo local.
+ */
 function RelojChecadorContent() {
-  const searchParams = useSearchParams();
-  const reader = searchParams.get('reader');
-  const sessionId = searchParams.get('sessionId');
-
-  // Generar instanceId único por pestaña que se mantiene durante toda la vida del componente
-  const instanceId = useMemo(() => uuidv4(), []);
-
-  if (!reader || !sessionId) {
-    return (
-      <div className='flex items-center justify-center min-h-screen bg-black text-red-500'>
-        Error: Falta el nombre del lector o el ID de sesión en la URL.
-      </div>
-    );
-  }
-
-  return (
-    <TimeClock
-      selectedReader={reader}
-      sessionId={sessionId}
-      instanceId={instanceId}
-    />
-  );
+  return <TimeClock sampleFormat='intermediate' />;
 }
 
-// Componente de página que usa Suspense
 export default function RelojChecadorPage() {
   return (
     <Suspense

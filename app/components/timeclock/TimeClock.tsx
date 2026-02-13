@@ -12,7 +12,7 @@ import { useScanStateReducer } from './useScanStateReducer';
 import { useAudioFeedback } from './hooks/useAudioFeedback';
 import type { ScannerPanelProps, AttendanceDetailsProps } from './interfaces';
 
-import useStompTimeClock from '@/app/hooks/useStompTimeClock';
+import useWebSdkTimeClock from '@/app/hooks/useWebSdkTimeClock';
 import useEmployeeAttendanceData from '@/app/hooks/useEmployeeAttendanceData';
 
 import type {
@@ -25,15 +25,18 @@ import { submitPinPadCheckin } from '@/lib/api/pinpad-api';
 import { apiClient, getBaseUrl } from '@/lib/apiClient';
 
 export type TimeClockProps = {
-  selectedReader: string;
-  sessionId: string;
-  instanceId: string;
+  selectedReader?: string;
+  sessionId?: string;
+  instanceId?: string;
+  /** Formato de muestra WebSDK: 'intermediate' o 'png'. Por defecto 'intermediate'. */
+  sampleFormat?: 'intermediate' | 'png';
 };
 
 const TimeClock = React.memo<TimeClockProps>(function TimeClock({
   selectedReader,
   sessionId,
   instanceId,
+  sampleFormat = 'intermediate',
 }) {
   // Reloj
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -234,15 +237,13 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
     [setIdle, setReady]
   );
 
-  // Conexión STOMP
-  const { isConnected } = useStompTimeClock({
-    initialReaderName: selectedReader,
-    initialSessionId: sessionId,
-    instanceId,
+  // Conexión WebSDK (reemplaza STOMP)
+  const { isConnected } = useWebSdkTimeClock({
+    deviceName: selectedReader,
+    sampleFormat,
     onChecadorEvent: handleChecadorEvent,
     onConnectionError: handleConnectionError,
     onReadyStateChange: handleReadyStateChange,
-    apiBaseUrl: getBaseUrl(),
   });
 
   // PIN input handlers
@@ -268,7 +269,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
       setPinInputLoading(true);
       setScanning();
       try {
-        const deviceKey = selectedReader;
+        const deviceKey = selectedReader || 'WebSDK';
         const resp = await submitPinPadCheckin(pin, deviceKey);
         const code = resp.code || '';
         const message = getUserFriendlyMessage(code, resp.data);
@@ -364,7 +365,7 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
     () => ({
       currentTime,
       isConnected,
-      selectedReader,
+      selectedReader: selectedReader ?? null,
       isFullScreen,
       onToggleFullScreen: toggleFullScreen,
       onReload,

@@ -146,6 +146,19 @@ export default function AdminDashboard() {
               </div>
               <div className='flex items-center gap-3'>
                 <Button
+                  className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+                  onClick={() => {
+                    window.open(
+                      '/reloj-checador',
+                      '_blank_clock_websdk',
+                      'width=1280,height=800,resizable=yes,scrollbars=yes,status=yes'
+                    );
+                  }}
+                >
+                  <Fingerprint className='mr-2 h-4 w-4' />
+                  Lanzar Reloj (WebSDK)
+                </Button>
+                <Button
                   variant='outline'
                   size='icon'
                   className='h-10 w-10 border-2 border-border hover:border-primary hover:bg-primary/5 transition-all duration-200 shadow-sm'
