@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { apiClient } from '@/lib/apiClient';
 
 export type AdvertisingItem = {
   type: 'image' | 'video';
@@ -27,14 +28,24 @@ export function AdvertisingPanel({
     let isMounted = true;
     const load = async () => {
       try {
-        const r = await fetch('/api/ads', { cache: 'no-store' });
-        if (!r.ok) return;
-        const json = await r.json();
-        if (isMounted && Array.isArray(json?.items)) {
-          setRemoteItems(json.items as AdvertisingItem[]);
+        // Fetch list of active filenames from backend
+        const response = await apiClient.get<string[]>('/api/publicidad');
+
+        if (
+          isMounted &&
+          Array.isArray(response.data) &&
+          response.data.length > 0
+        ) {
+          const newItems: AdvertisingItem[] = response.data.map((filename) => ({
+            type: 'image',
+            src: `${apiClient.defaults.baseURL}/api/publicidad/files/${filename}`,
+            alt: filename,
+            durationMs: 12000,
+          }));
+          setRemoteItems(newItems);
         }
       } catch (_) {
-        // Ignorar errores: usaremos fallback
+        // Fallback silently
       }
     };
     load();
