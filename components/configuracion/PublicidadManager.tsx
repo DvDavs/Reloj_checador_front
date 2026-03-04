@@ -3,26 +3,31 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import {
+  Trash2,
+  Upload,
+  Loader2,
+  Image as ImageIcon,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  RefreshCw,
+} from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import Image from 'next/image';
+import { EnhancedCard } from '@/app/components/shared/enhanced-card';
+import { cn } from '@/lib/utils';
+
+interface AdItem {
+  filename: string;
+  active: boolean;
+  isDefault: boolean;
+}
 
 export default function PublicidadManager() {
-  interface AdItem {
-    filename: string;
-    active: boolean;
-    isDefault: boolean;
-  }
-
   const [images, setImages] = useState<AdItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -30,6 +35,10 @@ export default function PublicidadManager() {
   const [selectedDefaultFile, setSelectedDefaultFile] = useState<File | null>(
     null
   );
+
+  // Preview URLs
+  const [defaultPreview, setDefaultPreview] = useState<string | null>(null);
+  const [galleryPreview, setGalleryPreview] = useState<string | null>(null);
 
   const fetchImages = async () => {
     try {
@@ -52,16 +61,51 @@ export default function PublicidadManager() {
     fetchImages();
   }, []);
 
+  // Cleanup preview URLs
+  useEffect(() => {
+    return () => {
+      if (defaultPreview) URL.revokeObjectURL(defaultPreview);
+      if (galleryPreview) URL.revokeObjectURL(galleryPreview);
+    };
+  }, [defaultPreview, galleryPreview]);
+
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     isDefault: boolean
   ) => {
     if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const previewUrl = URL.createObjectURL(file);
+
       if (isDefault) {
-        setSelectedDefaultFile(e.target.files[0]);
+        if (defaultPreview) URL.revokeObjectURL(defaultPreview);
+        setSelectedDefaultFile(file);
+        setDefaultPreview(previewUrl);
       } else {
-        setSelectedFile(e.target.files[0]);
+        if (galleryPreview) URL.revokeObjectURL(galleryPreview);
+        setSelectedFile(file);
+        setGalleryPreview(previewUrl);
       }
+    }
+  };
+
+  const clearSelection = (isDefault: boolean) => {
+    if (isDefault) {
+      setSelectedDefaultFile(null);
+      if (defaultPreview) URL.revokeObjectURL(defaultPreview);
+      setDefaultPreview(null);
+      const input = document.getElementById(
+        'default-ad-file'
+      ) as HTMLInputElement;
+      if (input) input.value = '';
+    } else {
+      setSelectedFile(null);
+      if (galleryPreview) URL.revokeObjectURL(galleryPreview);
+      setGalleryPreview(null);
+      const input = document.getElementById(
+        'ad-file-input'
+      ) as HTMLInputElement;
+      if (input) input.value = '';
     }
   };
 
@@ -91,20 +135,7 @@ export default function PublicidadManager() {
           : 'Imagen subida correctamente.',
       });
 
-      if (isDefault) {
-        setSelectedDefaultFile(null);
-        const fileInput = document.getElementById(
-          'default-ad-file'
-        ) as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
-      } else {
-        setSelectedFile(null);
-        const fileInput = document.getElementById(
-          'ad-file-input'
-        ) as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
-      }
-
+      clearSelection(isDefault);
       fetchImages();
     } catch (error: any) {
       console.error('Error uploading image:', error);
@@ -172,221 +203,337 @@ export default function PublicidadManager() {
 
   if (loading) {
     return (
-      <div className='flex justify-center py-10'>
-        <Loader2 className='h-8 w-8 animate-spin text-gray-500' />
+      <div className='flex flex-col items-center justify-center py-20 space-y-4'>
+        <Loader2 className='h-10 w-10 animate-spin text-primary' />
+        <p className='text-muted-foreground animate-pulse'>
+          Cargando configuración...
+        </p>
       </div>
     );
   }
 
   return (
-    <div className='space-y-8'>
-      {/* Default Ad Section */}
-      <section>
-        <h3 className='text-lg font-semibold mb-4 flex items-center gap-2'>
-          Imagen Predeterminada
-          <span className='text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full border border-green-200'>
-            Siempre visible
-          </span>
-        </h3>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-          {defaultAd ? (
-            <Card className='overflow-hidden border-2 border-green-500/20 shadow-md'>
-              <div className='relative aspect-video w-full bg-gray-100'>
-                <Image
-                  src={getImageUrl(defaultAd.filename)}
-                  alt='Publicidad Predeterminada'
-                  fill
-                  className='object-cover'
-                  unoptimized
-                />
-                <div className='absolute top-2 right-2'>
-                  <span className='bg-green-600 text-white px-2 py-1 rounded text-xs font-bold shadow-sm'>
-                    PREDETERMINADA
-                  </span>
+    <div className='space-y-10 max-w-6xl mx-auto'>
+      {/* Sección Imagen Predeterminada */}
+      <section className='space-y-4'>
+        <div className='flex items-center justify-between'>
+          <div className='flex items-center gap-2'>
+            <h3 className='text-xl font-bold tracking-tight'>
+              Imagen Predeterminada
+            </h3>
+            <span className='px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 rounded-full'>
+              Base del Sistema
+            </span>
+          </div>
+        </div>
+
+        <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
+          {/* Card de Visualización/Edición */}
+          <div className='lg:col-span-12'>
+            <EnhancedCard
+              variant='bordered'
+              padding='none'
+              className='overflow-hidden group border-2'
+            >
+              <div className='flex flex-col md:flex-row'>
+                {/* Lado de Imagen */}
+                <div className='relative w-full md:w-[450px] aspect-video bg-muted shrink-0'>
+                  {defaultPreview ? (
+                    <>
+                      <Image
+                        src={defaultPreview}
+                        alt='Preview'
+                        fill
+                        className='object-cover'
+                      />
+                      <div className='absolute inset-0 bg-primary/10 flex items-center justify-center'>
+                        <span className='bg-primary text-primary-foreground text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg border border-white/20 uppercase tracking-widest animate-in zoom-in-75'>
+                          Previsualización
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => clearSelection(true)}
+                        className='absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors backdrop-blur-sm'
+                        title='Cancelar cambio'
+                      >
+                        <X className='h-4 w-4' />
+                      </button>
+                    </>
+                  ) : defaultAd ? (
+                    <>
+                      <Image
+                        src={getImageUrl(defaultAd.filename)}
+                        alt='Publicidad Predeterminada'
+                        fill
+                        className='object-cover transition-transform duration-500 group-hover:scale-105'
+                        unoptimized
+                      />
+                      <div className='absolute top-3 right-3'>
+                        <div className='bg-green-600/90 backdrop-blur-md text-white px-3 py-1 rounded-md text-[10px] font-black shadow-xl border border-white/20 uppercase tracking-[0.1em]'>
+                          ACTIVA
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className='w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground'>
+                      <ImageIcon className='h-12 w-12 opacity-20' />
+                      <p className='text-sm font-medium'>
+                        No hay imagen activa
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Lado de Controles e Info */}
+                <div className='flex-1 p-6 flex flex-col justify-between bg-card'>
+                  <div className='space-y-6'>
+                    <div className='space-y-2'>
+                      <Label className='text-xs font-bold uppercase tracking-wider text-muted-foreground'>
+                        {defaultPreview
+                          ? 'NUEVA IMAGEN SELECCIONADA'
+                          : 'ESTADO ACTUAL'}
+                      </Label>
+                      <div className='p-4 rounded-xl bg-muted/50 border border-border/50'>
+                        <div className='flex items-start gap-3'>
+                          <div className='mt-0.5 p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30'>
+                            <AlertCircle className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                          </div>
+                          <p className='text-sm leading-relaxed text-muted-foreground'>
+                            Esta imagen es el{' '}
+                            <strong>respaldo de seguridad</strong>. Se mostrará
+                            automáticamente si no hay otros anuncios activos
+                            para evitar que la pantalla quede en blanco.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className='space-y-4'>
+                      <div className='space-y-2'>
+                        <Label
+                          htmlFor='default-ad-file'
+                          className='text-sm font-semibold'
+                        >
+                          Actualizar Imagen Predeterminada
+                        </Label>
+                        <div className='flex gap-2'>
+                          <div className='relative flex-1'>
+                            <Input
+                              id='default-ad-file'
+                              type='file'
+                              accept='image/*'
+                              onChange={(e) => handleFileChange(e, true)}
+                              disabled={uploading}
+                              className='pr-10 cursor-pointer h-11'
+                            />
+                            <Upload className='absolute right-3 top-3 h-5 w-5 text-muted-foreground pointer-events-none' />
+                          </div>
+                          <Button
+                            onClick={() => handleUpload(true)}
+                            disabled={!selectedDefaultFile || uploading}
+                            className='h-11 px-6 font-bold uppercase tracking-wider shadow-lg'
+                          >
+                            {uploading ? (
+                              <Loader2 className='h-4 w-4 animate-spin' />
+                            ) : (
+                              'Aplicar'
+                            )}
+                          </Button>
+                        </div>
+                        <p className='text-[10px] text-muted-foreground italic px-1 text-right'>
+                          Sugerencia: 1920x1080 (HD) para mejores resultados.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <CardContent className='p-4 bg-green-50/30'>
-                <div className='flex flex-col gap-3'>
-                  <div className='flex justify-between items-center'>
-                    <span
-                      className='text-sm font-medium truncate'
-                      title={defaultAd.filename}
-                    >
-                      {defaultAd.filename}
-                    </span>
-                  </div>
-                  <div className='flex items-end gap-2'>
-                    <div className='grid w-full items-center gap-1.5'>
-                      <Label htmlFor='default-ad-file' className='text-xs'>
-                        Reemplazar imagen
-                      </Label>
-                      <Input
-                        id='default-ad-file'
-                        type='file'
-                        accept='image/*'
-                        onChange={(e) => handleFileChange(e, true)}
-                        disabled={uploading}
-                        className='h-8 text-xs'
-                      />
-                    </div>
-                    <Button
-                      size='sm'
-                      onClick={() => handleUpload(true)}
-                      disabled={!selectedDefaultFile || uploading}
-                    >
-                      {uploading ? (
-                        <Loader2 className='h-3 w-3 animate-spin' />
-                      ) : (
-                        <Upload className='h-3 w-3' />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className='border-2 border-dashed border-gray-300 bg-gray-50'>
-              <CardContent className='h-full flex flex-col items-center justify-center p-6 text-center space-y-4'>
-                <div className='p-3 bg-gray-100 rounded-full'>
-                  <ImageIcon className='h-8 w-8 text-gray-400' />
-                </div>
-                <div>
-                  <p className='text-sm font-medium text-gray-900'>
-                    Sin imagen predeterminada
-                  </p>
-                  <p className='text-xs text-gray-500 mt-1'>
-                    Sube una imagen para establecerla como default.
-                  </p>
-                </div>
-                <div className='flex items-end gap-2 w-full max-w-xs'>
-                  <Input
-                    id='default-ad-file'
-                    type='file'
-                    accept='image/*'
-                    onChange={(e) => handleFileChange(e, true)}
-                    disabled={uploading}
-                    className='text-xs'
-                  />
-                  <Button
-                    size='sm'
-                    onClick={() => handleUpload(true)}
-                    disabled={!selectedDefaultFile || uploading}
-                  >
-                    Subir
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          <div className='col-span-1 md:col-span-1 lg:col-span-2 flex items-center justify-center p-6 bg-blue-50 rounded-lg border border-blue-100 text-blue-800 text-sm'>
-            <p>
-              La <strong>Imagen Predeterminada</strong> siempre se mostrará en
-              el carrusel y no puede ser desactivada ni eliminada directamente,
-              solo reemplazada. Esto asegura que el carrusel nunca esté vacío.
-            </p>
+            </EnhancedCard>
           </div>
         </div>
       </section>
 
-      <hr className='border-gray-200' />
+      <div className='relative py-4'>
+        <div className='absolute inset-0 flex items-center' aria-hidden='true'>
+          <div className='w-full border-t border-border'></div>
+        </div>
+        <div className='relative flex justify-center text-xs uppercase tracking-widest'>
+          <span className='bg-background px-4 text-muted-foreground font-bold'>
+            Biblioteca de Contenido
+          </span>
+        </div>
+      </div>
 
-      {/* Gallery Section */}
-      <section>
-        <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4'>
-          <div>
-            <h3 className='text-lg font-semibold'>Galería de Anuncios</h3>
-            <p className='text-sm text-gray-500'>
-              Imágenes adicionales que rotarán en el carrusel.
+      {/* Galería Section */}
+      <section className='space-y-6'>
+        <div className='flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6'>
+          <div className='space-y-1'>
+            <h3 className='text-xl font-bold tracking-tight'>
+              Galería de Rotación
+            </h3>
+            <p className='text-sm text-muted-foreground'>
+              Gestione las imágenes que participan en el carrusel dinámico.
             </p>
           </div>
 
-          <div className='flex items-end gap-2 w-full md:w-auto'>
-            <div className='grid w-full max-w-xs items-center gap-1.5'>
-              <Label htmlFor='ad-file-input' className='sr-only'>
-                Imagen
-              </Label>
-              <Input
-                id='ad-file-input'
-                type='file'
-                accept='image/*'
-                onChange={(e) => handleFileChange(e, false)}
-                disabled={uploading}
-              />
+          <EnhancedCard
+            variant='subtle'
+            padding='sm'
+            className='w-full lg:w-auto min-w-[350px] border-dashed bg-muted/20'
+          >
+            <div className='flex gap-2 items-end'>
+              <div className='grid flex-1 gap-1.5'>
+                <Label
+                  htmlFor='ad-file-input'
+                  className='text-[10px] font-bold uppercase px-1'
+                >
+                  {galleryPreview ? 'LISTO PARA AÑADIR' : 'Añadir nueva imagen'}
+                </Label>
+                <div className='relative'>
+                  <Input
+                    id='ad-file-input'
+                    type='file'
+                    accept='image/*'
+                    onChange={(e) => handleFileChange(e, false)}
+                    disabled={uploading}
+                    className='h-10 cursor-pointer bg-background'
+                  />
+                  {galleryPreview && (
+                    <div className='absolute right-2 top-2 h-6 w-6 rounded border bg-background overflow-hidden shadow-sm'>
+                      <Image
+                        src={galleryPreview}
+                        alt='preview'
+                        fill
+                        className='object-cover'
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className='flex gap-1'>
+                {galleryPreview && (
+                  <Button
+                    variant='outline'
+                    size='icon'
+                    onClick={() => clearSelection(false)}
+                    className='h-10 w-10 shrink-0'
+                    title='Limpiar selección'
+                  >
+                    <X className='h-4 w-4' />
+                  </Button>
+                )}
+                <Button
+                  onClick={() => handleUpload(false)}
+                  disabled={!selectedFile || uploading}
+                  className='h-10 gap-2 font-bold px-4'
+                >
+                  {uploading ? (
+                    <Loader2 className='h-4 w-4 animate-spin' />
+                  ) : (
+                    <>
+                      <Upload className='h-4 w-4' />
+                      Subir
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            <Button
-              onClick={() => handleUpload(false)}
-              disabled={!selectedFile || uploading}
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                  Subir
-                </>
-              ) : (
-                <>
-                  <Upload className='mr-2 h-4 w-4' />
-                  Subir
-                </>
-              )}
-            </Button>
-          </div>
+          </EnhancedCard>
         </div>
 
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
           {galleryAds.length === 0 ? (
-            <div className='col-span-full text-center py-10 text-gray-500 border-2 border-dashed rounded-lg bg-gray-50/50'>
-              <ImageIcon className='mx-auto h-10 w-10 mb-2 opacity-50' />
-              <p>No hay imágenes adicionales.</p>
+            <div className='col-span-full h-48 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-2xl bg-muted/20 space-y-3'>
+              <ImageIcon className='h-12 w-12 opacity-10' />
+              <div className='text-center'>
+                <p className='font-semibold'>La galería está vacía</p>
+                <p className='text-sm opacity-60'>
+                  Comienza subiendo algunas imágenes arriba.
+                </p>
+              </div>
             </div>
           ) : (
             galleryAds.map((item) => (
-              <Card
+              <EnhancedCard
                 key={item.filename}
-                className={`overflow-hidden ${!item.active ? 'opacity-60 grayscale' : ''}`}
+                variant='bordered'
+                padding='none'
+                hover
+                className={cn(
+                  'overflow-hidden group transition-all duration-300',
+                  !item.active && 'opacity-60 grayscale-[0.5] scale-[0.98]'
+                )}
               >
-                <div className='relative aspect-video w-full bg-gray-100'>
+                <div className='relative aspect-video w-full bg-slate-100 dark:bg-slate-900'>
                   <Image
                     src={getImageUrl(item.filename)}
                     alt='Publicidad'
                     fill
-                    className='object-cover'
+                    className='object-cover transition-transform duration-700 group-hover:scale-110'
                     unoptimized
                   />
-                  {!item.active && (
-                    <div className='absolute inset-0 flex items-center justify-center bg-black/20'>
-                      <span className='bg-black/70 text-white px-2 py-1 rounded text-sm font-medium'>
-                        Inactiva
-                      </span>
+
+                  {/* Status Overlay */}
+                  {!item.active ? (
+                    <div className='absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] transition-all group-hover:bg-black/30'>
+                      <div className='bg-black/80 text-white px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-white/20 shadow-2xl scale-90 group-hover:scale-100 transition-transform'>
+                        Oculta
+                      </div>
+                    </div>
+                  ) : (
+                    <div className='absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity'>
+                      <div className='bg-green-500/90 backdrop-blur text-white p-1 rounded-full shadow-lg'>
+                        <CheckCircle2 className='h-4 w-4' />
+                      </div>
                     </div>
                   )}
+
+                  {/* Actions Bar (Overlay on hover) */}
+                  <div className='absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black/80 via-black/40 to-transparent'>
+                    <div className='flex gap-2 justify-end'>
+                      <Button
+                        variant={item.active ? 'secondary' : 'default'}
+                        size='sm'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggle(item.filename);
+                        }}
+                        className='h-8 font-bold'
+                      >
+                        {item.active ? 'Desactivar' : 'Activar'}
+                      </Button>
+                      <Button
+                        variant='destructive'
+                        size='icon'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(item.filename);
+                        }}
+                        className='h-8 w-8 shadow-lg'
+                        title='Eliminar para siempre'
+                      >
+                        <Trash2 className='h-4 w-4' />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <CardContent className='p-4 flex justify-between items-center bg-white'>
-                  <span
-                    className='text-sm truncate max-w-[120px] font-medium'
-                    title={item.filename}
-                  >
-                    {item.filename}
-                  </span>
-                  <div className='flex gap-2'>
-                    <Button
-                      variant={item.active ? 'secondary' : 'default'}
-                      size='sm'
-                      onClick={() => handleToggle(item.filename)}
-                      title={item.active ? 'Desactivar' : 'Activar'}
+                <CardContent className='p-4 bg-card border-t'>
+                  <div className='flex items-center justify-between gap-2 uppercase tracking-tighter'>
+                    <span
+                      className='text-[11px] font-black truncate text-muted-foreground'
+                      title={item.filename}
                     >
-                      {item.active ? 'Ocultar' : 'Mostrar'}
-                    </Button>
-                    <Button
-                      variant='destructive'
-                      size='sm'
-                      onClick={() => handleDelete(item.filename)}
-                      title='Eliminar'
-                    >
-                      <Trash2 className='h-4 w-4' />
-                    </Button>
+                      {item.filename}
+                    </span>
+                    <span
+                      className={cn(
+                        'h-1.5 w-1.5 rounded-full shrink-0 animate-pulse',
+                        item.active ? 'bg-green-500' : 'bg-red-500'
+                      )}
+                    />
                   </div>
                 </CardContent>
-              </Card>
+              </EnhancedCard>
             ))
           )}
         </div>

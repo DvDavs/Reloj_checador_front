@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Megaphone, Users } from 'lucide-react';
 import PublicidadManager from '@/components/configuracion/PublicidadManager';
-import UsuarioManager from '@/components/configuracion/UsuarioManager';
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
 
 type ConfigSection = 'publicidad' | 'usuarios';
@@ -99,7 +98,22 @@ export default function ConfiguracionPage() {
                     </div>
 
                     {activeSection === 'publicidad' && <PublicidadManager />}
-                    {activeSection === 'usuarios' && <UsuarioManager />}
+                    {activeSection === 'usuarios' && (
+                      <div className='flex flex-col items-center justify-center py-20 text-center space-y-4'>
+                        <div className='p-4 bg-muted rounded-full'>
+                          <Users className='h-12 w-12 text-muted-foreground' />
+                        </div>
+                        <div className='space-y-2'>
+                          <h3 className='text-xl font-semibold'>
+                            En desarrollo
+                          </h3>
+                          <p className='text-muted-foreground max-w-xs'>
+                            Esta sección estará disponible próximamente para la
+                            administración de usuarios y permisos.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </EnhancedCard>
