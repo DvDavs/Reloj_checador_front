@@ -136,7 +136,16 @@ const navItems: NavItemData[] = [
     keywords: ['reportes', 'export', 'excel', 'csv', 'pdf', 'word'],
   },
 
-  // 10. Configuración
+  // 10. Auditoría (Logs)
+  {
+    id: 'auditoria',
+    href: '/admin/auditoria',
+    icon: <Search size={20} />,
+    text: 'Auditoría',
+    keywords: ['auditoria', 'logs', 'registros', 'historial', 'audit'],
+  },
+
+  // 11. Configuración
   {
     id: 'configuracion',
     href: '/configuracion',
