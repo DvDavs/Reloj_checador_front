@@ -84,36 +84,38 @@ export default function ConfiguracionPage() {
               <EnhancedCard variant='default' padding='md'>
                 <div className='mt-2'>
                   <div className='space-y-4'>
-                    <div className='flex items-center gap-2 mb-6 border-b pb-4'>
+                    <div className='flex items-center gap-2 mb-8 border-b pb-4'>
                       {activeSection === 'publicidad' ? (
                         <Megaphone className='h-6 w-6 text-primary' />
                       ) : (
                         <Users className='h-6 w-6 text-primary' />
                       )}
-                      <h2 className='text-xl font-semibold text-foreground'>
+                      <h2 className='text-xl font-bold text-foreground'>
                         {activeSection === 'publicidad'
                           ? 'Gestión de Publicidad'
                           : 'Gestión de Usuarios'}
                       </h2>
                     </div>
 
-                    {activeSection === 'publicidad' && <PublicidadManager />}
-                    {activeSection === 'usuarios' && (
-                      <div className='flex flex-col items-center justify-center py-20 text-center space-y-4'>
-                        <div className='p-4 bg-muted rounded-full'>
-                          <Users className='h-12 w-12 text-muted-foreground' />
+                    <div className='px-1'>
+                      {activeSection === 'publicidad' && <PublicidadManager />}
+                      {activeSection === 'usuarios' && (
+                        <div className='flex flex-col items-center justify-center py-20 text-center space-y-4'>
+                          <div className='p-4 bg-muted rounded-full'>
+                            <Users className='h-12 w-12 text-muted-foreground' />
+                          </div>
+                          <div className='space-y-2'>
+                            <h3 className='text-xl font-semibold'>
+                              En desarrollo
+                            </h3>
+                            <p className='text-muted-foreground max-w-xs'>
+                              Esta sección estará disponible próximamente para
+                              la administración de usuarios y permisos.
+                            </p>
+                          </div>
                         </div>
-                        <div className='space-y-2'>
-                          <h3 className='text-xl font-semibold'>
-                            En desarrollo
-                          </h3>
-                          <p className='text-muted-foreground max-w-xs'>
-                            Esta sección estará disponible próximamente para la
-                            administración de usuarios y permisos.
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </EnhancedCard>
