@@ -33,18 +33,20 @@ export function PublicidadDeleteDialog({
             <AlertCircle className='h-6 w-6 text-red-500' />
             Confirmar Eliminación
           </AlertDialogTitle>
-          <AlertDialogDescription className='text-zinc-400 pt-2 text-sm leading-relaxed'>
-            ¿Estás seguro de que quieres eliminar esta imagen publicitaria?
-            {filename && (
-              <span className='block mt-1 font-mono text-[10px] text-zinc-500 italic'>
-                Referencia: {filename}
-              </span>
-            )}
-            <div className='mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg'>
-              <p className='text-red-400 font-medium'>
-                Esta acción no se puede deshacer y la imagen dejará de mostrarse
-                en todos los dispositivos.
-              </p>
+          <AlertDialogDescription asChild>
+            <div className='text-zinc-400 pt-2 text-sm leading-relaxed'>
+              ¿Estás seguro de que quieres eliminar esta imagen publicitaria?
+              {filename && (
+                <span className='block mt-1 font-mono text-[10px] text-zinc-500 italic'>
+                  Referencia: {filename}
+                </span>
+              )}
+              <div className='mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg'>
+                <p className='text-red-400 font-medium'>
+                  Esta acción no se puede deshacer y la imagen dejará de
+                  mostrarse en todos los dispositivos.
+                </p>
+              </div>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

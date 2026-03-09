@@ -14,7 +14,7 @@ import {
   Plus,
   GripVertical,
 } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,9 @@ export default function PublicidadManager() {
   // Estado para el arrastre 2D nativo
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
+  // Estado para error local de validación
+  const [localError, setLocalError] = useState<string | null>(null);
+
   const fetchImages = async () => {
     try {
       setLoading(true);
@@ -72,7 +75,23 @@ export default function PublicidadManager() {
   }, [previewUrl]);
 
   const handleFileChange = (file: File | null) => {
+    setLocalError(null); // Limpiar error previo
     if (file) {
+      // Validar tamaño del archivo (4MB)
+      const MAX_SIZE = 4 * 1024 * 1024; // 4MB en bytes
+      if (file.size > MAX_SIZE) {
+        setLocalError(
+          `La imagen "${file.name}" es demasiado grande (Máximo 4MB).`
+        );
+        toast({
+          title: 'Archivo demasiado grande',
+          description: `El archivo "${file.name}" supera el límite de 4MB.`,
+          variant: 'destructive',
+        });
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setSelectedFile(file);
 
@@ -110,6 +129,7 @@ export default function PublicidadManager() {
 
   const clearSelection = () => {
     setSelectedFile(null);
+    setLocalError(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -138,9 +158,22 @@ export default function PublicidadManager() {
       fetchImages();
     } catch (error: any) {
       console.error('Error uploading image:', error);
+
+      let errorMessage = 'Error al subir la imagen.';
+
+      // Manejar errores específicos de tamaño de Axios/Servidor
+      if (error.code === 'ERR_NETWORK') {
+        errorMessage =
+          'Error de red: El archivo podría ser demasiado grande para el servidor.';
+      } else if (error.response?.status === 413) {
+        errorMessage = 'La imagen es demasiado pesada para el servidor.';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+
       toast({
-        title: 'Error',
-        description: error.response?.data?.error || 'Error al subir la imagen.',
+        title: 'Error de subida',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -364,6 +397,18 @@ export default function PublicidadManager() {
                   <p className='text-sm text-slate-400'>
                     Tipos permitidos: JPG, PNG, GIF, WEBP. Máximo 4MB.
                   </p>
+                  <AnimatePresence>
+                    {localError && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className='text-sm font-bold text-red-500 mt-2'
+                      >
+                        {localError}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </div>
               </label>
             )}
@@ -434,10 +479,10 @@ export default function PublicidadManager() {
                 layout
                 key={item.filename}
                 draggable
-                onDragStart={(e) => handleDragStart(e, index)}
+                onDragStart={(e: any) => handleDragStart(e, index)}
                 onDragEnter={() => handleDragEnter(index)}
                 onDragEnd={handleDragEnd}
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={(e: any) => e.preventDefault()}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{
                   opacity: draggedIndex === index ? 0.3 : 1,
