@@ -27,22 +27,22 @@ export function PublicidadDeleteDialog({
 }: PublicidadDeleteDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className='bg-zinc-900 border-zinc-800 text-white shadow-2xl'>
+      <AlertDialogContent className='shadow-2xl'>
         <AlertDialogHeader>
           <AlertDialogTitle className='flex items-center gap-2 text-xl font-bold'>
-            <AlertCircle className='h-6 w-6 text-red-500' />
+            <AlertCircle className='h-6 w-6 text-destructive' />
             Confirmar Eliminación
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
-            <div className='text-zinc-400 pt-2 text-sm leading-relaxed'>
+            <div className='pt-2 text-sm leading-relaxed'>
               ¿Estás seguro de que quieres eliminar esta imagen publicitaria?
               {filename && (
-                <span className='block mt-1 font-mono text-[10px] text-zinc-500 italic'>
+                <span className='block mt-1 font-mono text-[10px] text-muted-foreground italic'>
                   Referencia: {filename}
                 </span>
               )}
-              <div className='mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg'>
-                <p className='text-red-400 font-medium'>
+              <div className='mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg'>
+                <p className='text-destructive font-medium'>
                   Esta acción no se puede deshacer y la imagen dejará de
                   mostrarse en todos los dispositivos.
                 </p>
@@ -54,14 +54,14 @@ export function PublicidadDeleteDialog({
           <AlertDialogCancel
             onClick={onClose}
             disabled={isDeleting}
-            className='border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors'
+            className='transition-colors'
           >
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isDeleting}
-            className='bg-red-600 hover:bg-red-700 text-white font-bold h-10 px-6 transition-all'
+            className='bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold h-10 px-6 transition-all'
           >
             {isDeleting ? (
               <>
