@@ -17,6 +17,7 @@ import {
   Search,
   Calendar,
   LogOut,
+  Settings,
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/use-sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -133,6 +134,21 @@ const navItems: NavItemData[] = [
     icon: <ClipboardList size={20} />,
     text: 'Reportes',
     keywords: ['reportes', 'export', 'excel', 'csv', 'pdf', 'word'],
+  },
+
+  // 10. Configuración
+  {
+    id: 'configuracion',
+    href: '/configuracion',
+    icon: <Settings size={20} />,
+    text: 'Configuración',
+    keywords: [
+      'configuracion',
+      'ajustes',
+      'settings',
+      'publicidad',
+      'usuarios',
+    ],
   },
 ];
 
