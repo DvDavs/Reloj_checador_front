@@ -64,31 +64,39 @@ const PrimarySessionBoxes = React.memo(
     }, [session]);
 
     if (!session || !formattedTimes) {
-      // Placeholder UI
+      // Placeholder UI - Responsive
       return (
-        <div className='grid grid-cols-2 gap-4'>
+        <div className='grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4'>
           {/* Placeholder Entrada */}
-          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-gray-700/50'>
-            <div className='flex items-center gap-2 mb-2'>
-              <LogIn className='h-6 w-6 text-gray-500' />
-              <p className='text-lg font-medium'>Entrada</p>
+          <div className='rounded-lg p-2 sm:p-3 lg:p-4 border-2 bg-zinc-800 border-gray-700/50'>
+            <div className='flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2'>
+              <LogIn className='h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-gray-500' />
+              <p className='text-sm sm:text-base lg:text-lg font-medium'>
+                Entrada
+              </p>
             </div>
             <div className='flex flex-col'>
-              <p className='text-3xl font-bold text-gray-600'>00:00</p>
-              <span className='text-xs text-gray-600 font-medium mt-1'>
+              <p className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-600'>
+                00:00
+              </p>
+              <span className='text-[10px] sm:text-xs text-gray-600 font-medium mt-0.5 sm:mt-1'>
                 Sin datos
               </span>
             </div>
           </div>
           {/* Placeholder Salida */}
-          <div className='rounded-lg p-4 border-2 bg-zinc-800 border-gray-700/50'>
-            <div className='flex items-center gap-2 mb-2'>
-              <LogOut className='h-6 w-6 text-gray-500' />
-              <p className='text-lg font-medium'>Salida</p>
+          <div className='rounded-lg p-2 sm:p-3 lg:p-4 border-2 bg-zinc-800 border-gray-700/50'>
+            <div className='flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2'>
+              <LogOut className='h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-gray-500' />
+              <p className='text-sm sm:text-base lg:text-lg font-medium'>
+                Salida
+              </p>
             </div>
             <div className='flex flex-col'>
-              <p className='text-3xl font-bold text-gray-600'>00:00</p>
-              <span className='text-xs text-gray-600 font-medium mt-1'>
+              <p className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-600'>
+                00:00
+              </p>
+              <span className='text-[10px] sm:text-xs text-gray-600 font-medium mt-0.5 sm:mt-1'>
                 Sin datos
               </span>
             </div>
@@ -111,16 +119,16 @@ const PrimarySessionBoxes = React.memo(
     if (isJefe) {
       return (
         <motion.div
-          className='rounded-lg p-4 border-2 border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10'
+          className='rounded-lg p-2 sm:p-3 lg:p-4 border-2 border-blue-600/30 bg-blue-900/10 shadow-inner shadow-blue-900/10'
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
         >
-          <p className='text-lg font-medium text-blue-200'>
+          <p className='text-sm sm:text-base lg:text-lg font-medium text-blue-200'>
             Horario Flexible - Guardado {nowHHmm}
           </p>
           {(formattedTimes.entradaReal || formattedTimes.salidaReal) && (
-            <div className='mt-2 text-2xl font-bold text-gray-200'>
+            <div className='mt-1 sm:mt-2 text-lg sm:text-xl lg:text-2xl font-bold text-gray-200'>
               {formattedTimes.entradaReal
                 ? `Entrada: ${formattedTimes.entradaReal}`
                 : ''}
@@ -138,30 +146,32 @@ const PrimarySessionBoxes = React.memo(
 
     return (
       <motion.div
-        className='grid grid-cols-2 gap-4'
+        className='grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4'
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
       >
-        {/* Caja de Entrada */}
+        {/* Caja de Entrada - Responsive */}
         <div
-          className={`rounded-lg p-4 border-2 transition-all duration-300 ${getTimeBoxBorder(session.estatusJornada, 'entrada')}`}
+          className={`rounded-lg p-2 sm:p-3 lg:p-4 border-2 transition-all duration-300 ${getTimeBoxBorder(session.estatusJornada, 'entrada')}`}
         >
-          <div className='flex items-center gap-2 mb-2'>
+          <div className='flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2'>
             <LogIn
-              className={`h-6 w-6 ${
+              className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 ${
                 session.horaEntradaReal !== null &&
                 session.horaEntradaReal !== undefined
                   ? 'text-green-400'
                   : 'text-gray-500'
               }`}
             />
-            <p className='text-lg font-medium'>Entrada</p>
+            <p className='text-sm sm:text-base lg:text-lg font-medium'>
+              Entrada
+            </p>
           </div>
           <div className='flex flex-col'>
-            <div className='flex items-baseline gap-2'>
+            <div className='flex items-baseline gap-1.5 sm:gap-2'>
               <p
-                className={`text-3xl font-bold ${
+                className={`text-xl sm:text-2xl lg:text-3xl font-bold ${
                   session.horaEntradaReal !== null &&
                   session.horaEntradaReal !== undefined
                     ? 'text-green-300'
@@ -176,7 +186,7 @@ const PrimarySessionBoxes = React.memo(
               {session.horaEntradaReal !== null &&
                 session.horaEntradaReal !== undefined &&
                 hasRetardo && (
-                  <span className='px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-500/20 text-yellow-300'>
+                  <span className='px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full bg-yellow-500/20 text-yellow-300'>
                     retardo
                   </span>
                 )}
@@ -184,35 +194,37 @@ const PrimarySessionBoxes = React.memo(
             {(session.horaEntradaReal === null ||
               session.horaEntradaReal === undefined) &&
               (session.estatusJornada === 'AUSENTE_ENTRADA' ? (
-                <span className='text-xs text-orange-400 font-semibold mt-1'>
+                <span className='text-[10px] sm:text-xs text-orange-400 font-semibold mt-0.5 sm:mt-1'>
                   SIN ENTRADA REGISTRADA
                 </span>
               ) : (
-                <span className='text-xs text-gray-500 font-medium mt-1'>
+                <span className='text-[10px] sm:text-xs text-gray-500 font-medium mt-0.5 sm:mt-1'>
                   Programada • Sin registro
                 </span>
               ))}
           </div>
         </div>
 
-        {/* Caja de Salida */}
+        {/* Caja de Salida - Responsive */}
         <div
-          className={`rounded-lg p-4 border-2 transition-all duration-300 ${getTimeBoxBorder(session.estatusJornada, 'salida')}`}
+          className={`rounded-lg p-2 sm:p-3 lg:p-4 border-2 transition-all duration-300 ${getTimeBoxBorder(session.estatusJornada, 'salida')}`}
         >
-          <div className='flex items-center gap-2 mb-2'>
+          <div className='flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2'>
             <LogOut
-              className={`h-6 w-6 ${
+              className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 ${
                 session.horaSalidaReal !== null &&
                 session.horaSalidaReal !== undefined
                   ? 'text-green-400'
                   : 'text-gray-500'
               }`}
             />
-            <p className='text-lg font-medium'>Salida</p>
+            <p className='text-sm sm:text-base lg:text-lg font-medium'>
+              Salida
+            </p>
           </div>
           <div className='flex flex-col'>
             <p
-              className={`text-3xl font-bold ${
+              className={`text-xl sm:text-2xl lg:text-3xl font-bold ${
                 session.horaSalidaReal !== null &&
                 session.horaSalidaReal !== undefined
                   ? 'text-green-300'
@@ -224,11 +236,11 @@ const PrimarySessionBoxes = React.memo(
             {(session.horaSalidaReal === null ||
               session.horaSalidaReal === undefined) &&
               (session.estatusJornada === 'AUSENTE_SALIDA' ? (
-                <span className='text-xs text-orange-400 font-semibold mt-1'>
+                <span className='text-[10px] sm:text-xs text-orange-400 font-semibold mt-0.5 sm:mt-1'>
                   SIN SALIDA REGISTRADA
                 </span>
               ) : (
-                <span className='text-xs text-gray-500 font-medium mt-1'>
+                <span className='text-[10px] sm:text-xs text-gray-500 font-medium mt-0.5 sm:mt-1'>
                   Programada • Sin registro
                 </span>
               ))}
@@ -264,29 +276,30 @@ function AttendanceDetailsComponent({
   const hasEmployeeData = show && employee;
 
   return (
-    <div className='w-full h-full bg-zinc-900 rounded-lg p-4 border-2 border-orange-800/40 flex flex-col'>
-      <div className='mb-3 flex items-center gap-4'>
+    <div className='w-full h-full bg-zinc-900 rounded-lg p-2 sm:p-3 lg:p-4 border-2 border-orange-800/40 flex flex-col'>
+      <div className='mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3 lg:gap-4'>
         {hasEmployeeData ? (
           <EmployeeAvatar
             empleadoId={employee.id}
             nombre={employee.nombreCompleto}
             fotoUrl={employee.fotoUrl}
             tieneFoto={employee.tieneFoto}
-            size={80}
+            size={56}
+            className='sm:!w-16 sm:!h-16 lg:!w-20 lg:!h-20'
           />
         ) : (
-          <div className='flex h-20 w-20 items-center justify-center rounded-full bg-zinc-800 border-2 border-zinc-700'>
-            <User className='h-10 w-10 text-zinc-600' />
+          <div className='flex h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 items-center justify-center rounded-full bg-zinc-800 border-2 border-zinc-700'>
+            <User className='h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-zinc-600' />
           </div>
         )}
-        <div className='flex-1'>
-          <h2 className='text-3xl font-bold text-white'>
+        <div className='flex-1 min-w-0'>
+          <h2 className='text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-white truncate'>
             {hasEmployeeData ? employee.nombreCompleto : 'Usuario'}
           </h2>
         </div>
       </div>
 
-      <div className='flex-1 flex items-center justify-center'>
+      <div className='flex-1 flex items-center justify-center min-h-0'>
         <div className='w-full'>
           <PrimarySessionBoxes
             dailyWorkSessions={hasEmployeeData ? dailyWorkSessions : []}

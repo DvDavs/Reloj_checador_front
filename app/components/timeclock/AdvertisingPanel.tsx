@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { apiClient } from '@/lib/apiClient';
 
 export type AdvertisingItem = {
   type: 'image' | 'video';
   src: string;
   alt?: string;
   durationMs?: number;
+  /** Aspect ratio calculado (width/height). 9:16 ≈ 0.5625 */
+  aspectRatio?: number;
 };
 
 export interface AdvertisingPanelProps {
@@ -23,31 +26,68 @@ export function AdvertisingPanel({
   showIndicators = true,
 }: AdvertisingPanelProps) {
   const [remoteItems, setRemoteItems] = useState<AdvertisingItem[]>([]);
+  const [imageDimensions, setImageDimensions] = useState<
+    Record<string, { width: number; height: number }>
+  >({});
+
+  // Precargar dimensiones de imágenes
+  const preloadImageDimensions = useCallback(
+    (itemsToLoad: AdvertisingItem[]) => {
+      itemsToLoad.forEach((item) => {
+        if (item.type === 'image' && !imageDimensions[item.src]) {
+          const img = new Image();
+          img.onload = () => {
+            setImageDimensions((prev) => ({
+              ...prev,
+              [item.src]: {
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+              },
+            }));
+          };
+          img.src = item.src;
+        }
+      });
+    },
+    [imageDimensions]
+  );
+
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
       try {
-        const r = await fetch('/api/ads', { cache: 'no-store' });
-        if (!r.ok) return;
-        const json = await r.json();
-        if (isMounted && Array.isArray(json?.items)) {
-          setRemoteItems(json.items as AdvertisingItem[]);
+        // Fetch list of active filenames from backend
+        const response = await apiClient.get<string[]>('/api/publicidad');
+
+        if (
+          isMounted &&
+          Array.isArray(response.data) &&
+          response.data.length > 0
+        ) {
+          const newItems: AdvertisingItem[] = response.data.map((filename) => ({
+            type: 'image',
+            src: `${apiClient.defaults.baseURL}/api/publicidad/files/${filename}`,
+            alt: filename,
+            durationMs: 12000,
+          }));
+          setRemoteItems(newItems);
+          preloadImageDimensions(newItems);
         }
       } catch (_) {
-        // Ignorar errores: usaremos fallback
+        // Fallback silently
       }
     };
     load();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [preloadImageDimensions]);
 
   const fallbackItems: AdvertisingItem[] = useMemo(
     () => [
       {
         type: 'image',
-        src: '/Logo_ITO.png',
+        src: '/Logo-Tec-Pochutla.png',
         alt: 'Logo ITO',
         durationMs: 8000,
       },
@@ -83,46 +123,68 @@ export function AdvertisingPanel({
 
   const active = slides[currentIndex];
 
+  // Detectar si la imagen activa tiene aspect ratio ~9:16 (tolerancia del 5%)
+  const activeDimensions = imageDimensions[active.src];
+  const activeAspectRatio = activeDimensions
+    ? activeDimensions.width / activeDimensions.height
+    : null;
+  const targetRatio = 9 / 16; // 0.5625
+  const tolerance = 0.05;
+  const is916 =
+    activeAspectRatio !== null &&
+    Math.abs(activeAspectRatio - targetRatio) < tolerance;
+
+  // Para imágenes 9:16: object-cover sin padding (llena todo)
+  // Para otras: object-contain con padding (ajusta con márgenes)
+  const imageClasses = is916
+    ? 'w-full h-full object-cover'
+    : 'max-w-full max-h-full w-auto h-auto object-contain';
+  const containerPadding = is916 ? '' : 'p-3';
+
   return (
     <div className='w-full h-full relative flex items-center justify-center bg-zinc-900 rounded-lg border-2 border-orange-800/40 overflow-hidden'>
-      {/* Fondo con blur de la imagen para rellenar el contenedor */}
-      <div className='absolute inset-0 overflow-hidden'>
-        {active.type === 'image' ? (
-          <img
-            src={active.src}
-            alt=''
-            className='w-full h-full object-cover scale-110 blur-2xl opacity-60'
-            draggable={false}
-            aria-hidden='true'
-          />
-        ) : (
-          <video
-            key={`bg-${active.src}`}
-            className='w-full h-full object-cover scale-110 blur-2xl opacity-60'
-            src={active.src}
-            autoPlay
-            muted
-            loop={!rotate}
-            controls={false}
-            playsInline
-            aria-hidden='true'
-          />
-        )}
-      </div>
+      {/* Fondo con blur - solo visible cuando NO es 9:16 */}
+      {!is916 && (
+        <div className='absolute inset-0 overflow-hidden'>
+          {active.type === 'image' ? (
+            <img
+              src={active.src}
+              alt=''
+              className='w-full h-full object-cover scale-110 blur-2xl opacity-60'
+              draggable={false}
+              aria-hidden='true'
+            />
+          ) : (
+            <video
+              key={`bg-${active.src}`}
+              className='w-full h-full object-cover scale-110 blur-2xl opacity-60'
+              src={active.src}
+              autoPlay
+              muted
+              loop={!rotate}
+              controls={false}
+              playsInline
+              aria-hidden='true'
+            />
+          )}
+        </div>
+      )}
 
-      {/* Contenido principal - object-contain preserva proporción */}
-      <div className='relative z-10 w-full h-full flex items-center justify-center p-3'>
+      {/* Contenido principal */}
+      <div
+        className={`relative z-10 w-full h-full flex items-center justify-center ${containerPadding}`}
+      >
         {active.type === 'image' ? (
           <img
             src={active.src}
             alt={active.alt ?? 'Publicidad'}
-            className='max-w-full max-h-full w-auto h-auto object-contain'
+            className={imageClasses}
             draggable={false}
           />
         ) : (
           <video
             key={active.src}
-            className='max-w-full max-h-full w-auto h-auto object-contain'
+            className={imageClasses}
             src={active.src}
             autoPlay
             muted

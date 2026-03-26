@@ -20,7 +20,7 @@ export default function RootLayout({
     <html lang='es' suppressHydrationWarning>
       <head>
         <title>
-          Sistema de Control de Asistencia - Instituto Tecnológico de Oaxaca
+          Sistema de Control de Asistencia - Instituto Tecnológico de Pochutla
         </title>
         <meta
           name='description'

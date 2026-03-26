@@ -57,7 +57,7 @@ function HeaderClockComponent({
       <div className='flex items-center gap-3'>
         <div className='h-16 w-16 relative'>
           <Image
-            src='/Logo_ITO.png'
+            src='/Logo-Tec-Pochutla-2.png'
             alt='Logo ITO'
             width={64}
             height={64}

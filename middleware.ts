@@ -53,9 +53,9 @@ export const config = {
      * - api (rutas de API de Next.js)
      * - _next/static (archivos estáticos)
      * - _next/image (optimización de imágenes)
-     * - Logo_ITO.png (tu logo)
+     * - Logo-Tec-Pochutla.png.png (tu logo)
      * - favicon.ico (icono de favicon)
      */
-    '/((?!api|_next/static|_next/image|Logo_ITO.png|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|Logo-Tec-Pochutla.png|favicon.ico).*)',
   ],
 };

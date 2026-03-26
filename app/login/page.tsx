@@ -48,7 +48,7 @@ export default function LoginPage() {
       <Card className='w-full max-w-sm bg-white border-gray-200 text-gray-900 shadow-lg'>
         <CardHeader className='text-center space-y-4'>
           <Image
-            src='/Logo_ITO.png'
+            src='/Logo-Tec-Pochutla.png'
             alt='Logo ITO'
             width={80}
             height={80}
