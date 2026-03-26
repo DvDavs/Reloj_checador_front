@@ -479,33 +479,32 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
   );
 
   return (
-    <div className='h-screen w-full bg-black text-white p-3 xl:p-4 overflow-hidden'>
-      <div className='max-w-7xl mx-auto h-full transform origin-top xl:scale-95'>
-        {/* Rectángulo contenedor sin overflow */}
-        <div className='h-full rounded-xl border-2 border-orange-800/40 bg-zinc-950/60 p-3 xl:p-4 overflow-hidden'>
-          <div className='grid grid-rows-[auto,1fr] gap-3 xl:gap-4 h-full min-h-0'>
-            <HeaderClock {...headerProps} />
+    <div className='flex items-center justify-center min-h-screen w-full bg-black text-white p-3 xl:p-4 overflow-hidden'>
+      {/* Contenedor centralizado con límites máximos - efecto letterbox en pantallas grandes */}
+      <div className='w-full max-w-[1600px] max-h-[1000px] h-[95vh] rounded-xl border-2 border-orange-800/40 bg-zinc-950/60 p-3 xl:p-4 flex flex-col gap-3 xl:gap-4'>
+        {/* Header - altura basada en contenido */}
+        <div className='shrink-0'>
+          <HeaderClock {...headerProps} />
+        </div>
 
-            {/* Layout de dos columnas como en la imagen (contenido ocupa todo el alto restante) */}
-            <div className='grid grid-cols-1 lg:grid-cols-3 gap-4 xl:gap-6 h-full min-h-0 overflow-hidden'>
-              {/* Columna izquierda: Scanner + Detalles del usuario (2/3 del ancho) */}
-              <div className='lg:col-span-2 grid grid-rows-[3fr,2fr] gap-3 h-full min-h-0 overflow-hidden'>
-                {/* Scanner de huellas (3 partes) */}
-                <div className='min-h-0 overflow-hidden'>
-                  <ScannerPanel {...scannerProps} />
-                </div>
-
-                {/* Detalles del usuario (1 parte) */}
-                <div className='min-h-0 overflow-hidden'>
-                  <AttendanceDetails {...attendanceDetailsProps} />
-                </div>
-              </div>
-
-              {/* Columna derecha: Publicidad (1/3 del ancho) */}
-              <div className='lg:col-span-1 h-full min-h-0 overflow-hidden'>
-                <AdvertisingPanel />
-              </div>
+        {/* Cuerpo principal - Flexbox en lugar de Grid */}
+        <div className='flex flex-col lg:flex-row flex-1 min-h-0 gap-4 xl:gap-6'>
+          {/* Columna izquierda: Scanner + Detalles (toma el espacio restante) */}
+          <div className='flex-1 flex flex-col gap-3 min-w-0 min-h-0'>
+            {/* Scanner - flex-[1.5] con límites para evitar deformación */}
+            <div className='flex-[1.5] min-h-[200px] max-h-[500px] min-w-0 overflow-hidden'>
+              <ScannerPanel {...scannerProps} />
             </div>
+
+            {/* Detalles del usuario - flex-1 con límite */}
+            <div className='flex-1 min-h-[150px] max-h-[300px] min-w-0 overflow-hidden'>
+              <AttendanceDetails {...attendanceDetailsProps} />
+            </div>
+          </div>
+
+          {/* Columna derecha: Publicidad - aspect-ratio 9:16 dicta el ancho */}
+          <div className='hidden lg:flex h-full shrink-0 aspect-[9/16] min-w-0 overflow-hidden'>
+            <AdvertisingPanel />
           </div>
         </div>
       </div>
