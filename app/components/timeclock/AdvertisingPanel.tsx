@@ -84,79 +84,75 @@ export function AdvertisingPanel({
   const active = slides[currentIndex];
 
   return (
-    <div className='w-full h-full flex flex-col bg-zinc-900 rounded-lg border-2 border-orange-800/40 p-2 lg:p-3 xl:p-4 2xl:p-5 min-h-0'>
-      <div className='relative flex-1 flex items-center justify-center min-h-0 min-w-0'>
-        {/* Contenedor responsive y autocontenido */}
-        <div className='relative w-full h-full max-w-full max-h-full overflow-hidden rounded-md lg:rounded-lg xl:rounded-xl bg-black flex items-center justify-center'>
-          {/* Fondo con blur de la imagen para rellenar el contenedor */}
-          <div className='absolute inset-0 w-full h-full overflow-hidden'>
-            {active.type === 'image' ? (
-              <img
-                src={active.src}
-                alt=''
-                className='w-full h-full object-cover scale-110 blur-2xl opacity-60'
-                draggable={false}
-                aria-hidden='true'
-              />
-            ) : (
-              <video
-                key={`bg-${active.src}`}
-                className='w-full h-full object-cover scale-110 blur-2xl opacity-60'
-                src={active.src}
-                autoPlay
-                muted
-                loop={!rotate}
-                controls={false}
-                playsInline
-                aria-hidden='true'
-              />
-            )}
-          </div>
-
-          {/* Contenido principal */}
-          <div className='relative z-10'>
-            {active.type === 'image' ? (
-              <img
-                src={active.src}
-                alt={active.alt ?? 'Publicidad'}
-                className='max-w-full max-h-full w-auto h-auto object-contain'
-                draggable={false}
-              />
-            ) : (
-              <video
-                key={active.src}
-                className='max-w-full max-h-full w-auto h-auto object-contain'
-                src={active.src}
-                autoPlay
-                muted
-                loop={!rotate}
-                controls={false}
-                playsInline
-              />
-            )}
-          </div>
-
-          {/* Fade overlay + Indicators overlay */}
-          <div className='pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/20 z-20' />
-
-          {showIndicators && slides.length > 1 && (
-            <div className='absolute bottom-1.5 lg:bottom-2 xl:bottom-3 2xl:bottom-4 left-0 right-0 flex items-center justify-center gap-1 lg:gap-1.5 xl:gap-2 z-30'>
-              {slides.map((_, i) => (
-                <button
-                  key={`dot-${i}`}
-                  aria-label={`Mostrar anuncio ${i + 1}`}
-                  onClick={() => goTo(i)}
-                  className={`h-2 w-2 lg:h-2.5 lg:w-2.5 xl:h-3 xl:w-3 2xl:h-3.5 2xl:w-3.5 rounded-full transition-all duration-200 ${
-                    i === currentIndex
-                      ? 'bg-zinc-200 scale-110 lg:scale-125'
-                      : 'bg-zinc-600 hover:bg-zinc-500'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+    <div className='w-full h-full relative flex items-center justify-center bg-zinc-900 rounded-lg border-2 border-orange-800/40 overflow-hidden'>
+      {/* Fondo con blur de la imagen para rellenar el contenedor */}
+      <div className='absolute inset-0 overflow-hidden'>
+        {active.type === 'image' ? (
+          <img
+            src={active.src}
+            alt=''
+            className='w-full h-full object-cover scale-110 blur-2xl opacity-60'
+            draggable={false}
+            aria-hidden='true'
+          />
+        ) : (
+          <video
+            key={`bg-${active.src}`}
+            className='w-full h-full object-cover scale-110 blur-2xl opacity-60'
+            src={active.src}
+            autoPlay
+            muted
+            loop={!rotate}
+            controls={false}
+            playsInline
+            aria-hidden='true'
+          />
+        )}
       </div>
+
+      {/* Contenido principal - object-contain preserva proporción */}
+      <div className='relative z-10 w-full h-full flex items-center justify-center p-3'>
+        {active.type === 'image' ? (
+          <img
+            src={active.src}
+            alt={active.alt ?? 'Publicidad'}
+            className='max-w-full max-h-full w-auto h-auto object-contain'
+            draggable={false}
+          />
+        ) : (
+          <video
+            key={active.src}
+            className='max-w-full max-h-full w-auto h-auto object-contain'
+            src={active.src}
+            autoPlay
+            muted
+            loop={!rotate}
+            controls={false}
+            playsInline
+          />
+        )}
+      </div>
+
+      {/* Fade overlay */}
+      <div className='pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/20 z-20' />
+
+      {/* Indicadores de slide */}
+      {showIndicators && slides.length > 1 && (
+        <div className='absolute bottom-3 left-0 right-0 flex items-center justify-center gap-1.5 z-30'>
+          {slides.map((_, i) => (
+            <button
+              key={`dot-${i}`}
+              aria-label={`Mostrar anuncio ${i + 1}`}
+              onClick={() => goTo(i)}
+              className={`h-2.5 w-2.5 rounded-full transition-all duration-200 ${
+                i === currentIndex
+                  ? 'bg-zinc-200 scale-125'
+                  : 'bg-zinc-600 hover:bg-zinc-500'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
