@@ -176,11 +176,11 @@ function ScannerPanelComponent({
     <div
       className={`relative rounded-lg border-2 transition-colors duration-300 h-full flex flex-col ${getPanelColor}`}
     >
-      {/* NORTH - Mensaje principal - Aumentar tamaño */}
-      <div className='h-28 flex items-center justify-center px-4'>
+      {/* NORTH - Mensaje principal - Responsive */}
+      <div className='h-16 sm:h-20 lg:h-28 flex items-center justify-center px-2 sm:px-4'>
         {showOverlayMessage && (
           <div
-            className={`text-2xl md:text-3xl lg:text-4xl font-bold text-center ${overlayTextClass} ${
+            className={`text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-center ${overlayTextClass} ${
               resolvedIconState === 'success'
                 ? 'drop-shadow-[0_0_30px_rgba(74,222,128,0.9)]'
                 : resolvedIconState === 'failed'
@@ -194,10 +194,10 @@ function ScannerPanelComponent({
         )}
       </div>
 
-      {/* CENTER - Scanner (área principal) - Reducido ligeramente */}
-      <div className='flex-[0.8] flex items-center justify-center p-4'>
+      {/* CENTER - Scanner (área principal) - Responsive */}
+      <div className='flex-[0.8] flex items-center justify-center p-2 sm:p-4'>
         <div
-          className='relative flex h-56 w-56 items-center justify-center'
+          className='relative flex h-32 w-32 sm:h-40 sm:w-40 lg:h-56 lg:w-56 items-center justify-center'
           data-testid='scanner-area'
         >
           {pinInputMode ? (
@@ -210,10 +210,10 @@ function ScannerPanelComponent({
             />
           ) : (
             <>
-              {/* SVG de huella base */}
+              {/* SVG de huella base - Responsive */}
               {!resolvedIconState && (
                 <svg
-                  className='absolute h-56 w-56'
+                  className='absolute h-32 w-32 sm:h-40 sm:w-40 lg:h-56 lg:w-56'
                   viewBox='0 0 100 100'
                   xmlns='http://www.w3.org/2000/svg'
                 >
@@ -234,11 +234,11 @@ function ScannerPanelComponent({
                 </svg>
               )}
 
-              {/* Estado Idle o Ready */}
+              {/* Estado Idle o Ready - Responsive */}
               {(scanState === 'idle' || scanState === 'ready') && (
                 <>
                   <motion.div
-                    className='absolute h-56 w-56 rounded-full bg-orange-500/10'
+                    className='absolute h-32 w-32 sm:h-40 sm:w-40 lg:h-56 lg:w-56 rounded-full bg-orange-500/10'
                     animate={{
                       scale: [1, 1.1, 1],
                       opacity: [0.7, 0.5, 0.7],
@@ -260,12 +260,12 @@ function ScannerPanelComponent({
                       ease: 'easeInOut',
                     }}
                   >
-                    <Fingerprint className='h-32 w-32 text-orange-500/80' />
+                    <Fingerprint className='h-20 w-20 sm:h-24 sm:w-24 lg:h-32 lg:w-32 text-orange-500/80' />
                   </motion.div>
                 </>
               )}
 
-              {/* Estado de éxito */}
+              {/* Estado de éxito - Responsive */}
               {resolvedIconState === 'success' && (
                 <motion.div
                   className='absolute inset-0 flex flex-col items-center justify-center'
@@ -278,9 +278,9 @@ function ScannerPanelComponent({
                     duration: 0.2,
                   }}
                 >
-                  {/* Halo circular centrado */}
+                  {/* Halo circular centrado - Responsive */}
                   <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
-                    <div className='relative h-56 w-56'>
+                    <div className='relative h-32 w-32 sm:h-40 sm:w-40 lg:h-56 lg:w-56'>
                       <div
                         className={`absolute inset-0 rounded-full ring-8 ${haloVariant.ring} ${haloVariant.bg} ${haloVariant.border}`}
                       />
@@ -298,17 +298,17 @@ function ScannerPanelComponent({
                         style={{ boxShadow: haloVariant.shadow }}
                       />
                       <div
-                        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-40 w-40 rounded-full border-2 ${haloVariant.border}`}
+                        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-24 sm:h-28 sm:w-28 lg:h-40 lg:w-40 rounded-full border-2 ${haloVariant.border}`}
                       />
                     </div>
                   </div>
                   <CheckCircle
-                    className={`z-10 h-32 w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : 'text-green-500'} ${iconGlowClass}`}
+                    className={`z-10 h-20 w-20 sm:h-24 sm:w-24 lg:h-32 lg:w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : 'text-green-500'} ${iconGlowClass}`}
                   />
                 </motion.div>
               )}
 
-              {/* Estado de fallo */}
+              {/* Estado de fallo - Responsive */}
               {resolvedIconState === 'failed' && (
                 <motion.div
                   className='absolute inset-0 flex flex-col items-center justify-center'
@@ -321,9 +321,9 @@ function ScannerPanelComponent({
                     duration: 0.2,
                   }}
                 >
-                  {/* Halo circular centrado */}
+                  {/* Halo circular centrado - Responsive */}
                   <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
-                    <div className='relative h-56 w-56'>
+                    <div className='relative h-32 w-32 sm:h-40 sm:w-40 lg:h-56 lg:w-56'>
                       <div
                         className={`absolute inset-0 rounded-full ring-8 ${haloVariant.ring} ${haloVariant.bg} ${haloVariant.border}`}
                       />
@@ -341,12 +341,12 @@ function ScannerPanelComponent({
                         style={{ boxShadow: haloVariant.shadow }}
                       />
                       <div
-                        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-40 w-40 rounded-full border-2 ${haloVariant.border}`}
+                        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-24 sm:h-28 sm:w-28 lg:h-40 lg:w-40 rounded-full border-2 ${haloVariant.border}`}
                       />
                     </div>
                   </div>
                   <XCircle
-                    className={`z-10 h-32 w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : 'text-red-500'} ${iconGlowClass}`}
+                    className={`z-10 h-20 w-20 sm:h-24 sm:w-24 lg:h-32 lg:w-32 ${statusCode ? getStyleClassesForCode(statusCode).icon : 'text-red-500'} ${iconGlowClass}`}
                   />
                 </motion.div>
               )}
@@ -355,14 +355,14 @@ function ScannerPanelComponent({
         </div>
       </div>
 
-      {/* SOUTH - Instrucciones y botones - Aumentar tamaño */}
-      <div className='h-32 flex flex-col items-center justify-center gap-2 px-4'>
+      {/* SOUTH - Instrucciones y botones - Responsive */}
+      <div className='h-20 sm:h-24 lg:h-32 flex flex-col items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4'>
         {/* Mensaje de instrucción - Solo cuando no hay resultado */}
         {showInstructionMessage && !showOverlayMessage && (
-          <p className='text-center text-xl font-semibold text-zinc-200 flex items-center gap-3'>
+          <p className='text-center text-sm sm:text-base lg:text-xl font-semibold text-zinc-200 flex items-center gap-2 sm:gap-3'>
             {(scanState === 'idle' || scanState === 'ready') && (
               <>
-                <Fingerprint className='h-6 w-6 text-orange-400 animate-pulse' />
+                <Fingerprint className='h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-orange-400 animate-pulse' />
                 Coloque su dedo en el escáner
               </>
             )}
@@ -372,13 +372,13 @@ function ScannerPanelComponent({
         {/* Mensaje descriptivo (resultado) en el cuadrante inferior */}
         {genericDescriptionMessage && (
           <p
-            className={`text-center text-xl md:text-2xl leading-snug font-semibold ${overlayTextClass}`}
+            className={`text-center text-base sm:text-lg lg:text-xl xl:text-2xl leading-snug font-semibold ${overlayTextClass}`}
           >
             {genericDescriptionMessage}
           </p>
         )}
 
-        {/* Botón "Usar No. Tarjeta" */}
+        {/* Botón "Usar No. Tarjeta" - Responsive */}
         {!pinInputMode &&
           (scanState === 'idle' ||
             scanState === 'ready' ||
@@ -386,7 +386,7 @@ function ScannerPanelComponent({
             <button
               type='button'
               onClick={handleStartPinInput}
-              className='px-6 py-3 text-base text-zinc-300 hover:text-white  border-zinc-700 hover:border-zinc-600 transition-colors font-medium'
+              className='px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base text-zinc-300 hover:text-white border-zinc-700 hover:border-zinc-600 transition-colors font-medium'
               aria-label='Usar No. Tarjeta'
             >
               Usar No. Tarjeta

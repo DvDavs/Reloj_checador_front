@@ -479,25 +479,25 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
   );
 
   return (
-    <div className='flex items-center justify-center min-h-screen w-full bg-black text-white p-3 xl:p-4 overflow-hidden'>
+    <div className='flex items-center justify-center min-h-screen w-full bg-black text-white p-2 sm:p-3 xl:p-4 overflow-hidden'>
       {/* Contenedor centralizado con límites máximos - efecto letterbox en pantallas grandes */}
-      <div className='w-full max-w-[1600px] max-h-[1000px] h-[95vh] rounded-xl border-2 border-orange-800/40 bg-zinc-950/60 p-3 xl:p-4 flex flex-col gap-3 xl:gap-4'>
+      <div className='w-full max-w-[1600px] max-h-[1000px] h-[98vh] sm:h-[96vh] lg:h-[95vh] rounded-lg sm:rounded-xl border-2 border-orange-800/40 bg-zinc-950/60 p-2 sm:p-3 xl:p-4 flex flex-col gap-2 sm:gap-3 xl:gap-4'>
         {/* Header - altura basada en contenido */}
         <div className='shrink-0'>
           <HeaderClock {...headerProps} />
         </div>
 
         {/* Cuerpo principal - Flexbox en lugar de Grid */}
-        <div className='flex flex-col lg:flex-row flex-1 min-h-0 gap-4 xl:gap-6'>
+        <div className='flex flex-col lg:flex-row flex-1 min-h-0 gap-2 sm:gap-3 lg:gap-4 xl:gap-6'>
           {/* Columna izquierda: Scanner + Detalles (toma el espacio restante) */}
-          <div className='flex-1 flex flex-col gap-3 min-w-0 min-h-0'>
-            {/* Scanner - flex-[1.5] con límites para evitar deformación */}
-            <div className='flex-[1.5] min-h-[200px] max-h-[500px] min-w-0 overflow-hidden'>
+          <div className='flex-1 flex flex-col gap-2 sm:gap-3 min-w-0 min-h-0'>
+            {/* Scanner - flex-[1.5] con límites responsive */}
+            <div className='flex-[1.5] min-h-[180px] sm:min-h-[200px] max-h-[350px] sm:max-h-[400px] lg:max-h-[500px] min-w-0 overflow-hidden'>
               <ScannerPanel {...scannerProps} />
             </div>
 
-            {/* Detalles del usuario - flex-1 con límite */}
-            <div className='flex-1 min-h-[150px] max-h-[300px] min-w-0 overflow-hidden'>
+            {/* Detalles del usuario - flex-1 con límites responsive */}
+            <div className='flex-1 min-h-[120px] sm:min-h-[140px] max-h-[200px] sm:max-h-[250px] lg:max-h-[300px] min-w-0 overflow-hidden'>
               <AttendanceDetails {...attendanceDetailsProps} />
             </div>
           </div>

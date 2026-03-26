@@ -8,7 +8,7 @@ export default function Home() {
       <div className='max-w-5xl mx-auto'>
         <header className='text-center mb-16'>
           <h1 className='text-4xl font-bold mb-4 text-foreground'>
-            Instituto Tecnológico de Oaxaca
+            Instituto Tecnológico de Pochutla
           </h1>
           <p className='text-xl text-muted-foreground'>
             Sistema de Control de Asistencia
@@ -20,10 +20,10 @@ export default function Home() {
             <div className='absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-xl'></div>
             <div className='relative flex items-center justify-center h-full'>
               <Image
-                src='/Logo_ITO.png?height=200&width=200'
+                src='/Logo-Tec-Pochutla.png?height=200&width=200'
                 alt='Logo ITO'
-                width={200}
-                height={200}
+                width={250}
+                height={250}
                 className='rounded-full shadow-2xl'
               />
             </div>
@@ -82,7 +82,7 @@ export default function Home() {
 
         <div className='text-center'>
           <p className='text-muted-foreground mb-4'>
-            © 2023 Instituto Tecnológico de Oaxaca
+            © 2026 Instituto Tecnológico de Pochutla
           </p>
           <p className='text-muted-foreground/80 text-sm'>
             Sistema desarrollado por el Departamento de Sistemas

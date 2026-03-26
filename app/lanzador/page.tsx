@@ -127,7 +127,7 @@ function LanzadorChecadorContent() {
               <div className='flex items-center gap-4'>
                 <Link href='/login'>
                   <img
-                    src='/Logo_ITO.png'
+                    src='/Logo-Tec-Pochutla.png'
                     alt='Logo'
                     className='h-12 w-auto rounded-full'
                   />
