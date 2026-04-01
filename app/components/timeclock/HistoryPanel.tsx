@@ -16,26 +16,26 @@ import { historyPanelPropsAreEqual } from './utils/memoComparisons';
 import type { ScanHistoryItem } from '../../lib/types/timeClockTypes';
 
 function getBgAndBorderClasses(statusCode?: string | null): string {
-  if (!statusCode) return 'bg-zinc-800/50';
+  if (!statusCode) return 'bg-app-elevated/50';
   if (statusCode === 'FR') return 'bg-red-900/20 border border-red-800/30';
   if (statusCode.startsWith('2'))
-    return 'bg-green-900/20 border border-green-800/30';
+    return 'bg-app-brand/20 border border-app-brand-muted/30';
   if (statusCode.startsWith('3'))
-    return 'bg-blue-900/20 border border-blue-800/30';
+    return 'bg-app-brand-secondary/18 border border-app-brand-secondary/35';
   if (statusCode.startsWith('4'))
     return 'bg-red-900/20 border border-red-800/30';
   if (statusCode.startsWith('5'))
     return 'bg-red-900/20 border border-red-800/30';
-  return 'bg-zinc-800/50';
+  return 'bg-app-elevated/50';
 }
 
 function getAvatarBgClass(statusCode?: string | null): string {
-  if (!statusCode) return 'bg-zinc-500/30';
+  if (!statusCode) return 'bg-app-brand/25';
   if (statusCode === 'FR') return 'bg-red-500/30';
-  if (statusCode.startsWith('200')) return 'bg-green-500/30';
-  if (statusCode.startsWith('201')) return 'bg-blue-500/30';
+  if (statusCode.startsWith('200')) return 'bg-app-brand/35';
+  if (statusCode.startsWith('201')) return 'bg-app-brand-secondary/35';
   if (statusCode.startsWith('202')) return 'bg-yellow-500/30';
-  return 'bg-zinc-500/30';
+  return 'bg-app-brand/25';
 }
 
 function getActionIconAndColor(
@@ -48,15 +48,15 @@ function getActionIconAndColor(
   if (statusCode && statusCode.startsWith('2')) {
     const Icon = action === 'entrada' ? LogIn : LogOut;
     if (statusCode.startsWith('200'))
-      return { Icon, colorClass: 'text-green-500' };
+      return { Icon, colorClass: 'text-app-brand-muted' };
     if (statusCode.startsWith('201'))
-      return { Icon, colorClass: 'text-blue-500' };
+      return { Icon, colorClass: 'text-app-on-dark' };
     if (statusCode.startsWith('202'))
-      return { Icon, colorClass: 'text-orange-500' };
-    return { Icon, colorClass: 'text-green-500' };
+      return { Icon, colorClass: 'text-yellow-400' };
+    return { Icon, colorClass: 'text-app-brand-muted' };
   }
   if (statusCode && statusCode.startsWith('3')) {
-    return { Icon: AlertCircle, colorClass: 'text-blue-500' };
+    return { Icon: AlertCircle, colorClass: 'text-app-brand-muted' };
   }
   if (
     statusCode &&
@@ -64,7 +64,7 @@ function getActionIconAndColor(
   ) {
     return { Icon: ShieldAlert, colorClass: 'text-red-500' };
   }
-  return { Icon: LogIn, colorClass: 'text-zinc-400' };
+  return { Icon: LogIn, colorClass: 'text-app-brand-muted/70' };
 }
 
 function truncateName(name: string, maxLength = 28): string {
@@ -129,23 +129,25 @@ const HistoryItem = React.memo(
           <itemData.Icon className={`h-6 w-6 ${itemData.colorClass}`} />
         </div>
         <div className='flex-1'>
-          <p className='text-lg font-bold text-white' title={scan.name}>
+          <p className='text-lg font-bold text-app-on-dark' title={scan.name}>
             {itemData.truncatedName}
           </p>
           <div className='flex justify-between items-center'>
-            <p className='text-base text-zinc-400'>{itemData.formattedTime}</p>
+            <p className='text-base text-app-brand-muted/80'>
+              {itemData.formattedTime}
+            </p>
             {scan.success ? (
               <span
                 className={`px-2 py-0.5 text-xs font-medium rounded-full ${
                   scan.action === 'entrada'
-                    ? 'bg-green-500/20 text-green-300'
-                    : 'bg-blue-500/20 text-blue-300'
+                    ? 'bg-app-brand/30 text-app-on-dark'
+                    : 'bg-app-brand-secondary/28 text-app-on-dark'
                 }`}
               >
                 {scan.action === 'entrada' ? 'Entrada' : 'Salida'}
               </span>
             ) : (
-              <span className='px-2 py-0.5 text-xs font-medium rounded-full bg-zinc-700/50 text-zinc-400'>
+              <span className='px-2 py-0.5 text-xs font-medium rounded-full bg-app-dark/80 text-app-brand-muted/70'>
                 Intento
               </span>
             )}
@@ -183,11 +185,13 @@ function HistoryPanelComponent({
   );
 
   return (
-    <div className='w-full md:w-80 bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800'>
+    <div className='w-full md:w-80 bg-app-dark rounded-lg p-4 border-2 border-app-brand/35'>
       <div className='flex items-center justify-between mb-4'>
         <div className='flex items-center gap-3'>
-          <History className='h-6 w-6 text-zinc-400' />
-          <h3 className='text-xl font-bold text-zinc-300'>Últimos Registros</h3>
+          <History className='h-6 w-6 text-app-brand-muted' />
+          <h3 className='text-xl font-bold text-app-on-dark'>
+            Últimos Registros
+          </h3>
         </div>
       </div>
 
@@ -196,16 +200,18 @@ function HistoryPanelComponent({
           ? Array.from({ length: maxItems }).map((_, index) => (
               <div
                 key={`history-placeholder-${index}`}
-                className='flex items-center gap-3 p-3 rounded-md bg-zinc-800/30'
+                className='flex items-center gap-3 p-3 rounded-md bg-app-elevated/40'
               >
-                <div className='h-10 w-10 rounded-full flex items-center justify-center bg-zinc-800'>
-                  <Clock className='h-5 w-5 text-zinc-600' />
+                <div className='h-10 w-10 rounded-full flex items-center justify-center bg-app-brand/25'>
+                  <Clock className='h-5 w-5 text-app-brand-muted/60' />
                 </div>
                 <div>
-                  <p className='text-lg font-medium text-zinc-600'>
+                  <p className='text-lg font-medium text-app-brand-muted/55'>
                     Sin registro
                   </p>
-                  <p className='text-base text-zinc-700'>00:00:00 • —</p>
+                  <p className='text-base text-app-brand-muted/40'>
+                    00:00:00 • —
+                  </p>
                 </div>
               </div>
             ))

@@ -80,7 +80,7 @@ export function PerformanceMonitor({
           onClick={() => setIsVisible(true)}
           variant='outline'
           size='sm'
-          className='bg-black/80 text-white border-gray-600 hover:bg-gray-800'
+          className='bg-app-dark/95 text-app-on-dark border-app-brand/50 hover:bg-app-elevated'
         >
           📊 Performance
         </Button>
@@ -90,7 +90,7 @@ export function PerformanceMonitor({
 
   return (
     <div className='fixed bottom-4 right-4 z-50 w-96 max-h-96 overflow-auto'>
-      <Card className='bg-black/90 text-white border-gray-600 p-4'>
+      <Card className='bg-app-dark/98 text-app-on-dark border-app-brand/45 p-4'>
         <div className='flex justify-between items-center mb-4'>
           <h3 className='text-lg font-semibold'>Performance Monitor</h3>
           <div className='flex gap-2'>
@@ -112,15 +112,18 @@ export function PerformanceMonitor({
 
         <div className='space-y-2 text-sm'>
           {Array.from(metrics.entries()).map(([componentName, metric]) => (
-            <div key={componentName} className='border-b border-gray-700 pb-2'>
+            <div
+              key={componentName}
+              className='border-b border-app-brand/40 pb-2'
+            >
               <div className='font-medium'>{componentName}</div>
-              <div className='text-gray-300'>
+              <div className='text-app-brand-muted'>
                 Renders: {metric.renderCount} | Avg:{' '}
                 {metric.averageRenderTime.toFixed(2)}ms | Max:{' '}
                 {metric.maxRenderTime.toFixed(2)}ms
               </div>
               {metric.renderTimes.length > 0 && (
-                <div className='text-xs text-gray-400'>
+                <div className='text-xs text-app-brand-muted/70'>
                   Last 5:{' '}
                   {metric.renderTimes
                     .slice(-5)
@@ -136,13 +139,13 @@ export function PerformanceMonitor({
         {report && (
           <div className='mt-4'>
             <h4 className='font-medium mb-2'>Latest Report:</h4>
-            <pre className='text-xs bg-gray-900 p-2 rounded overflow-auto max-h-32'>
+            <pre className='text-xs bg-app-canvas p-2 rounded overflow-auto max-h-32'>
               {report}
             </pre>
           </div>
         )}
 
-        <div className='mt-4 text-xs text-gray-400'>
+        <div className='mt-4 text-xs text-app-brand-muted/70'>
           Press Ctrl+Shift+P to toggle | Updates every second
         </div>
       </Card>

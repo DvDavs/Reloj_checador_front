@@ -438,7 +438,7 @@ export default function PublicidadManager() {
                 <div className='text-center space-y-1'>
                   <p className='text-lg font-medium text-slate-600'>
                     Arrastra y suelta una imagen aquí o{' '}
-                    <span className='text-green-600 font-bold hover:underline'>
+                    <span className='text-primary font-bold hover:underline'>
                       selecciona un archivo
                     </span>
                   </p>
@@ -497,7 +497,7 @@ export default function PublicidadManager() {
             <Button
               onClick={handleUpload}
               disabled={!selectedFile || uploading || images.length >= 6}
-              className='rounded-md bg-green-600 hover:bg-green-700 text-white px-6 font-bold flex items-center gap-2 h-10'
+              className='rounded-md bg-primary hover:bg-primary/90 text-primary-foreground px-6 font-bold flex items-center gap-2 h-10'
             >
               {uploading ? (
                 <Loader2 className='h-4 w-4 animate-spin' />

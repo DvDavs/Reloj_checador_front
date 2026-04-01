@@ -51,6 +51,18 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        /** Tokens de marca (ver app/globals.css → --app-*) */
+        app: {
+          light: 'hsl(var(--app-light) / <alpha-value>)',
+          dark: 'hsl(var(--app-dark) / <alpha-value>)',
+          elevated: 'hsl(var(--app-elevated) / <alpha-value>)',
+          canvas: 'hsl(var(--app-canvas) / <alpha-value>)',
+          brand: 'hsl(var(--app-brand) / <alpha-value>)',
+          'brand-secondary': 'hsl(var(--app-brand-secondary) / <alpha-value>)',
+          'brand-muted': 'hsl(var(--app-brand-muted) / <alpha-value>)',
+          'on-dark': 'hsl(var(--app-on-dark) / <alpha-value>)',
+          'on-light-muted': 'hsl(var(--app-on-light-muted) / <alpha-value>)',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

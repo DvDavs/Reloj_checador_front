@@ -37,62 +37,64 @@ function getStatusIndicator(
 
   if (isCompleted) {
     return {
-      icon: <CheckCircle className='h-5 w-5 text-green-400' />,
-      textColor: 'text-green-300',
-      bgColor: 'bg-green-500/20',
-      borderColor: 'border-green-600/50',
+      icon: <CheckCircle className='h-5 w-5 text-app-brand-muted' />,
+      textColor: 'text-app-on-dark',
+      bgColor: 'bg-app-brand/25',
+      borderColor: 'border-app-brand-muted/50',
       gradientBg:
-        'linear-gradient(to right, rgba(34,197,94,0.15), rgba(34,197,94,0.05))',
-      statusBgColor: 'bg-green-600/30',
-      statusTextColor: 'text-green-300',
+        'linear-gradient(to right, hsl(var(--app-brand) / 0.2), hsl(var(--app-brand) / 0.06))',
+      statusBgColor: 'bg-app-brand/35',
+      statusTextColor: 'text-app-on-dark',
     };
   }
 
   if (isInProgress) {
     return {
-      icon: <Timer className='h-5 w-5 text-blue-400' />,
-      textColor: 'text-blue-300',
-      bgColor: 'bg-blue-500/20',
-      borderColor: 'border-blue-600/50',
+      icon: <Timer className='h-5 w-5 text-app-brand-muted' />,
+      textColor: 'text-app-brand-muted',
+      bgColor: 'bg-app-brand-secondary/20',
+      borderColor: 'border-app-brand-secondary/50',
       gradientBg:
-        'linear-gradient(to right, rgba(59,130,246,0.15), rgba(59,130,246,0.05))',
-      statusBgColor: 'bg-blue-600/30',
-      statusTextColor: 'text-blue-300',
+        'linear-gradient(to right, hsl(var(--app-brand-secondary) / 0.18), hsl(var(--app-brand-secondary) / 0.05))',
+      statusBgColor: 'bg-app-brand-secondary/30',
+      statusTextColor: 'text-app-on-dark',
     };
   }
 
   if (isAbsent && shouldShowAsAbsent) {
     return {
-      icon: <Ban className='h-5 w-5 text-orange-400' />,
-      textColor: 'text-orange-300',
-      bgColor: 'bg-orange-500/20',
-      borderColor: 'border-orange-600/50',
+      icon: <Ban className='h-5 w-5 text-app-brand-muted' />,
+      textColor: 'text-app-brand-muted',
+      bgColor: 'bg-app-dark/60',
+      borderColor: 'border-app-brand/45',
       gradientBg:
-        'linear-gradient(to right, rgba(251,146,60,0.15), rgba(251,146,60,0.05))',
-      statusBgColor: 'bg-orange-600/30',
-      statusTextColor: 'text-orange-300',
+        'linear-gradient(to right, hsl(var(--app-dark) / 0.5), hsl(var(--app-brand) / 0.12))',
+      statusBgColor: 'bg-app-brand/25',
+      statusTextColor: 'text-app-on-dark',
     };
   }
 
   return {
-    icon: <Timer className='h-5 w-5 text-zinc-300' />,
-    textColor: 'text-zinc-300',
-    bgColor: 'bg-zinc-600/20',
-    borderColor: 'border-zinc-700',
+    icon: <Timer className='h-5 w-5 text-app-brand-muted/80' />,
+    textColor: 'text-app-brand-muted',
+    bgColor: 'bg-app-brand/15',
+    borderColor: 'border-app-brand/35',
     gradientBg: '',
-    statusBgColor: 'bg-zinc-700',
-    statusTextColor: 'text-zinc-300',
+    statusBgColor: 'bg-app-elevated',
+    statusTextColor: 'text-app-on-dark',
   };
 }
 
 function getTimeBoxColor(estatus: string, tipo: 'entrada' | 'salida'): string {
-  if (estatus === 'COMPLETADA') return 'border-green-600/50';
+  if (estatus === 'COMPLETADA') return 'border-app-brand-muted/50';
   if (estatus === 'EN_CURSO')
-    return tipo === 'entrada' ? 'border-blue-600/50' : 'border-blue-600/30';
+    return tipo === 'entrada'
+      ? 'border-app-brand-muted/50'
+      : 'border-app-brand-secondary/40';
   if (estatus === 'RETARDO' || estatus === 'RETARDO_SIN_SALIDA')
-    return 'border-yellow-600/50';
-  if (estatus.includes('AUSENTE')) return 'border-gray-500/70';
-  return 'border-zinc-700';
+    return 'border-yellow-500/45';
+  if (estatus.includes('AUSENTE')) return 'border-app-brand-muted/35';
+  return 'border-app-brand/35';
 }
 
 // Memoized TurnoItem component to prevent unnecessary re-renders
@@ -235,11 +237,11 @@ const TurnoItem = React.memo(
       <motion.div
         className={`${sizeClasses.container} rounded-md border transition-all duration-300 cursor-pointer ${
           isExpanded ? 'scale-100' : 'scale-98 hover:scale-100'
-        } ${isActive ? 'border-blue-600 shadow-blue-500/40 shadow-lg active' : borderColor}`}
+        } ${isActive ? 'border-app-brand-secondary shadow-app-brand-secondary/35 shadow-lg active' : borderColor}`}
         style={{
           opacity: isCompleted ? 0.9 : isPending ? 0.95 : 1,
           background: isActive
-            ? 'linear-gradient(to right, rgba(59,130,246,0.2), rgba(59,130,246,0.05))'
+            ? 'linear-gradient(to right, hsl(var(--app-brand-secondary) / 0.28), hsl(var(--app-brand) / 0.08))'
             : gradientBg,
         }}
         onClick={onClick}
@@ -251,7 +253,7 @@ const TurnoItem = React.memo(
       >
         {isExpanded ? (
           <>
-            <div className='flex justify-between items-center mb-3 bg-zinc-800/70 -mx-3 -mt-3 px-3 py-2 rounded-t-md'>
+            <div className='flex justify-between items-center mb-3 bg-app-elevated/90 -mx-3 -mt-3 px-3 py-2 rounded-t-md'>
               <div className='flex items-center gap-2'>
                 <motion.div
                   className={`${sizeClasses.icon} rounded-full flex items-center justify-center ${bgColor}`}
@@ -281,7 +283,7 @@ const TurnoItem = React.memo(
 
             {isActive && isCompleted && (
               <motion.div
-                className='mb-3 px-2 py-1 text-xs bg-green-600/40 text-green-300 border border-green-600/50 rounded-md flex items-center gap-1'
+                className='mb-3 px-2 py-1 text-xs bg-app-brand/40 text-app-on-dark border border-app-brand-muted/45 rounded-md flex items-center gap-1'
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
@@ -305,7 +307,7 @@ const TurnoItem = React.memo(
 
             {isInProgress && jornada.estatusJornada !== 'RETARDO' && (
               <motion.div
-                className='mb-2 px-2 py-1 text-xs font-medium bg-blue-600/30 text-blue-300 rounded-md inline-flex items-center'
+                className='mb-2 px-2 py-1 text-xs font-medium bg-app-brand-secondary/30 text-app-on-dark rounded-md inline-flex items-center'
                 initial={{ opacity: 0, x: -5 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
@@ -325,7 +327,7 @@ const TurnoItem = React.memo(
                 className={`rounded-lg p-3 border ${getTimeBoxColor(jornada.estatusJornada, 'entrada')}`}
               >
                 <div className='flex items-center gap-2 mb-1'>
-                  <LogIn className='h-4 w-4 text-zinc-400' />
+                  <LogIn className='h-4 w-4 text-app-brand-muted/80' />
                   <p className='text-base font-medium'>Entrada</p>
                 </div>
                 {jornada.horaEntradaReal ? (
@@ -338,13 +340,13 @@ const TurnoItem = React.memo(
                     jornada.estatusJornada === 'AUSENTE') &&
                   shouldShowAsAbsent ? (
                   <div className='flex items-center gap-2'>
-                    <p className='text-2xl font-bold text-gray-300'>
+                    <p className='text-2xl font-bold text-app-on-dark/85'>
                       Sin entrada
                     </p>
-                    <Ban className='h-5 w-5 text-gray-400' />
+                    <Ban className='h-5 w-5 text-app-brand-muted/70' />
                   </div>
                 ) : (
-                  <p className='text-2xl font-bold text-zinc-500'>
+                  <p className='text-2xl font-bold text-app-brand-muted/55'>
                     {formatTime(jornada.horaEntradaProgramada)}
                   </p>
                 )}
@@ -353,7 +355,7 @@ const TurnoItem = React.memo(
                 className={`rounded-lg p-3 border ${getTimeBoxColor(jornada.estatusJornada, 'salida')}`}
               >
                 <div className='flex items-center gap-2 mb-1'>
-                  <LogOut className='h-4 w-4 text-zinc-400' />
+                  <LogOut className='h-4 w-4 text-app-brand-muted/80' />
                   <p className='text-base font-medium'>Salida</p>
                 </div>
                 {jornada.horaSalidaReal ? (
@@ -363,13 +365,13 @@ const TurnoItem = React.memo(
                 ) : jornada.estatusJornada === 'AUSENTE_SALIDA' &&
                   shouldShowAsAbsent ? (
                   <div className='flex items-center gap-2'>
-                    <p className='text-2xl font-bold text-gray-300'>
+                    <p className='text-2xl font-bold text-app-on-dark/85'>
                       Sin salida
                     </p>
-                    <Ban className='h-5 w-5 text-gray-400' />
+                    <Ban className='h-5 w-5 text-app-brand-muted/70' />
                   </div>
                 ) : (
-                  <p className='text-2xl font-bold text-zinc-500'>
+                  <p className='text-2xl font-bold text-app-brand-muted/55'>
                     {formatTime(jornada.horaSalidaProgramada)}
                   </p>
                 )}
@@ -395,12 +397,12 @@ const TurnoItem = React.memo(
                   className={`flex items-center gap-1 ${sizeClasses.subText} mt-1`}
                 >
                   {jornada.horaEntradaReal && (
-                    <span className='text-green-300'>
+                    <span className='text-app-brand-muted'>
                       E: {formatTime(jornada.horaEntradaReal)}
                     </span>
                   )}
                   {jornada.horaSalidaReal && (
-                    <span className='text-blue-300'>
+                    <span className='text-app-on-dark/90'>
                       {jornada.horaEntradaReal && ' • '}S:{' '}
                       {formatTime(jornada.horaSalidaReal)}
                     </span>
@@ -476,12 +478,12 @@ function ShiftsPanelComponent({
 
   if (isLoading) {
     return (
-      <div className='w-full bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800'>
-        <div className='h-4 w-40 bg-zinc-800 rounded mb-4 animate-pulse' />
+      <div className='w-full bg-app-dark rounded-lg p-4 border-2 border-app-brand/35'>
+        <div className='h-4 w-40 bg-app-elevated rounded mb-4 animate-pulse' />
         {Array.from({ length: 3 }).map((_, idx) => (
           <div
             key={idx}
-            className='h-16 bg-zinc-800/60 rounded-md border border-zinc-800 mb-2 animate-pulse'
+            className='h-16 bg-app-elevated/70 rounded-md border border-app-brand/30 mb-2 animate-pulse'
           />
         ))}
       </div>
@@ -489,18 +491,18 @@ function ShiftsPanelComponent({
   }
 
   return (
-    <div className='w-full bg-zinc-900 rounded-lg p-4 border-2 border-zinc-800'>
+    <div className='w-full bg-app-dark rounded-lg p-4 border-2 border-app-brand/35'>
       <div className='flex items-center gap-2 mb-4'>
-        <p className='text-lg font-semibold text-white'>Turnos del día</p>
+        <p className='text-lg font-semibold text-app-on-dark'>Turnos del día</p>
         {nextRecommendedAction === 'ALL_COMPLETE' && (
-          <span className='text-xs text-green-300 bg-green-900/40 border border-green-700 rounded-full px-2 py-0.5'>
+          <span className='text-xs text-app-on-dark bg-app-brand/45 border border-app-brand-muted/40 rounded-full px-2 py-0.5'>
             Completados
           </span>
         )}
       </div>
 
       {sortedJornadas.length === 0 ? (
-        <div className='text-center py-2 text-sm text-zinc-500'>
+        <div className='text-center py-2 text-sm text-app-brand-muted/70'>
           No hay turnos programados hoy
         </div>
       ) : (

@@ -479,9 +479,9 @@ const TimeClock = React.memo<TimeClockProps>(function TimeClock({
   );
 
   return (
-    <div className='flex items-center justify-center min-h-screen w-full bg-black text-white p-2 sm:p-3 xl:p-4 overflow-hidden'>
+    <div className='flex items-center justify-center min-h-screen w-full bg-app-canvas text-app-on-dark p-2 sm:p-3 xl:p-4 overflow-hidden'>
       {/* Contenedor centralizado con límites máximos - efecto letterbox en pantallas grandes */}
-      <div className='w-full max-w-[1600px] max-h-[1000px] h-[98vh] sm:h-[96vh] lg:h-[95vh] rounded-lg sm:rounded-xl border-2 border-orange-800/40 bg-zinc-950/60 p-2 sm:p-3 xl:p-4 flex flex-col gap-2 sm:gap-3 xl:gap-4'>
+      <div className='w-full max-w-[1600px] max-h-[1000px] h-[98vh] sm:h-[96vh] lg:h-[95vh] rounded-lg sm:rounded-xl border-2 border-app-brand-muted/35 bg-app-dark/95 p-2 sm:p-3 xl:p-4 flex flex-col gap-2 sm:gap-3 xl:gap-4'>
         {/* Header - altura basada en contenido */}
         <div className='shrink-0'>
           <HeaderClock {...headerProps} />

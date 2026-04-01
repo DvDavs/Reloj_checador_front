@@ -18,6 +18,9 @@ import {
   Calendar,
   LogOut,
   Settings,
+  FileCheck2,
+  ScanLine,
+  BarChart3,
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/use-sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -109,7 +112,7 @@ const navItems: NavItemData[] = [
   {
     id: 'justificaciones',
     href: '/justificaciones',
-    icon: <ClipboardList size={20} />,
+    icon: <FileCheck2 size={20} />,
     text: 'Justificaciones',
     keywords: [
       'justificaciones',
@@ -124,14 +127,14 @@ const navItems: NavItemData[] = [
   {
     id: 'chequeos',
     href: '/chequeos',
-    icon: <Clock size={20} />,
+    icon: <ScanLine size={20} />,
     text: 'Chequeos',
     keywords: ['chequeos', 'registros', 'entradas', 'salidas', 'correccion'],
   },
   {
     id: 'reportes',
     href: '/reportes',
-    icon: <ClipboardList size={20} />,
+    icon: <BarChart3 size={20} />,
     text: 'Reportes',
     keywords: ['reportes', 'export', 'excel', 'csv', 'pdf', 'word'],
   },
@@ -400,17 +403,17 @@ export default function Sidebar() {
               >
                 <div className='flex-shrink-0'>
                   <img
-                    src='/Logo-Tec-Pochutla.png'
-                    alt='Logo ITO'
+                    src='/Logo-Kronet.png'
+                    alt='Logo KRONET'
                     className='w-10 h-10 object-contain rounded-lg shadow-md border border-[hsl(var(--border))]'
                   />
                 </div>
                 <div className='flex-1 min-w-0'>
                   <h1 className='text-lg font-bold text-[hsl(var(--sidebar-foreground))] leading-tight'>
-                    Sistema de Control
+                    KRONET
                   </h1>
                   <p className='text-xs text-[hsl(var(--muted-foreground))] leading-tight mt-0.5'>
-                    TecNM Campus Pochutla
+                    Sistema de Asistencias
                   </p>
                 </div>
                 <div className='ml-auto'>
@@ -419,14 +422,14 @@ export default function Sidebar() {
               </Link>
             ) : (
               <div className='flex justify-center opacity-100 duration-200'>
-                <Tooltip content='TecNM Campus Pochutla - Sistema de Asistencias'>
+                <Tooltip content='KRONET — Sistema de Asistencias'>
                   <Link
                     href='/'
                     className='group cursor-pointer p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))] transition-colors'
                   >
                     <img
-                      src='/Logo-Tec-Pochutla.png'
-                      alt='Logo ITO'
+                      src='/Logo-Kronet.png'
+                      alt='Logo KRONET'
                       className='w-8 h-8 object-contain rounded-lg shadow-md border border-[hsl(var(--border))] group-hover:scale-105 transition-transform duration-200'
                     />
                   </Link>

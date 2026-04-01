@@ -87,8 +87,8 @@ export function AdvertisingPanel({
     () => [
       {
         type: 'image',
-        src: '/Logo-Tec-Pochutla.png',
-        alt: 'Logo ITO',
+        src: '/Logo-Kronet.png',
+        alt: 'Logo KRONET',
         durationMs: 8000,
       },
       { type: 'image', src: '/placeholder-logo.png', alt: 'Publicidad 1' },
@@ -142,7 +142,7 @@ export function AdvertisingPanel({
   const containerPadding = is916 ? '' : 'p-3';
 
   return (
-    <div className='w-full h-full relative flex items-center justify-center bg-zinc-900 rounded-lg border-2 border-orange-800/40 overflow-hidden'>
+    <div className='w-full h-full relative flex items-center justify-center bg-app-dark rounded-lg border-2 border-app-brand-muted/40 overflow-hidden'>
       {/* Fondo con blur - solo visible cuando NO es 9:16 */}
       {!is916 && (
         <div className='absolute inset-0 overflow-hidden'>
@@ -208,8 +208,8 @@ export function AdvertisingPanel({
               onClick={() => goTo(i)}
               className={`h-2.5 w-2.5 rounded-full transition-all duration-200 ${
                 i === currentIndex
-                  ? 'bg-zinc-200 scale-125'
-                  : 'bg-zinc-600 hover:bg-zinc-500'
+                  ? 'bg-app-light scale-125'
+                  : 'bg-app-brand/50 hover:bg-app-brand-secondary/60'
               }`}
             />
           ))}

@@ -48,13 +48,13 @@ export default function LoginPage() {
       <Card className='w-full max-w-sm bg-white border-gray-200 text-gray-900 shadow-lg'>
         <CardHeader className='text-center space-y-4'>
           <Image
-            src='/Logo-Tec-Pochutla.png'
-            alt='Logo ITO'
+            src='/Logo-Kronet.png'
+            alt='Logo KRONET'
             width={80}
             height={80}
             className='mx-auto rounded-full'
           />
-          <CardTitle className='text-2xl'>Control de Asistencia</CardTitle>
+          <CardTitle className='text-2xl'>KRONET</CardTitle>
           <CardDescription className='text-gray-500'>
             Acceso al panel de administración
           </CardDescription>

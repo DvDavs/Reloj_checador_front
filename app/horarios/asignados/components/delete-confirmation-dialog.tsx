@@ -7,8 +7,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { AlertCircle, Loader2 } from "lucide-react";
+} from '@/components/ui/alert-dialog';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
 interface DeleteConfirmationDialogProps {
   isOpen: boolean;
@@ -25,42 +25,54 @@ export function DeleteConfirmationDialog({
 }: DeleteConfirmationDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="bg-zinc-900 border-zinc-800 text-white">
+      <AlertDialogContent className='bg-card border-border text-card-foreground shadow-xl'>
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <AlertCircle className="h-6 w-6 text-red-500" />
+          {/* Icono de advertencia con fondo destructive */}
+          <div className='flex justify-center mb-2'>
+            <div className='w-12 h-12 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center'>
+              <AlertTriangle className='h-6 w-6 text-destructive' />
+            </div>
+          </div>
+
+          <AlertDialogTitle className='text-center text-foreground font-semibold text-lg'>
             Confirmar Desasignación
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-zinc-400 pt-2">
+
+          <AlertDialogDescription className='text-center text-muted-foreground pt-1 leading-relaxed'>
             ¿Estás seguro de que quieres desasignar este horario?
             <br />
-            Esta acción no se puede deshacer y el empleado perderá la asignación de horario.
+            <span className='text-foreground/70 font-medium text-xs'>
+              Esta acción no se puede deshacer y el empleado perderá la
+              asignación de horario.
+            </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel 
-            onClick={onClose} 
+
+        <AlertDialogFooter className='mt-2 gap-2 sm:gap-2'>
+          <AlertDialogCancel
+            onClick={onClose}
             disabled={isDeleting}
-            className="border-zinc-700 hover:bg-zinc-800"
+            className='flex-1 border-border bg-muted/40 text-foreground hover:bg-muted hover:border-border/80 transition-colors'
           >
             Cancelar
           </AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={onConfirm} 
+
+          <AlertDialogAction
+            onClick={onConfirm}
             disabled={isDeleting}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className='flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-medium transition-colors'
           >
             {isDeleting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                 Desasignando...
               </>
             ) : (
-              "Sí, desasignar horario"
+              'Sí, desasignar'
             )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
-} 
+}

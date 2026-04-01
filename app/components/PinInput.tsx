@@ -109,7 +109,7 @@ export default function PinInput({
       <div className='relative mb-6 flex h-64 w-64 items-center justify-center'>
         {/* Background glow effect */}
         <motion.div
-          className='absolute h-56 w-56 rounded-full bg-cyan-500/10'
+          className='absolute h-56 w-56 rounded-full bg-app-brand/15'
           animate={{
             scale: [1, 1.05, 1],
             opacity: [0.3, 0.5, 0.3],
@@ -128,10 +128,10 @@ export default function PinInput({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
         >
-          <div className='bg-zinc-900/80 backdrop-blur-sm border-2 border-cyan-500/50 rounded-2xl px-8 py-6 min-w-[280px]'>
+          <div className='bg-app-dark/90 backdrop-blur-sm border-2 border-app-brand-muted/45 rounded-2xl px-8 py-6 min-w-[280px]'>
             <div className='text-center'>
               <div
-                className='text-4xl font-mono tracking-wider text-cyan-400 min-h-[3rem] flex items-center justify-center'
+                className='text-4xl font-mono tracking-wider text-app-brand-muted min-h-[3rem] flex items-center justify-center'
                 style={{ fontFamily: 'monospace' }}
               >
                 {isLoading ? (
@@ -141,7 +141,7 @@ export default function PinInput({
                       duration: 1,
                       repeat: Number.POSITIVE_INFINITY,
                     }}
-                    className='text-cyan-400'
+                    className='text-app-brand-muted'
                   >
                     Procesando...
                   </motion.div>
@@ -155,7 +155,7 @@ export default function PinInput({
 
         {/* Neon glow effect around the input */}
         <motion.div
-          className='absolute h-72 w-72 rounded-full border border-cyan-500/20'
+          className='absolute h-72 w-72 rounded-full border border-app-brand-muted/25'
           animate={{
             scale: [1, 1.1, 1],
             opacity: [0.2, 0.4, 0.2],
@@ -170,7 +170,7 @@ export default function PinInput({
 
       {/* Instructions - matching the existing instruction message area */}
       <div className='h-12 flex items-center justify-center'>
-        <div className='text-center text-xl font-medium text-zinc-300 flex items-center gap-2'>
+        <div className='text-center text-xl font-medium text-app-on-dark flex items-center gap-2'>
           {isLoading ? (
             <>
               <motion.div
@@ -180,13 +180,13 @@ export default function PinInput({
                   repeat: Number.POSITIVE_INFINITY,
                   ease: 'linear',
                 }}
-                className='h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full'
+                className='h-5 w-5 border-2 border-app-brand-muted border-t-transparent rounded-full'
               />
               Verificando número...
             </>
           ) : (
             <>
-              <span className='text-cyan-400'>⌨</span>
+              <span className='text-app-brand-muted'>⌨</span>
               Ingrese su número de tarjeta
             </>
           )}

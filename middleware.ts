@@ -53,9 +53,9 @@ export const config = {
      * - api (rutas de API de Next.js)
      * - _next/static (archivos estáticos)
      * - _next/image (optimización de imágenes)
-     * - Logo-Tec-Pochutla.png.png (tu logo)
+     * - Logo-Kronet.png (logo de la app)
      * - favicon.ico (icono de favicon)
      */
-    '/((?!api|_next/static|_next/image|Logo-Tec-Pochutla.png|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|Logo-Kronet.png|favicon.ico).*)',
   ],
 };

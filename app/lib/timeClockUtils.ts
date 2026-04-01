@@ -80,31 +80,29 @@ export const getStyleClassesForCode = (
   text: string;
   bgColor: string;
 } => {
+  const neutral = {
+    panel: 'bg-app-dark border-app-brand/35',
+    icon: 'text-app-brand-muted',
+    timeBox: 'bg-app-elevated text-app-on-dark border-app-brand/40',
+    text: 'text-app-on-dark',
+    bgColor: 'bg-app-brand/15',
+  };
+
   if (!code) {
-    // Estado por defecto cuando no hay código
-    return {
-      panel: 'bg-zinc-900 border-zinc-800',
-      icon: 'text-zinc-500',
-      timeBox: 'bg-zinc-800 text-zinc-400 border-zinc-700',
-      text: 'text-zinc-300',
-      bgColor: 'bg-zinc-700/20',
-    };
+    return neutral;
   }
 
-  // Código especial FR - se trata como error visualmente
   if (code === 'FR') {
     return {
       panel: 'bg-red-900/50 border-red-500',
       icon: 'text-red-500',
-      timeBox: 'bg-zinc-800 text-zinc-400 border-zinc-700', // Neutral en errores
+      timeBox: 'bg-app-elevated text-app-on-dark border-app-brand/40',
       text: 'text-red-400',
       bgColor: 'bg-red-500/20',
     };
   }
 
-  // Códigos de éxito (2xx)
   if (code.startsWith('2')) {
-    // Caso especial para retardo (202)
     if (code === '202') {
       return {
         panel: 'bg-yellow-900/50 border-yellow-500',
@@ -114,57 +112,47 @@ export const getStyleClassesForCode = (
         bgColor: 'bg-yellow-500/20',
       };
     }
-    // Otros éxitos (200, 201, 203)
     return {
-      panel: 'bg-green-900/50 border-green-500',
-      icon: 'text-green-500',
-      timeBox: 'bg-green-500/30 text-green-300 border-green-500',
-      text: 'text-green-400',
-      bgColor: 'bg-green-500/20',
+      panel: 'bg-app-brand/25 border-app-brand-muted/50',
+      icon: 'text-app-brand-muted',
+      timeBox: 'bg-app-brand/30 text-app-on-dark border-app-brand-muted/50',
+      text: 'text-app-on-dark',
+      bgColor: 'bg-app-brand/15',
     };
   }
 
-  // Códigos de información (3xx)
   if (code.startsWith('3')) {
     return {
-      panel: 'bg-blue-900/50 border-blue-500',
-      icon: 'text-blue-500',
-      timeBox: 'bg-blue-500/30 text-blue-300 border-blue-500',
-      text: 'text-blue-400',
-      bgColor: 'bg-blue-500/20',
+      panel: 'bg-app-brand-secondary/20 border-app-brand-secondary/55',
+      icon: 'text-app-brand-muted',
+      timeBox:
+        'bg-app-brand-secondary/25 text-app-on-dark border-app-brand-muted/45',
+      text: 'text-app-on-dark',
+      bgColor: 'bg-app-brand-secondary/15',
     };
   }
 
-  // Códigos de error de reglas de negocio (4xx)
   if (code.startsWith('4')) {
     return {
       panel: 'bg-red-900/50 border-red-500',
       icon: 'text-red-500',
-      timeBox: 'bg-zinc-800 text-zinc-400 border-zinc-700', // Neutral en errores
+      timeBox: 'bg-app-elevated text-app-on-dark border-app-brand/40',
       text: 'text-red-400',
       bgColor: 'bg-red-500/20',
     };
   }
 
-  // Códigos de error técnicos (5xx)
   if (code.startsWith('5')) {
     return {
       panel: 'bg-red-900/50 border-red-500',
       icon: 'text-red-500',
-      timeBox: 'bg-zinc-800 text-zinc-400 border-zinc-700', // Neutral en errores técnicos
+      timeBox: 'bg-app-elevated text-app-on-dark border-app-brand/40',
       text: 'text-red-400',
       bgColor: 'bg-red-500/20',
     };
   }
 
-  // Para cualquier otro código o formato inesperado, usar estilo neutral
-  return {
-    panel: 'bg-zinc-900 border-zinc-800',
-    icon: 'text-zinc-500',
-    timeBox: 'bg-zinc-800 text-zinc-400 border-zinc-700',
-    text: 'text-zinc-300',
-    bgColor: 'bg-zinc-700/20',
-  };
+  return neutral;
 };
 
 export const formatTime = (timeString: string | null): string => {
@@ -187,26 +175,32 @@ export const formatCurrentTime = (date: Date = new Date()): string => {
   ).padStart(2, '0')}`;
 };
 
-export const getScanColor = (state: ScanState, statusCode?: string) => {
-  // Si hay un código de estado, usar el mapeo de estilos basado en código
+export type TimeclockScanColor =
+  | 'success'
+  | 'info'
+  | 'warning'
+  | 'error'
+  | 'idle'
+  | 'neutral';
+
+export const getScanColor = (
+  state: ScanState,
+  statusCode?: string
+): TimeclockScanColor => {
+  if (statusCode === 'FR') return 'error';
+
   if (statusCode) {
-    // Caso especial para FR - se trata como failed
-    if (statusCode === 'FR') {
-      return 'red';
+    if (statusCode.startsWith('2')) {
+      if (statusCode === '202') return 'warning';
+      return 'success';
     }
-
-    const styles = getStyleClassesForCode(statusCode);
-
-    // Extraer el color base sin el prefijo "text-" y el sufijo "-500"
-    const colorMatch = styles.icon.match(/text-(\w+)-\d+/);
-    if (colorMatch && colorMatch[1]) {
-      return colorMatch[1]; // Devuelve "green", "red", "blue", etc.
-    }
+    if (statusCode.startsWith('3')) return 'info';
+    if (statusCode.startsWith('4') || statusCode.startsWith('5'))
+      return 'error';
   }
 
-  if (state === 'success') return 'green';
-  if (state === 'failed') return 'red';
-  // Estados idle/ready ahora usan anaranjado en lugar de azul
-  if (state === 'idle' || state === 'ready') return 'orange';
-  return 'blue'; // Color neutro para otros estados
+  if (state === 'success') return 'success';
+  if (state === 'failed') return 'error';
+  if (state === 'idle' || state === 'ready') return 'idle';
+  return 'neutral';
 };

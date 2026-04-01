@@ -127,8 +127,8 @@ function LanzadorChecadorContent() {
               <div className='flex items-center gap-4'>
                 <Link href='/login'>
                   <img
-                    src='/Logo-Tec-Pochutla.png'
-                    alt='Logo'
+                    src='/Logo-Kronet.png'
+                    alt='Logo KRONET'
                     className='h-12 w-auto rounded-full'
                   />
                 </Link>
