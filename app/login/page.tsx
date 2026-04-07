@@ -15,8 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, AlertCircle, Fingerprint, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import Image from 'next/image';
 import Link from 'next/link';
+import { KRONET_BRANDING } from '@/lib/branding';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -47,14 +47,13 @@ export default function LoginPage() {
     <div className='flex items-center justify-center min-h-screen bg-gray-50 p-4'>
       <Card className='w-full max-w-sm bg-white border-gray-200 text-gray-900 shadow-lg'>
         <CardHeader className='text-center space-y-4'>
-          <Image
-            src='/Logo-Kronet.png'
-            alt='Logo KRONET'
-            width={80}
-            height={80}
-            className='mx-auto rounded-full'
+          <img
+            src={KRONET_BRANDING.logoCompletoSvg.src}
+            alt='KRONET'
+            width={KRONET_BRANDING.logoCompletoSvg.width}
+            height={KRONET_BRANDING.logoCompletoSvg.height}
+            className='mx-auto w-full max-w-[280px] h-auto object-contain'
           />
-          <CardTitle className='text-2xl'>KRONET</CardTitle>
           <CardDescription className='text-gray-500'>
             Acceso al panel de administración
           </CardDescription>

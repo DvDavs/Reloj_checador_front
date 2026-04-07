@@ -28,6 +28,7 @@ import { Tooltip, TooltipProvider } from './tooltip';
 import { CommandPalette } from './command-palette';
 import { Button } from '../../components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { KRONET_BRANDING } from '@/lib/branding';
 
 // Estructura de datos dinámica para los elementos de navegación
 interface NavItemData {
@@ -403,8 +404,10 @@ export default function Sidebar() {
               >
                 <div className='flex-shrink-0'>
                   <img
-                    src='/Logo-Kronet.png'
+                    src={KRONET_BRANDING.isotipo.src}
                     alt='Logo KRONET'
+                    width={KRONET_BRANDING.isotipo.width}
+                    height={KRONET_BRANDING.isotipo.height}
                     className='w-10 h-10 object-contain rounded-lg shadow-md border border-[hsl(var(--border))]'
                   />
                 </div>
@@ -428,8 +431,10 @@ export default function Sidebar() {
                     className='group cursor-pointer p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))] transition-colors'
                   >
                     <img
-                      src='/Logo-Kronet.png'
+                      src={KRONET_BRANDING.isotipo.src}
                       alt='Logo KRONET'
+                      width={KRONET_BRANDING.isotipo.width}
+                      height={KRONET_BRANDING.isotipo.height}
                       className='w-8 h-8 object-contain rounded-lg shadow-md border border-[hsl(var(--border))] group-hover:scale-105 transition-transform duration-200'
                     />
                   </Link>

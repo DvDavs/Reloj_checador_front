@@ -19,7 +19,7 @@ import {
   Minimize,
   RefreshCw,
 } from 'lucide-react';
-import Image from 'next/image';
+import { KRONET_BRANDING } from '@/lib/branding';
 import type { HeaderClockProps } from './interfaces';
 import { headerClockPropsAreEqual } from './utils/memoComparisons';
 
@@ -56,12 +56,12 @@ function HeaderClockComponent({
     <div className='flex justify-between items-center bg-app-dark rounded-lg px-4 py-5 border-2 border-app-brand-muted/40'>
       <div className='flex items-center gap-3'>
         <div className='h-16 w-16 relative'>
-          <Image
-            src='/Logo-Kronet.png'
+          <img
+            src={KRONET_BRANDING.isotipo.src}
             alt='Logo KRONET'
-            width={64}
-            height={64}
-            className='object-contain'
+            width={KRONET_BRANDING.isotipo.width}
+            height={KRONET_BRANDING.isotipo.height}
+            className='object-contain h-16 w-16'
           />
         </div>
         <span className='text-5xl xl:text-6xl font-bold text-white leading-none'>

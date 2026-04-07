@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiClient } from '@/lib/apiClient';
+import { KRONET_BRANDING } from '@/lib/branding';
 
 export type AdvertisingItem = {
   type: 'image' | 'video';
@@ -87,9 +88,11 @@ export function AdvertisingPanel({
     () => [
       {
         type: 'image',
-        src: '/Logo-Kronet.png',
+        src: KRONET_BRANDING.isotipo.src,
         alt: 'Logo KRONET',
         durationMs: 8000,
+        aspectRatio:
+          KRONET_BRANDING.isotipo.width / KRONET_BRANDING.isotipo.height,
       },
       { type: 'image', src: '/placeholder-logo.png', alt: 'Publicidad 1' },
       { type: 'image', src: '/placeholder-logo.svg', alt: 'Publicidad 2' },

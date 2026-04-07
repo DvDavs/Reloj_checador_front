@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import { KRONET_BRANDING } from '@/lib/branding';
 import {
   Clock,
   Users,
@@ -69,13 +69,13 @@ export default function Home() {
             <div className='relative shrink-0'>
               <div className='absolute inset-0 bg-gradient-to-br from-primary/25 to-accent/20 rounded-2xl blur-xl scale-110' />
               <div className='relative w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden border-2 border-border shadow-xl bg-card flex items-center justify-center'>
-                <Image
-                  src='/Logo-Kronet.png'
+                <img
+                  src={KRONET_BRANDING.isotipo.src}
                   alt='Logo KRONET'
-                  width={112}
-                  height={112}
-                  className='object-contain p-2'
-                  priority
+                  width={KRONET_BRANDING.isotipo.width}
+                  height={KRONET_BRANDING.isotipo.height}
+                  className='object-contain p-2 h-[112px] w-[112px]'
+                  fetchPriority='high'
                 />
               </div>
             </div>
