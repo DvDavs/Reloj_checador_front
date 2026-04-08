@@ -61,7 +61,8 @@ export const config = {
      * - _next/image (optimización de imágenes)
      * - /branding/* (logos e identidad en public/branding)
      * - favicon.ico (icono de favicon)
+     * - archivos con extensión (png, jpg, svg, html, json, etc.)
      */
-    '/((?!api|_next/static|_next/image|branding/|favicon\\.ico).*)',
+    '/((?!api|_next/static|_next/image|branding/|favicon\\.ico|.*\\..*).*)',
   ],
 };

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
-import { CardContent } from '@/components/ui/card';
 import {
   Trash2,
   Loader2,
@@ -16,7 +15,6 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { EnhancedCard } from '@/app/components/shared/enhanced-card';
 import { cn } from '@/lib/utils';
 import { PublicidadDeleteDialog } from './PublicidadDeleteDialog';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -163,7 +161,7 @@ export default function PublicidadManager() {
           <p className='ml-7 text-xs text-slate-500 font-medium'>
             La imagen se ha añadido correctamente a la galería.
           </p>
-        ) as any,
+        ),
       });
 
       clearSelection();
@@ -272,7 +270,7 @@ export default function PublicidadManager() {
           <p className='ml-7 text-xs text-slate-500 font-medium'>
             La visibilidad del anuncio se ha modificado.
           </p>
-        ) as any,
+        ),
       });
     } catch (error) {
       console.error('Error toggling image:', error);
@@ -344,7 +342,7 @@ export default function PublicidadManager() {
           <p className='ml-7 text-xs text-slate-500 font-medium'>
             La galería se ha reorganizado y guardado con éxito.
           </p>
-        ) as any,
+        ),
       });
     } catch (error) {
       console.error('Error saving order:', error);

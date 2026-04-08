@@ -24,7 +24,12 @@ export function DeleteConfirmationDialog({
   isDeleting,
 }: DeleteConfirmationDialogProps) {
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
+    <AlertDialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <AlertDialogContent className='bg-card border-border text-card-foreground shadow-xl'>
         <AlertDialogHeader>
           {/* Icono de advertencia con fondo destructive */}

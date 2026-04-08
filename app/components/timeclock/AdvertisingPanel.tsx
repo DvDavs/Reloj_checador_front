@@ -15,8 +15,6 @@ export type AdvertisingItem = {
   src: string;
   alt?: string;
   durationMs?: number;
-  /** Aspect ratio calculado (width/height). 9:16 ≈ 0.5625 */
-  aspectRatio?: number;
 };
 
 export interface AdvertisingPanelProps {
@@ -37,6 +35,7 @@ export function AdvertisingPanel({
     Record<string, { width: number; height: number }>
   >({});
   const loadedSrcsRef = useRef<Set<string>>(new Set());
+  const isMountedRef = useRef(true);
 
   // Precargar dimensiones de imágenes
   const preloadImageDimensions = useCallback(
@@ -46,13 +45,15 @@ export function AdvertisingPanel({
           const img = new Image();
           img.onload = () => {
             loadedSrcsRef.current.add(item.src);
-            setImageDimensions((prev) => ({
-              ...prev,
-              [item.src]: {
-                width: img.naturalWidth,
-                height: img.naturalHeight,
-              },
-            }));
+            if (isMountedRef.current) {
+              setImageDimensions((prev) => ({
+                ...prev,
+                [item.src]: {
+                  width: img.naturalWidth,
+                  height: img.naturalHeight,
+                },
+              }));
+            }
           };
           img.src = item.src;
         }
@@ -89,6 +90,7 @@ export function AdvertisingPanel({
     load();
     return () => {
       isMounted = false;
+      isMountedRef.current = false;
     };
   }, [preloadImageDimensions]);
 

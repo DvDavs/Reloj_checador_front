@@ -26,7 +26,12 @@ export function PublicidadDeleteDialog({
   filename,
 }: PublicidadDeleteDialogProps) {
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
+    <AlertDialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <AlertDialogContent className='shadow-2xl'>
         <AlertDialogHeader>
           <AlertDialogTitle className='flex items-center gap-2 text-xl font-bold'>

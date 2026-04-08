@@ -428,7 +428,7 @@ function ArchitectureDiagram() {
 export default function BusinessCasePage() {
   return (
     <div
-      className='business-case-print-root h-[100dvh] min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-[#e8eef2] text-[#062534] antialiased scrollbar-gutter-stable print:!h-auto print:!max-h-none print:!min-h-0 print:!overflow-visible print:bg-white print:p-0'
+      className='business-case-print-root h-[100dvh] min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-[#e8eef2] text-[#062534] antialiased [scrollbar-gutter:stable] print:!h-auto print:!max-h-none print:!min-h-0 print:!overflow-visible print:bg-white print:p-0'
       data-theme='light'
     >
       <article className='mx-auto max-w-[1180px] px-4 py-8 print:max-w-none print:!overflow-visible print:px-6 print:py-4 sm:px-6'>
