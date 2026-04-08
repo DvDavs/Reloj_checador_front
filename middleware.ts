@@ -7,7 +7,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isLoginPage = pathname.startsWith('/login');
-  const publicPaths = ['/login', '/reloj-checador', '/lanzador', '/ads/'];
+  const publicPaths = [
+    '/login',
+    '/reloj-checador',
+    '/lanzador',
+    '/ads/',
+    '/business-case',
+  ];
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
   // Debug: Log para verificar si la cookie está disponible
@@ -53,9 +59,10 @@ export const config = {
      * - api (rutas de API de Next.js)
      * - _next/static (archivos estáticos)
      * - _next/image (optimización de imágenes)
-     * - Logo_ITO.png (tu logo)
+     * - /branding/* (logos e identidad en public/branding)
      * - favicon.ico (icono de favicon)
+     * - archivos con extensión (png, jpg, svg, html, json, etc.)
      */
-    '/((?!api|_next/static|_next/image|Logo_ITO.png|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|branding/|favicon\\.ico|.*\\..*).*)',
   ],
 };

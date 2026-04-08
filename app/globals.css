@@ -4,98 +4,121 @@
 
 @layer base {
   :root {
-    /* Fondo principal con mejor contraste */
-    --background: 210 25% 97%; /* #F8FAFC - Gris azulado muy claro */
-    --foreground: 222 84% 4.9%; /* #020817 - Negro azulado profundo */
-    
-    /* Cards con contraste mejorado y sombra sutil */
-    --card: 0 0% 100%; /* Blanco puro para cards */
-    --card-foreground: 222 84% 4.9%;
-    
-    /* Popovers */
+    /*
+     * =============================================================================
+     * TOKENS DE MARCA — Fuente única de verdad para colores (editar solo aquí).
+     * Formato: componentes HSL sin "hsl()" para usar con hsl(var(--*) / <alpha>)
+     * Referencias hex orientativas: #EEF5F8 #062534 #0E3043 #060F18 #167999 #247067 #8AB4C2 #F0F5F7
+     * =============================================================================
+     */
+
+    /* ── App brand tokens (usados en componentes siempre-oscuros como TimeClock) ── */
+    --app-light:             200 22% 97%;   /* #EEF5F8 — blanco cálido con tinte teal */
+    --app-dark:              200 80% 12%;   /* #062534 — navy-teal profundo */
+    --app-elevated:          200 65% 17%;   /* #0E3043 — panel elevado */
+    --app-canvas:            208 50% 6%;    /* #060F18 — canvas oscuro rico */
+    --app-brand:             194 70% 36%;   /* #167999 — teal vibrante y accesible */
+    --app-brand-secondary:   168 58% 36%;   /* #247067 — teal-verde (hue claramente distinto) */
+    --app-brand-muted:       196 36% 68%;   /* #8AB4C2 — teal suave para texto secundario */
+    --app-on-dark:           200 20% 97%;   /* #F0F5F7 — blanco nítido para fondos oscuros */
+    --app-on-light-muted:    200 55% 28%;   /* #1B4A66 — teal oscuro para texto en fondo claro */
+
+    /* ── UI general (shadcn) — enlazada a tokens de marca ── */
+    --background: var(--app-light);
+    --foreground: var(--app-dark);
+
+    --card: 0 0% 100%;
+    --card-foreground: var(--app-dark);
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222 84% 4.9%;
-    
-    /* Primary - Verde institucional más vibrante */
-    --primary: 142 76% 32%; /* Verde más oscuro para mejor contraste */
+    --popover-foreground: var(--app-dark);
+
+    --primary: var(--app-brand);
     --primary-foreground: 0 0% 100%;
-    
-    /* Secondary - Gris con mucho más contraste */
-    --secondary: 210 40% 88%; /* #E2E8F0 - Gris azulado medio */
-    --secondary-foreground: 222 47% 15%; /* #1E293B - Gris azulado muy oscuro */
-    
-    /* Muted - Tonos neutros con mejor separación */
-    --muted: 210 40% 92%; /* #F1F5F9 - Gris azulado claro */
-    --muted-foreground: 215 25% 35%; /* #475569 - Gris oscuro con excelente contraste */
-    
-    /* Accent - Naranja institucional más vibrante */
-    --accent: 22 89% 50%; /* #E85D04 - Naranja más intenso */
+
+    --secondary: 196 28% 88%;              /* #CEE0E6 — teal claro */
+    --secondary-foreground: var(--app-dark);
+
+    --muted: 202 16% 93%;                  /* #E5EAEC — gris-teal muy claro */
+    --muted-foreground: var(--app-on-light-muted);
+
+    --accent: var(--app-brand-secondary);
     --accent-foreground: 0 0% 100%;
-    
-    /* Destructive con mejor contraste */
+
     --destructive: 0 84% 55%;
     --destructive-foreground: 0 0% 100%;
-    
-    /* Bordes más definidos */
-    --border: 214 32% 85%; /* #CBD5E1 - Gris azulado más oscuro para bordes */
-    --input: 214 32% 88%; /* #E2E8F0 - Input con mejor definición */
-    --ring: 22 89% 50%;
+
+    --border: 196 26% 82%;                 /* #C8D9DF — borde teal claro */
+    --input: 196 22% 89%;                  /* #D8E6EB — input teal claro */
+    --ring: var(--app-brand);
     --radius: 0.5rem;
 
-    /* Sidebar con esquema moderno y mejor contraste */
-    --sidebar-background: 0 0% 100%; /* Blanco puro para la sidebar */
-    --sidebar-foreground: 222 84% 4.9%; /* Negro azulado profundo */
-    --sidebar-border: 214 32% 85%; /* Borde más visible */
-    --sidebar-accent: 22 79% 36%; /* #A64914 - Naranja oscuro */
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-hover: 210 40% 92%; /* #F1F5F9 - Hover más perceptible */
-    --sidebar-active: 22 89% 50%; /* #E85D04 - Naranja vibrante */
+    --sidebar-background: 200 28% 94%;         /* #E3EFF4 — teal muy claro (modo claro) */
+    --sidebar-foreground: var(--app-dark);     /* texto navy-teal oscuro */
+    --sidebar-border: 196 26% 84%;             /* #C2D8E0 — borde teal claro */
+    --sidebar-accent: 200 30% 88%;             /* #CCDDE5 — hover teal suave */
+    --sidebar-accent-foreground: var(--app-dark);
+    --sidebar-hover: 200 32% 90%;              /* #D2E2E9 */
+    --sidebar-active: var(--app-brand);
     --sidebar-active-foreground: 0 0% 100%;
-    
-    /* Nuevas variables para mejor diferenciación */
-    --table-header: 210 40% 94%; /* #F8FAFC - Header de tabla más claro */
-    --table-row-hover: 210 40% 96%; /* #FAFBFC - Hover en filas */
-    --card-shadow: 210 40% 85%; /* Sombra para cards */
-    --success: 142 76% 32%; /* Verde para estados exitosos */
+
+    --table-header: 200 18% 94%;           /* #E7EFF2 */
+    --table-row-hover: 200 18% 96%;        /* #F0F5F7 */
+    --card-shadow: 196 26% 78%;
+    --success: var(--app-brand);
     --success-foreground: 0 0% 100%;
-    --warning: 45 93% 47%; /* Amarillo para advertencias */
-    --warning-foreground: 0 0% 100%;
-    --info: 217 91% 60%; /* Azul para información */
+    --warning: 42 95% 48%;
+    --warning-foreground: var(--app-dark);
+    --info: var(--app-brand-secondary);
     --info-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 0 0% 5%;  /* #0D0D0D */
-    --foreground: 0 0% 98%; /* #F2F2F2 */
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 5%;
-    --popover-foreground: 0 0% 98%;
-    /* Mantener primary en verde para confirmar */
-    --primary: 142 76% 36%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 65%;
-    /* Naranja de marca como accent */
-    --accent: 22 89% 54%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 15.9%;
-    --input: 0 0% 15.9%;
-    --ring: 22 89% 54%;
+    /* ── App brand tokens — versión más brillante para modo oscuro ── */
+    --app-brand:             194 70% 44%;   /* más luminoso en contextos oscuros */
+    --app-brand-secondary:   168 58% 43%;   /* teal-verde más visible */
+    --app-brand-muted:       196 38% 72%;   /* más presencia en dark mode */
 
-    /* Sidebar - Modo oscuro */
-    --sidebar-background: 0 0% 10%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 15.9%;
-    --sidebar-accent: 22 79% 36%; /* #A64914 */
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-hover: 0 0% 15.9%;
-    --sidebar-active: 22 89% 54%; /* #F26E22 */
-    --sidebar-active-foreground: 0 0% 98%;
+    /* ── Shadcn tokens ── */
+    --background: 200 78% 7%;              /* #041521 — fondo muy oscuro */
+    --foreground: 200 20% 94%;             /* #E9F2F5 — texto claro */
+
+    --card: 200 70% 11%;                   /* #082032 — card oscuro */
+    --card-foreground: 200 20% 94%;
+
+    --popover: 200 70% 11%;
+    --popover-foreground: 200 20% 94%;
+
+    --primary: 194 68% 52%;                /* #22C0D6 — teal brillante sobre oscuro */
+    --primary-foreground: 200 78% 7%;
+
+    --secondary: 200 38% 22%;              /* #1D3747 — secondary oscuro */
+    --secondary-foreground: 200 20% 94%;
+
+    --muted: 200 42% 15%;                  /* #0F2838 — muted profundo */
+    --muted-foreground: 196 30% 70%;       /* #93B8C6 — texto muted visible */
+
+    --accent: 168 55% 44%;                 /* #32A091 — teal-verde brillante */
+    --accent-foreground: 200 78% 7%;
+
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 200 42% 20%;                 /* #122C3C — borde oscuro */
+    --input: 200 42% 20%;
+    --ring: 194 68% 52%;
+
+    --sidebar-background: 200 78% 7%;
+    --sidebar-foreground: 200 20% 94%;
+    --sidebar-border: 200 65% 18%;
+    --sidebar-accent: 196 30% 60%;         /* teal medio */
+    --sidebar-accent-foreground: 200 78% 7%;
+    --sidebar-hover: 200 65% 13%;
+    --sidebar-active: 194 68% 38%;
+    --sidebar-active-foreground: 0 0% 100%;
+
+    --table-header: 200 42% 13%;
+    --table-row-hover: 200 42% 14%;
   }
 }
 
@@ -300,6 +323,68 @@
     background: hsl(var(--accent) / 0.2) !important;
     color: hsl(var(--accent-foreground)) !important;
     border: 2px solid hsl(var(--accent)) !important;
+  }
+}
+
+/* ── Impresión (Ctrl+P): documentos largos fuera del layout scroll del body ── */
+@media print {
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Solo en esta ruta: relajar altura del árbol bajo body (providers) */
+  body:has(.business-case-print-root) > * {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .business-case-print-root {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .business-case-print-doc,
+  .business-case-print-doc > header {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* De grid a bloque: paginación estable en Chrome/Edge */
+  .business-case-print-grid {
+    display: block !important;
+  }
+
+  .business-case-print-grid > aside,
+  .business-case-print-grid > .business-case-print-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-inside: auto;
+  }
+
+  .business-case-print-doc table {
+    break-inside: auto;
+  }
+
+  .business-case-print-doc tr {
+    break-inside: avoid-page;
+  }
+
+  .business-case-print-doc,
+  .business-case-print-doc * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    margin: 12mm;
+    size: auto;
   }
 }
 

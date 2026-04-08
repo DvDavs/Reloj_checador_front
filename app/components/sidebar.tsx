@@ -4,7 +4,7 @@ import type React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
   Clock,
@@ -17,6 +17,10 @@ import {
   Search,
   Calendar,
   LogOut,
+  Settings,
+  FileCheck2,
+  ScanLine,
+  BarChart3,
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/use-sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +28,7 @@ import { Tooltip, TooltipProvider } from './tooltip';
 import { CommandPalette } from './command-palette';
 import { Button } from '../../components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { KRONET_BRANDING } from '@/lib/branding';
 
 // Estructura de datos dinámica para los elementos de navegación
 interface NavItemData {
@@ -108,7 +113,7 @@ const navItems: NavItemData[] = [
   {
     id: 'justificaciones',
     href: '/justificaciones',
-    icon: <ClipboardList size={20} />,
+    icon: <FileCheck2 size={20} />,
     text: 'Justificaciones',
     keywords: [
       'justificaciones',
@@ -123,16 +128,31 @@ const navItems: NavItemData[] = [
   {
     id: 'chequeos',
     href: '/chequeos',
-    icon: <Clock size={20} />,
+    icon: <ScanLine size={20} />,
     text: 'Chequeos',
     keywords: ['chequeos', 'registros', 'entradas', 'salidas', 'correccion'],
   },
   {
     id: 'reportes',
     href: '/reportes',
-    icon: <ClipboardList size={20} />,
+    icon: <BarChart3 size={20} />,
     text: 'Reportes',
     keywords: ['reportes', 'export', 'excel', 'csv', 'pdf', 'word'],
+  },
+
+  // 10. Configuración
+  {
+    id: 'configuracion',
+    href: '/configuracion',
+    icon: <Settings size={20} />,
+    text: 'Configuración',
+    keywords: [
+      'configuracion',
+      'ajustes',
+      'settings',
+      'publicidad',
+      'usuarios',
+    ],
   },
 ];
 
@@ -197,7 +217,7 @@ const NavItem = ({
             : isActiveFixed
               ? level > 0
                 ? 'bg-[hsl(var(--sidebar-active))] text-[hsl(var(--sidebar-active-foreground))] shadow-md border border-[hsl(var(--sidebar-active))]/20'
-                : 'bg-[hsl(var(--sidebar-active))] text-[hsl(var(--sidebar-active-foreground))] shadow-md border-l-4 border-[hsl(var(--sidebar-accent))] border border-[hsl(var(--sidebar-active))]/20'
+                : 'bg-[hsl(var(--sidebar-active))] text-[hsl(var(--sidebar-active-foreground))] shadow-md border-y border-r border-[hsl(var(--sidebar-active))]/20 border-l-4 border-l-[hsl(var(--sidebar-accent))]'
               : hasActiveChild && level === 0
                 ? 'text-[hsl(var(--sidebar-foreground))] border-b-2 border-[hsl(var(--sidebar-accent))] bg-[hsl(var(--sidebar-hover))]'
                 : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] hover:text-[hsl(var(--sidebar-foreground))] hover:shadow-sm hover:border hover:border-[hsl(var(--border))]'
@@ -218,13 +238,16 @@ const NavItem = ({
             {item.text}
           </span>
           {hasSubmenu && (
-            <div
-              className={`transition-transform duration-150 ease-out ${
-                isSubmenuOpen ? 'rotate-90' : 'rotate-0'
-              }`}
+            <motion.div
+              animate={{ rotate: isSubmenuOpen ? 90 : 0 }}
+              transition={{
+                type: 'spring',
+                stiffness: 400,
+                damping: 25,
+              }}
             >
               <ChevronRight size={16} />
-            </div>
+            </motion.div>
           )}
         </>
       )}
@@ -370,53 +393,59 @@ export default function Sidebar() {
         <motion.div
           animate={{ width: isCollapsed ? 80 : 256 }}
           transition={{
-            duration: 0.15,
-            ease: 'easeInOut',
+            type: 'spring',
+            stiffness: 300,
+            damping: 30,
           }}
-          className='h-screen bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))] flex flex-col shadow-lg'
+          className='h-svh bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))] flex flex-col shadow-lg'
         >
           {/* Header con logo institucional */}
           <div className='p-4 border-b border-[hsl(var(--sidebar-border))] bg-gradient-to-br from-[hsl(var(--sidebar-background))] to-[hsl(var(--muted))/30]'>
-            {!isCollapsed ? (
-              <Link
-                href='/'
-                className='flex items-center gap-3 opacity-100 duration-200 hover:opacity-90 transition-all p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))]'
-              >
-                <div className='flex-shrink-0'>
-                  <img
-                    src='/Logo_ITO.png'
-                    alt='Logo ITO'
-                    className='w-10 h-10 object-contain rounded-lg shadow-md border border-[hsl(var(--border))]'
-                  />
-                </div>
-                <div className='flex-1 min-w-0'>
-                  <h1 className='text-lg font-bold text-[hsl(var(--sidebar-foreground))] leading-tight'>
-                    Sistema de Control
-                  </h1>
-                  <p className='text-xs text-[hsl(var(--muted-foreground))] leading-tight mt-0.5'>
-                    TecNM Campus Oaxaca
-                  </p>
-                </div>
+            <Link
+              href='/'
+              className='flex items-center gap-3 hover:opacity-90 transition-opacity p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))]'
+            >
+              <div className='flex-shrink-0'>
+                <img
+                  src={KRONET_BRANDING.isotipo.src}
+                  alt='Logo KRONET'
+                  width={KRONET_BRANDING.isotipo.width}
+                  height={KRONET_BRANDING.isotipo.height}
+                  className='object-contain rounded-lg shadow-md border border-[hsl(var(--border))]'
+                  style={{
+                    width: isCollapsed ? 32 : 40,
+                    height: isCollapsed ? 32 : 40,
+                  }}
+                />
+              </div>
+              <AnimatePresence initial={false}>
+                {!isCollapsed && (
+                  <motion.div
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 400,
+                      damping: 30,
+                    }}
+                    className='flex-1 min-w-0'
+                  >
+                    <h1 className='text-lg font-bold text-[hsl(var(--sidebar-foreground))] leading-tight'>
+                      KRONET
+                    </h1>
+                    <p className='text-xs text-[hsl(var(--muted-foreground))] leading-tight mt-0.5'>
+                      Sistema de Asistencias
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {!isCollapsed && (
                 <div className='ml-auto'>
                   <ThemeToggle />
                 </div>
-              </Link>
-            ) : (
-              <div className='flex justify-center opacity-100 duration-200'>
-                <Tooltip content='TecNM Campus Oaxaca - Sistema de Asistencias'>
-                  <Link
-                    href='/'
-                    className='group cursor-pointer p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))] transition-colors'
-                  >
-                    <img
-                      src='/Logo_ITO.png'
-                      alt='Logo ITO'
-                      className='w-8 h-8 object-contain rounded-lg shadow-md border border-[hsl(var(--border))] group-hover:scale-105 transition-transform duration-200'
-                    />
-                  </Link>
-                </Tooltip>
-              </div>
-            )}
+              )}
+            </Link>
           </div>
 
           {/* Command Palette Trigger */}
@@ -441,7 +470,9 @@ export default function Sidebar() {
           )}
 
           {/* Navigation */}
-          <nav className='flex-1 p-4 space-y-1 overflow-y-auto'>
+          <nav
+            className={`flex-1 overflow-y-auto ${isCollapsed ? 'p-2 space-y-1' : 'p-4 space-y-1'}`}
+          >
             {effectiveNavItems.map((item) => (
               <div key={item.id}>
                 <NavItem
@@ -452,25 +483,33 @@ export default function Sidebar() {
                   isSubmenuOpen={openSubmenus[item.id]}
                 />
 
-                {/* Submenu */}
+                {/* Submenu con animación framer-motion */}
                 {item.submenu && !isCollapsed && (
-                  <div
-                    className={`mt-1 space-y-1 overflow-hidden transition-all duration-200 ease-out ${
-                      openSubmenus[item.id]
-                        ? 'max-h-96 opacity-100'
-                        : 'max-h-0 opacity-0'
-                    }`}
-                  >
-                    {item.submenu.map((subItem) => (
-                      <NavItem
-                        key={subItem.id}
-                        item={subItem}
-                        isActive={isSubItemActive(subItem)}
-                        isCollapsed={false}
-                        level={1}
-                      />
-                    ))}
-                  </div>
+                  <AnimatePresence initial={false}>
+                    {openSubmenus[item.id] && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 400,
+                          damping: 30,
+                        }}
+                        className='space-y-1 overflow-hidden'
+                      >
+                        {item.submenu.map((subItem) => (
+                          <NavItem
+                            key={subItem.id}
+                            item={subItem}
+                            isActive={isSubItemActive(subItem)}
+                            isCollapsed={false}
+                            level={1}
+                          />
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 )}
               </div>
             ))}
@@ -478,7 +517,9 @@ export default function Sidebar() {
 
           {/* User Info & Logout Button */}
           {!isLauncherRoute && (
-            <div className='p-4 border-t border-[hsl(var(--sidebar-border))] bg-gradient-to-br from-[hsl(var(--sidebar-background))] to-[hsl(var(--muted))/20]'>
+            <div
+              className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-[hsl(var(--sidebar-border))] bg-gradient-to-br from-[hsl(var(--sidebar-background))] to-[hsl(var(--muted))/20]`}
+            >
               {isAuthenticated && !isCollapsed ? (
                 <div className='flex items-center gap-3 transition-all duration-150 p-2 rounded-lg hover:bg-[hsl(var(--sidebar-hover))] border border-transparent hover:border-[hsl(var(--border))]'>
                   <div className='w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(var(--sidebar-accent))] to-[hsl(var(--accent))] flex items-center justify-center shadow-sm'>
@@ -544,8 +585,16 @@ export default function Sidebar() {
           )}
         </motion.div>
 
-        {/* Botón de colapsar en el lateral */}
-        <div className='absolute -right-3 top-1/2 transform -translate-y-1/2 z-10'>
+        {/* Botón de colapsar en el lateral — animado con el sidebar */}
+        <motion.div
+          animate={{ left: isCollapsed ? 77 : 253 }}
+          transition={{
+            type: 'spring',
+            stiffness: 300,
+            damping: 30,
+          }}
+          className='absolute top-1/2 -translate-y-1/2 z-10'
+        >
           <Tooltip
             content={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
           >
@@ -561,7 +610,7 @@ export default function Sidebar() {
               )}
             </button>
           </Tooltip>
-        </div>
+        </motion.div>
 
         {/* Command Palette */}
         <CommandPalette

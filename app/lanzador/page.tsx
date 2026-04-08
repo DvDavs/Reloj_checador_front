@@ -11,6 +11,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
+import { KRONET_BRANDING } from '@/lib/branding';
 import { getBrowserSessionId } from '@/lib/sessionId';
 import Link from 'next/link';
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
@@ -127,9 +128,11 @@ function LanzadorChecadorContent() {
               <div className='flex items-center gap-4'>
                 <Link href='/login'>
                   <img
-                    src='/Logo_ITO.png'
-                    alt='Logo'
-                    className='h-12 w-auto rounded-full'
+                    src={KRONET_BRANDING.isotipo.src}
+                    alt='Logo KRONET'
+                    width={KRONET_BRANDING.isotipo.width}
+                    height={KRONET_BRANDING.isotipo.height}
+                    className='h-12 w-12 rounded-full object-contain'
                   />
                 </Link>
                 <div className='space-y-1'>

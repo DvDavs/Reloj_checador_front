@@ -19,9 +19,7 @@ export default function RootLayout({
   return (
     <html lang='es' suppressHydrationWarning>
       <head>
-        <title>
-          Sistema de Control de Asistencia - Instituto Tecnológico de Oaxaca
-        </title>
+        <title>KRONET — Sistema de Control de Asistencia</title>
         <meta
           name='description'
           content='Sistema de control de asistencia con escáner de huellas dactilares'

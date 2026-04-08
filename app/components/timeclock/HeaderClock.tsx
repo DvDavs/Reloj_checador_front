@@ -19,7 +19,7 @@ import {
   Minimize,
   RefreshCw,
 } from 'lucide-react';
-import Image from 'next/image';
+import { KRONET_BRANDING } from '@/lib/branding';
 import type { HeaderClockProps } from './interfaces';
 import { headerClockPropsAreEqual } from './utils/memoComparisons';
 
@@ -53,15 +53,15 @@ function HeaderClockComponent({
   }, [selectedReader]);
 
   return (
-    <div className='flex justify-between items-center bg-zinc-900 rounded-lg px-4 py-5 border-2 border-orange-800/40'>
+    <div className='flex justify-between items-center bg-app-dark rounded-lg px-4 py-5 border-2 border-app-brand-muted/40'>
       <div className='flex items-center gap-3'>
         <div className='h-16 w-16 relative'>
-          <Image
-            src='/Logo_ITO.png'
-            alt='Logo ITO'
-            width={64}
-            height={64}
-            className='object-contain'
+          <img
+            src={KRONET_BRANDING.isotipo.src}
+            alt='Logo KRONET'
+            width={KRONET_BRANDING.isotipo.width}
+            height={KRONET_BRANDING.isotipo.height}
+            className='object-contain h-16 w-16'
           />
         </div>
         <span className='text-5xl xl:text-6xl font-bold text-white leading-none'>
@@ -70,7 +70,7 @@ function HeaderClockComponent({
       </div>
 
       <div className='flex items-center gap-3'>
-        <Calendar className='h-9 w-9 text-zinc-400' />
+        <Calendar className='h-9 w-9 text-app-brand-muted' />
         <span className='text-2xl xl:text-3xl font-medium text-white'>
           {formattedDate}
         </span>
@@ -78,14 +78,17 @@ function HeaderClockComponent({
 
       <div className='flex items-center gap-3'>
         {/* Sonido toggle para asemejar la vista original */}
-        <div className='hidden md:flex items-center space-x-2 bg-zinc-800 p-2 rounded-lg'>
+        <div className='hidden md:flex items-center space-x-2 bg-app-elevated p-2 rounded-lg'>
           <Switch
             id='sound-toggle'
             data-testid='sound-toggle'
             checked={soundEnabled}
             onCheckedChange={(v) => onToggleSound && onToggleSound(v)}
           />
-          <label htmlFor='sound-toggle' className='text-xs text-zinc-400'>
+          <label
+            htmlFor='sound-toggle'
+            className='text-xs text-app-brand-muted'
+          >
             Sonido
           </label>
         </div>
@@ -97,7 +100,7 @@ function HeaderClockComponent({
                 variant='outline'
                 size='icon'
                 onClick={onToggleFullScreen}
-                className='bg-zinc-800 border-zinc-700 hover:bg-zinc-700'
+                className='bg-app-elevated border-app-brand/50 hover:bg-app-brand/40'
                 aria-label={
                   isFullScreen ? 'Exit fullscreen' : 'Enter fullscreen'
                 }
@@ -126,7 +129,7 @@ function HeaderClockComponent({
                 variant='outline'
                 size='icon'
                 onClick={onReload}
-                className='bg-zinc-800 border-zinc-700 hover:bg-zinc-700'
+                className='bg-app-elevated border-app-brand/50 hover:bg-app-brand/40'
                 aria-label='Reload'
               >
                 <RefreshCw className='h-4 w-4' />
@@ -140,11 +143,11 @@ function HeaderClockComponent({
 
         {isConnected && shortReaderId && (
           <div
-            className='flex items-center space-x-2 bg-zinc-800/60 p-2 rounded-lg border border-zinc-700 connected'
+            className='flex items-center space-x-2 bg-app-elevated/80 p-2 rounded-lg border border-app-brand/45 connected'
             data-testid='connection-status'
           >
-            <Fingerprint className='h-5 w-5 text-orange-400' />
-            <span className='text-sm font-medium text-orange-300'>
+            <Fingerprint className='h-5 w-5 text-app-brand-muted' />
+            <span className='text-sm font-medium text-app-on-dark'>
               {shortReaderId}
             </span>
           </div>
