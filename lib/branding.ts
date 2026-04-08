@@ -1,13 +1,12 @@
 /**
  * Assets KRONET en /public/branding/kronet.
- * Dimensiones intrínsecas: viewBox del SVG (PNG eliminado: isotipo con fondo blanco).
  */
 export const KRONET_BRANDING = {
-  /** Logotipo horizontal — viewBox SVG 2952×504 */
-  logoCompletoSvg: {
-    src: '/branding/kronet/logo-completo.svg',
-    width: 2952,
-    height: 504,
+  /** Logotipo horizontal oficial (PNG, fondo blanco). */
+  logoCompleto: {
+    src: '/branding/kronet/logotipo-fondo-blanco.png',
+    width: 8000,
+    height: 2100,
   },
   /** Isotipo vectorial, sin fondo — viewBox 704×906.21 */
   isotipo: {

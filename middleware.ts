@@ -7,7 +7,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isLoginPage = pathname.startsWith('/login');
-  const publicPaths = ['/login', '/reloj-checador', '/lanzador', '/ads/'];
+  const publicPaths = [
+    '/login',
+    '/reloj-checador',
+    '/lanzador',
+    '/ads/',
+    '/business-case',
+  ];
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
   // Debug: Log para verificar si la cookie está disponible
@@ -56,6 +62,6 @@ export const config = {
      * - /branding/* (logos e identidad en public/branding)
      * - favicon.ico (icono de favicon)
      */
-    '/((?!api|_next/static|_next/image|branding/|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|branding/|favicon\\.ico).*)',
   ],
 };

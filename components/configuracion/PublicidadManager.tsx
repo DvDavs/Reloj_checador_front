@@ -6,12 +6,10 @@ import { Button } from '@/components/ui/button';
 import { CardContent } from '@/components/ui/card';
 import {
   Trash2,
-  Upload,
   Loader2,
   Image as ImageIcon,
   CheckCircle2,
   X,
-  Plus,
   GripVertical,
   Eye,
   EyeOff,
@@ -94,15 +92,14 @@ export default function PublicidadManager() {
         return;
       }
 
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setSelectedFile(file);
 
-      // Lógica de FileReader sugerida por el usuario para mayor robustez
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Crear blob URL para mejor performance y limpieza
+      const blobUrl = URL.createObjectURL(file);
+      setPreviewUrl(blobUrl);
     }
   };
 
@@ -212,7 +209,9 @@ export default function PublicidadManager() {
       // Optimistic Update: eliminar localmente primero
       setImages(images.filter((img) => img.filename !== filenameToDelete));
 
-      await apiClient.delete(`/api/publicidad/${filenameToDelete}`);
+      await apiClient.delete(
+        `/api/publicidad/${encodeURIComponent(filenameToDelete)}`
+      );
       toast({
         title: 'Éxito',
         description: 'Imagen eliminada correctamente.',
@@ -255,7 +254,9 @@ export default function PublicidadManager() {
         )
       );
 
-      await apiClient.put(`/api/publicidad/${filename}/toggle`);
+      await apiClient.put(
+        `/api/publicidad/${encodeURIComponent(filename)}/toggle`
+      );
       toast({
         title: (
           <div className='flex items-center gap-2'>
@@ -313,10 +314,6 @@ export default function PublicidadManager() {
     handleSaveOrder(); // Persistir al soltar
   };
 
-  const handleReorder = (newOrder: AdItem[]) => {
-    setImages(newOrder);
-  };
-
   const handleSaveOrder = async () => {
     // Al finalizar el arrastre (o soltar), aplicamos la lógica de default y guardamos
     const updatedOrder = images.map((item, index) => ({
@@ -361,7 +358,7 @@ export default function PublicidadManager() {
   };
 
   const getImageUrl = (filename: string) => {
-    return `${apiClient.defaults.baseURL}/api/publicidad/files/${filename}`;
+    return `${apiClient.defaults.baseURL}/api/publicidad/files/${encodeURIComponent(filename)}`;
   };
 
   if (loading) {

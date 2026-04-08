@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
 import { apiClient } from '@/lib/apiClient';
 import { KRONET_BRANDING } from '@/lib/branding';
 
@@ -30,14 +36,16 @@ export function AdvertisingPanel({
   const [imageDimensions, setImageDimensions] = useState<
     Record<string, { width: number; height: number }>
   >({});
+  const loadedSrcsRef = useRef<Set<string>>(new Set());
 
   // Precargar dimensiones de imágenes
   const preloadImageDimensions = useCallback(
     (itemsToLoad: AdvertisingItem[]) => {
       itemsToLoad.forEach((item) => {
-        if (item.type === 'image' && !imageDimensions[item.src]) {
+        if (item.type === 'image' && !loadedSrcsRef.current.has(item.src)) {
           const img = new Image();
           img.onload = () => {
+            loadedSrcsRef.current.add(item.src);
             setImageDimensions((prev) => ({
               ...prev,
               [item.src]: {
@@ -50,7 +58,7 @@ export function AdvertisingPanel({
         }
       });
     },
-    [imageDimensions]
+    []
   );
 
   useEffect(() => {
@@ -67,7 +75,7 @@ export function AdvertisingPanel({
         ) {
           const newItems: AdvertisingItem[] = response.data.map((filename) => ({
             type: 'image',
-            src: `${apiClient.defaults.baseURL}/api/publicidad/files/${filename}`,
+            src: `${apiClient.defaults.baseURL}/api/publicidad/files/${encodeURIComponent(filename)}`,
             alt: filename,
             durationMs: 12000,
           }));

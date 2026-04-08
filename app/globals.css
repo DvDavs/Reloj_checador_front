@@ -326,3 +326,65 @@
   }
 }
 
+/* ── Impresión (Ctrl+P): documentos largos fuera del layout scroll del body ── */
+@media print {
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Solo en esta ruta: relajar altura del árbol bajo body (providers) */
+  body:has(.business-case-print-root) > * {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .business-case-print-root {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .business-case-print-doc,
+  .business-case-print-doc > header {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* De grid a bloque: paginación estable en Chrome/Edge */
+  .business-case-print-grid {
+    display: block !important;
+  }
+
+  .business-case-print-grid > aside,
+  .business-case-print-grid > .business-case-print-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-inside: auto;
+  }
+
+  .business-case-print-doc table {
+    break-inside: auto;
+  }
+
+  .business-case-print-doc tr {
+    break-inside: avoid-page;
+  }
+
+  .business-case-print-doc,
+  .business-case-print-doc * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    margin: 12mm;
+    size: auto;
+  }
+}
+

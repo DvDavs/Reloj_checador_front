@@ -17,7 +17,10 @@ export default function MainLayout({
   const { isLoading } = useAuth();
 
   // Memoizar las rutas para evitar re-cálculos
-  const noLayoutRoutes = useMemo(() => ['/login', '/reloj-checador'], []);
+  const noLayoutRoutes = useMemo(
+    () => ['/login', '/reloj-checador', '/business-case'],
+    []
+  );
 
   const shouldShowLayout = useMemo(() => {
     return !noLayoutRoutes.includes(pathname);

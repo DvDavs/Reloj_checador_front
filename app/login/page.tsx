@@ -48,10 +48,10 @@ export default function LoginPage() {
       <Card className='w-full max-w-sm bg-white border-gray-200 text-gray-900 shadow-lg'>
         <CardHeader className='text-center space-y-4'>
           <img
-            src={KRONET_BRANDING.logoCompletoSvg.src}
+            src={KRONET_BRANDING.logoCompleto.src}
             alt='KRONET'
-            width={KRONET_BRANDING.logoCompletoSvg.width}
-            height={KRONET_BRANDING.logoCompletoSvg.height}
+            width={KRONET_BRANDING.logoCompleto.width}
+            height={KRONET_BRANDING.logoCompleto.height}
             className='mx-auto w-full max-w-[280px] h-auto object-contain'
           />
           <CardDescription className='text-gray-500'>
