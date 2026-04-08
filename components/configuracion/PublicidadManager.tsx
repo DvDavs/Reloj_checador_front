@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import type { ChangeEvent, DragEvent } from 'react';
 import { apiClient } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
 import {
@@ -101,13 +102,13 @@ export default function PublicidadManager() {
     }
   };
 
-  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       handleFileChange(e.target.files[0]);
     }
   };
 
-  const onDragOver = (e: React.DragEvent) => {
+  const onDragOver = (e: DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
   };
@@ -116,7 +117,7 @@ export default function PublicidadManager() {
     setIsDragging(false);
   };
 
-  const onDrop = (e: React.DragEvent) => {
+  const onDrop = (e: DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
@@ -284,7 +285,7 @@ export default function PublicidadManager() {
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, index: number) => {
+  const handleDragStart = (e: DragEvent, index: number) => {
     setDraggedIndex(index);
     // Asegurar que el arrastre sea detectado por todos los navegadores
     e.dataTransfer.setData('text/plain', index.toString());
@@ -522,7 +523,7 @@ export default function PublicidadManager() {
                 layout
                 key={item.filename}
                 draggable
-                onDragStart={(e: any) => handleDragStart(e, index)}
+                onDragStart={(e: any) => handleDragStart(e as DragEvent, index)}
                 onDragEnter={() => handleDragEnter(index)}
                 onDragEnd={handleDragEnd}
                 onDragOver={(e: any) => e.preventDefault()}

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { KRONET_BRANDING } from '@/lib/branding';
+import { CurrentMonthYear } from '@/components/CurrentMonthYear';
 import {
   Activity,
   Banknote,
@@ -446,12 +447,7 @@ export default function BusinessCasePage() {
             <div className='absolute inset-0 bg-gradient-to-br from-[#167999]/25 via-transparent to-transparent' />
             <div className='relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between'>
               <div className='max-w-2xl space-y-3'>
-                <p className='text-sm font-medium tracking-wide text-[#8ab4c2]'>
-                  {new Intl.DateTimeFormat('es-MX', {
-                    month: 'long',
-                    year: 'numeric',
-                  }).format(new Date())}
-                </p>
+                <CurrentMonthYear />
                 <h1 className='flex flex-wrap items-center gap-3 sm:gap-4'>
                   <span className='inline-flex rounded-md bg-white px-3 py-2 shadow-sm sm:px-4 sm:py-2.5'>
                     <Image
