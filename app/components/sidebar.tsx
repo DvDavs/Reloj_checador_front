@@ -21,6 +21,7 @@ import {
   Shield,
   FileText,
   Key,
+  Megaphone,
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/use-sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -143,7 +144,7 @@ const navItems: NavItemData[] = [
     submenu: [
       {
         id: 'config-usuarios',
-        href: '/configuracion/usuarios',
+        href: '/configuracion?section=usuarios',
         icon: <Users size={18} />,
         text: 'Usuarios',
         keywords: ['usuarios', 'cuentas', 'accesos'],
@@ -151,7 +152,7 @@ const navItems: NavItemData[] = [
       },
       {
         id: 'config-roles',
-        href: '/configuracion/roles',
+        href: '/configuracion?section=roles',
         icon: <Shield size={18} />,
         text: 'Roles',
         keywords: ['roles', 'permisos', 'rbac'],
@@ -159,11 +160,19 @@ const navItems: NavItemData[] = [
       },
       {
         id: 'config-permisos',
-        href: '/configuracion/permisos',
+        href: '/configuracion?section=permisos',
         icon: <Key size={18} />,
         text: 'Permisos',
         keywords: ['permisos', 'autoridades'],
         permission: 'rol:read',
+      },
+      {
+        id: 'config-publicidad',
+        href: '/configuracion?section=publicidad',
+        icon: <Megaphone size={18} />,
+        text: 'Publicidad',
+        keywords: ['publicidad', 'anuncios', 'carrusel', 'ads'],
+        permission: 'publicidad:read',
       },
     ],
   },
