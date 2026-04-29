@@ -72,6 +72,7 @@ import { PostFingerprintDialog } from './components/post-fingerprint-dialog';
 // Componentes mejorados
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
+import { RequirePermission } from '@/app/components/auth/require-permission';
 
 type ScannerStatus =
   | 'online'
@@ -1925,29 +1926,31 @@ function AsignarHuellaContent() {
 //
 export default function AsignarHuellaPage() {
   return (
-    <Suspense
-      fallback={
-        <div className='min-h-screen bg-background flex items-center justify-center'>
-          <EnhancedCard variant='elevated' padding='xl'>
-            <div className='flex flex-col items-center space-y-4'>
-              <div className='relative'>
-                <div className='absolute inset-0 rounded-full bg-primary/30 animate-ping'></div>
-                <Loader2 className='relative h-10 w-10 animate-spin text-primary' />
+    <RequirePermission permission='empleado:manage-fingerprints'>
+      <Suspense
+        fallback={
+          <div className='min-h-screen bg-background flex items-center justify-center'>
+            <EnhancedCard variant='elevated' padding='xl'>
+              <div className='flex flex-col items-center space-y-4'>
+                <div className='relative'>
+                  <div className='absolute inset-0 rounded-full bg-primary/30 animate-ping'></div>
+                  <Loader2 className='relative h-10 w-10 animate-spin text-primary' />
+                </div>
+                <div className='text-center space-y-1'>
+                  <p className='text-lg font-medium text-foreground'>
+                    Cargando sistema de huellas...
+                  </p>
+                  <p className='text-sm text-muted-foreground'>
+                    Preparando el entorno de captura
+                  </p>
+                </div>
               </div>
-              <div className='text-center space-y-1'>
-                <p className='text-lg font-medium text-foreground'>
-                  Cargando sistema de huellas...
-                </p>
-                <p className='text-sm text-muted-foreground'>
-                  Preparando el entorno de captura
-                </p>
-              </div>
-            </div>
-          </EnhancedCard>
-        </div>
-      }
-    >
-      <AsignarHuellaContent />
-    </Suspense>
+            </EnhancedCard>
+          </div>
+        }
+      >
+        <AsignarHuellaContent />
+      </Suspense>
+    </RequirePermission>
   );
 }

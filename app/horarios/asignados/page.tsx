@@ -31,6 +31,8 @@ import { ErrorState } from '@/app/components/shared/error-state';
 import { SortableHeader } from '@/app/components/shared/sortable-header';
 import { PaginationWrapper } from '@/app/components/shared/pagination-wrapper';
 import { useTableState } from '@/app/hooks/use-table-state';
+import { RequirePermission } from '@/app/components/auth/require-permission';
+import { Can } from '@/app/components/auth/can';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -224,246 +226,256 @@ export default function HorariosAsignadosPage() {
   };
 
   return (
-    <>
-      {/* Contenedor principal con mejor contraste y separación */}
-      <div className='min-h-screen bg-background'>
-        <div className='p-6 md:p-8'>
-          {/* Header con card elevado */}
-          <EnhancedCard variant='elevated' padding='lg' className='mb-6'>
-            <PageHeader
-              title='Horarios Asignados'
-              isLoading={isLoading}
-              onRefresh={fetchHorariosAsignados}
-              actions={
-                <Link href='/horarios/asignados/registrar'>
-                  <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
-                    <UserPlus className='mr-2 h-4 w-4' />
-                    Registrar
-                  </Button>
-                </Link>
-              }
-            />
-          </EnhancedCard>
-
-          {/* Barra de búsqueda con card */}
-          <EnhancedCard variant='default' padding='md' className='mb-6'>
-            <SearchInput
-              value={searchTerm}
-              onChange={handleSearch}
-              placeholder='Buscar por empleado, horario, tipo...'
-              className='mb-0'
-            />
-          </EnhancedCard>
-
-          {isLoading && (
-            <EnhancedCard variant='elevated' padding='xl'>
-              <LoadingState message='Cargando horarios asignados...' />
+    <RequirePermission permission='horario:read'>
+      <>
+        {/* Contenedor principal con mejor contraste y separación */}
+        <div className='min-h-screen bg-background'>
+          <div className='p-6 md:p-8'>
+            {/* Header con card elevado */}
+            <EnhancedCard variant='elevated' padding='lg' className='mb-6'>
+              <PageHeader
+                title='Horarios Asignados'
+                isLoading={isLoading}
+                onRefresh={fetchHorariosAsignados}
+                actions={
+                  <Can permission='horario:assign'>
+                    <Link href='/horarios/asignados/registrar'>
+                      <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
+                        <UserPlus className='mr-2 h-4 w-4' />
+                        Registrar
+                      </Button>
+                    </Link>
+                  </Can>
+                }
+              />
             </EnhancedCard>
-          )}
 
-          {error && (
-            <EnhancedCard
-              variant='elevated'
-              padding='lg'
-              className='border-red-200/60'
-            >
-              <ErrorState message={error} />
+            {/* Barra de búsqueda con card */}
+            <EnhancedCard variant='default' padding='md' className='mb-6'>
+              <SearchInput
+                value={searchTerm}
+                onChange={handleSearch}
+                placeholder='Buscar por empleado, horario, tipo...'
+                className='mb-0'
+              />
             </EnhancedCard>
-          )}
 
-          {!isLoading && !error && (
-            <>
-              {/* Tabla con mejor contraste y elevación */}
-              <div className='enhanced-table-container mb-6'>
-                <div className='overflow-x-auto'>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className='enhanced-table-header hover:bg-muted/60'>
-                        <SortableHeader
-                          field='numTarjetaTrabajador'
-                          sortField={sortField}
-                          sortDirection={sortDirection}
-                          onSort={handleSort}
-                        >
-                          Tarjeta
-                        </SortableHeader>
-                        <SortableHeader
-                          field='empleadoNombre'
-                          sortField={sortField}
-                          sortDirection={sortDirection}
-                          onSort={handleSort}
-                        >
-                          Empleado
-                        </SortableHeader>
-                        <SortableHeader
-                          field='horarioNombre'
-                          sortField={sortField}
-                          sortDirection={sortDirection}
-                          onSort={handleSort}
-                        >
-                          Horario
-                        </SortableHeader>
-                        <SortableHeader
-                          field='tipoHorarioNombre'
-                          sortField={sortField}
-                          sortDirection={sortDirection}
-                          onSort={handleSort}
-                        >
-                          Tipo Horario
-                        </SortableHeader>
-                        <SortableHeader
-                          field='fechaInicio'
-                          sortField={sortField}
-                          sortDirection={sortDirection}
-                          onSort={handleSort}
-                        >
-                          Fecha Inicio
-                        </SortableHeader>
-                        <SortableHeader
-                          field='fechaFin'
-                          sortField={sortField}
-                          sortDirection={sortDirection}
-                          onSort={handleSort}
-                        >
-                          Fecha Fin
-                        </SortableHeader>
-                        <TableHead className='font-semibold text-foreground'>
-                          Estado
-                        </TableHead>
-                        <TableHead className='text-right font-semibold text-foreground'>
-                          Acciones
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedData.length > 0 ? (
-                        paginatedData.map((item, index) => (
-                          <TableRow
-                            key={item.id}
-                            className='enhanced-table-row'
+            {isLoading && (
+              <EnhancedCard variant='elevated' padding='xl'>
+                <LoadingState message='Cargando horarios asignados...' />
+              </EnhancedCard>
+            )}
+
+            {error && (
+              <EnhancedCard
+                variant='elevated'
+                padding='lg'
+                className='border-red-200/60'
+              >
+                <ErrorState message={error} />
+              </EnhancedCard>
+            )}
+
+            {!isLoading && !error && (
+              <>
+                {/* Tabla con mejor contraste y elevación */}
+                <div className='enhanced-table-container mb-6'>
+                  <div className='overflow-x-auto'>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className='enhanced-table-header hover:bg-muted/60'>
+                          <SortableHeader
+                            field='numTarjetaTrabajador'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
                           >
-                            <TableCell className='font-semibold text-foreground py-4'>
-                              <span className='bg-muted px-3 py-1 rounded-full text-sm font-mono text-muted-foreground'>
-                                {item.numTarjetaTrabajador ?? 'N/A'}
-                              </span>
-                            </TableCell>
-                            <TableCell className='font-medium text-foreground py-4'>
-                              {item.empleadoNombre}
-                            </TableCell>
-                            <TableCell className='text-muted-foreground py-4'>
-                              {item.horarioNombre}
-                            </TableCell>
-                            <TableCell className='text-muted-foreground py-4'>
-                              <EnhancedBadge variant='info' size='sm'>
-                                {item.tipoHorarioNombre}
-                              </EnhancedBadge>
-                            </TableCell>
-                            <TableCell className='text-muted-foreground py-4'>
-                              {formatDate(item.fechaInicio)}
-                            </TableCell>
-                            <TableCell className='text-muted-foreground py-4'>
-                              {formatDate(item.fechaFin)}
-                            </TableCell>
-                            <TableCell className='py-4'>
-                              <EnhancedBadge
-                                variant={item.activo ? 'success' : 'secondary'}
-                                size='md'
-                              >
-                                {item.activo ? 'Activo' : 'Inactivo'}
-                              </EnhancedBadge>
-                            </TableCell>
-                            <TableCell className='text-right py-4'>
-                              <div className='flex justify-end items-center gap-2'>
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  onClick={() => handleViewDetails(item)}
-                                  title='Ver Detalles'
-                                  className='action-button-view'
+                            Tarjeta
+                          </SortableHeader>
+                          <SortableHeader
+                            field='empleadoNombre'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
+                            Empleado
+                          </SortableHeader>
+                          <SortableHeader
+                            field='horarioNombre'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
+                            Horario
+                          </SortableHeader>
+                          <SortableHeader
+                            field='tipoHorarioNombre'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
+                            Tipo Horario
+                          </SortableHeader>
+                          <SortableHeader
+                            field='fechaInicio'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
+                            Fecha Inicio
+                          </SortableHeader>
+                          <SortableHeader
+                            field='fechaFin'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
+                            Fecha Fin
+                          </SortableHeader>
+                          <TableHead className='font-semibold text-foreground'>
+                            Estado
+                          </TableHead>
+                          <TableHead className='text-right font-semibold text-foreground'>
+                            Acciones
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedData.length > 0 ? (
+                          paginatedData.map((item, index) => (
+                            <TableRow
+                              key={item.id}
+                              className='enhanced-table-row'
+                            >
+                              <TableCell className='font-semibold text-foreground py-4'>
+                                <span className='bg-muted px-3 py-1 rounded-full text-sm font-mono text-muted-foreground'>
+                                  {item.numTarjetaTrabajador ?? 'N/A'}
+                                </span>
+                              </TableCell>
+                              <TableCell className='font-medium text-foreground py-4'>
+                                {item.empleadoNombre}
+                              </TableCell>
+                              <TableCell className='text-muted-foreground py-4'>
+                                {item.horarioNombre}
+                              </TableCell>
+                              <TableCell className='text-muted-foreground py-4'>
+                                <EnhancedBadge variant='info' size='sm'>
+                                  {item.tipoHorarioNombre}
+                                </EnhancedBadge>
+                              </TableCell>
+                              <TableCell className='text-muted-foreground py-4'>
+                                {formatDate(item.fechaInicio)}
+                              </TableCell>
+                              <TableCell className='text-muted-foreground py-4'>
+                                {formatDate(item.fechaFin)}
+                              </TableCell>
+                              <TableCell className='py-4'>
+                                <EnhancedBadge
+                                  variant={
+                                    item.activo ? 'success' : 'secondary'
+                                  }
+                                  size='md'
                                 >
-                                  <Eye className='h-4 w-4' />
-                                </Button>
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  onClick={() => handleEdit(item.id)}
-                                  title='Editar Horario'
-                                  className='action-button-edit'
-                                >
-                                  <Edit className='h-4 w-4' />
-                                </Button>
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  onClick={() => openDeleteDialog(item)}
-                                  title='Desasignar Horario'
-                                  className='action-button-delete'
-                                >
-                                  <Trash2 className='h-4 w-4' />
-                                </Button>
+                                  {item.activo ? 'Activo' : 'Inactivo'}
+                                </EnhancedBadge>
+                              </TableCell>
+                              <TableCell className='text-right py-4'>
+                                <div className='flex justify-end items-center gap-2'>
+                                  <Button
+                                    variant='ghost'
+                                    size='icon'
+                                    onClick={() => handleViewDetails(item)}
+                                    title='Ver Detalles'
+                                    className='action-button-view'
+                                  >
+                                    <Eye className='h-4 w-4' />
+                                  </Button>
+                                  <Can permission='horario:write'>
+                                    <Button
+                                      variant='ghost'
+                                      size='icon'
+                                      onClick={() => handleEdit(item.id)}
+                                      title='Editar Horario'
+                                      className='action-button-edit'
+                                    >
+                                      <Edit className='h-4 w-4' />
+                                    </Button>
+                                  </Can>
+                                  <Can permission='horario:assign'>
+                                    <Button
+                                      variant='ghost'
+                                      size='icon'
+                                      onClick={() => openDeleteDialog(item)}
+                                      title='Desasignar Horario'
+                                      className='action-button-delete'
+                                    >
+                                      <Trash2 className='h-4 w-4' />
+                                    </Button>
+                                  </Can>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell
+                              colSpan={8}
+                              className='text-center h-32 text-muted-foreground'
+                            >
+                              <div className='flex flex-col items-center justify-center space-y-2'>
+                                <div className='text-muted-foreground/60 text-lg'>
+                                  📋
+                                </div>
+                                <p className='font-medium text-foreground'>
+                                  No se encontraron horarios asignados
+                                </p>
+                                <p className='text-sm text-muted-foreground'>
+                                  Intenta ajustar los filtros de búsqueda
+                                </p>
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell
-                            colSpan={8}
-                            className='text-center h-32 text-muted-foreground'
-                          >
-                            <div className='flex flex-col items-center justify-center space-y-2'>
-                              <div className='text-muted-foreground/60 text-lg'>
-                                📋
-                              </div>
-                              <p className='font-medium text-foreground'>
-                                No se encontraron horarios asignados
-                              </p>
-                              <p className='text-sm text-muted-foreground'>
-                                Intenta ajustar los filtros de búsqueda
-                              </p>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
-              </div>
 
-              {/* Paginación con card */}
-              <EnhancedCard variant='default' padding='md'>
-                <PaginationWrapper
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </EnhancedCard>
-            </>
-          )}
+                {/* Paginación con card */}
+                <EnhancedCard variant='default' padding='md'>
+                  <PaginationWrapper
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </EnhancedCard>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-      <DetailsDialog
-        isOpen={isDetailsOpen}
-        onClose={closeDetailsDialog}
-        item={selectedItem}
-      />
+        <DetailsDialog
+          isOpen={isDetailsOpen}
+          onClose={closeDetailsDialog}
+          item={selectedItem}
+        />
 
-      <DeleteConfirmationDialog
-        isOpen={isDeleteDialogOpen}
-        onClose={closeDeleteDialog}
-        onConfirm={handleDelete}
-        isDeleting={isDeleting}
-      />
+        <DeleteConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={closeDeleteDialog}
+          onConfirm={handleDelete}
+          isDeleting={isDeleting}
+        />
 
-      <UnifiedEditModal
-        isOpen={isEditOpen}
-        assignmentId={editId}
-        onClose={() => setIsEditOpen(false)}
-        onSaved={() => {
-          fetchHorariosAsignados();
-        }}
-      />
-    </>
+        <UnifiedEditModal
+          isOpen={isEditOpen}
+          assignmentId={editId}
+          onClose={() => setIsEditOpen(false)}
+          onSaved={() => {
+            fetchHorariosAsignados();
+          }}
+        />
+      </>
+    </RequirePermission>
   );
 }

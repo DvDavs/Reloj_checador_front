@@ -16,6 +16,8 @@ import { useTableState } from '@/app/hooks/use-table-state';
 import type { EmpleadoDto } from '@/app/lib/types/timeClockTypes';
 import { EmployeeAvatar } from '@/app/components/shared/EmployeeAvatar';
 import { DetailsDialog } from '@/app/horarios/asignados/components/details-dialog';
+import { RequirePermission } from '@/app/components/auth/require-permission';
+import { Can } from '@/app/components/auth/can';
 import {
   Dialog,
   DialogContent,
@@ -263,24 +265,36 @@ export default function EmpleadosPage() {
                 variant: 'view',
                 title: 'Ver Detalles',
               },
-              {
-                icon: <Edit className='h-4 w-4' />,
-                onClick: () => handleEdit(row.id),
-                variant: 'edit',
-                title: 'Editar Empleado',
-              },
-              {
-                icon: <Fingerprint className='h-4 w-4' />,
-                onClick: () =>
-                  router.push(
-                    `/empleados/asignar-huella?id=${row.id}&nombre=${encodeURIComponent(getFullName(row))}`
-                  ),
-                variant: 'custom',
-                title: 'Asignar Huella',
-                className: 'action-button-fingerprint',
-              },
             ]}
           />
+          <Can permission='empleado:write'>
+            <ActionButtons
+              buttons={[
+                {
+                  icon: <Edit className='h-4 w-4' />,
+                  onClick: () => handleEdit(row.id),
+                  variant: 'edit',
+                  title: 'Editar Empleado',
+                },
+              ]}
+            />
+          </Can>
+          <Can permission='empleado:manage-fingerprints'>
+            <ActionButtons
+              buttons={[
+                {
+                  icon: <Fingerprint className='h-4 w-4' />,
+                  onClick: () =>
+                    router.push(
+                      `/empleados/asignar-huella?id=${row.id}&nombre=${encodeURIComponent(getFullName(row))}`
+                    ),
+                  variant: 'custom',
+                  title: 'Asignar Huella',
+                  className: 'action-button-fingerprint',
+                },
+              ]}
+            />
+          </Can>
           <span className='mx-1 text-muted-foreground'>|</span>
           <Button
             variant='ghost'
@@ -298,102 +312,106 @@ export default function EmpleadosPage() {
   ];
 
   return (
-    <>
-      <PageLayout
-        title='Gestión de Empleados'
-        isLoading={isLoading}
-        error={error}
-        onRefresh={fetchEmployees}
-        searchValue={searchTerm}
-        onSearchChange={handleSearch}
-        searchPlaceholder='Buscar por No. Tarjeta, nombre, RFC, departamento...'
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-        actions={
-          <Link href='/empleados/registrar'>
-            <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
-              <UserPlus className='mr-2 h-4 w-4' />
-              Registrar
-            </Button>
-          </Link>
-        }
-      >
-        <EnhancedTable
-          columns={columns}
-          data={paginatedData}
-          sortField={sortField}
-          sortDirection={sortDirection}
-          onSort={handleSort}
-          emptyState={{
-            icon: <UserPlus className='h-8 w-8' />,
-            title: 'No se encontraron empleados',
-            description:
-              'Intenta ajustar los filtros de búsqueda o registra un nuevo empleado',
+    <RequirePermission permission='empleado:read'>
+      <>
+        <PageLayout
+          title='Gestión de Empleados'
+          isLoading={isLoading}
+          error={error}
+          onRefresh={fetchEmployees}
+          searchValue={searchTerm}
+          onSearchChange={handleSearch}
+          searchPlaceholder='Buscar por No. Tarjeta, nombre, RFC, departamento...'
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          actions={
+            <Can permission='empleado:write'>
+              <Link href='/empleados/registrar'>
+                <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
+                  <UserPlus className='mr-2 h-4 w-4' />
+                  Registrar
+                </Button>
+              </Link>
+            </Can>
+          }
+        >
+          <EnhancedTable
+            columns={columns}
+            data={paginatedData}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            emptyState={{
+              icon: <UserPlus className='h-8 w-8' />,
+              title: 'No se encontraron empleados',
+              description:
+                'Intenta ajustar los filtros de búsqueda o registra un nuevo empleado',
+            }}
+            className='mb-6'
+          />
+        </PageLayout>
+
+        {selectedEmployee && (
+          <EmployeeDetailsModal
+            employee={selectedEmployee}
+            isOpen={showDetailsModal}
+            onClose={handleCloseDetailsModal}
+          />
+        )}
+
+        {/* Detalles del horario */}
+        <DetailsDialog
+          isOpen={isScheduleDetailsOpen}
+          onClose={() => {
+            setScheduleDetailsOpen(false);
+            setSelectedScheduleItem(null);
           }}
-          className='mb-6'
+          item={selectedScheduleItem}
         />
-      </PageLayout>
 
-      {selectedEmployee && (
-        <EmployeeDetailsModal
-          employee={selectedEmployee}
-          isOpen={showDetailsModal}
-          onClose={handleCloseDetailsModal}
-        />
-      )}
-
-      {/* Detalles del horario */}
-      <DetailsDialog
-        isOpen={isScheduleDetailsOpen}
-        onClose={() => {
-          setScheduleDetailsOpen(false);
-          setSelectedScheduleItem(null);
-        }}
-        item={selectedScheduleItem}
-      />
-
-      {/* Diálogo Sin Horario Asignado */}
-      <Dialog open={noScheduleOpen} onOpenChange={setNoScheduleOpen}>
-        <DialogContent className='sm:max-w-[500px] bg-card border-border text-card-foreground'>
-          <DialogHeader className='text-center space-y-2'>
-            <div className='mx-auto w-14 h-14 bg-muted rounded-full flex items-center justify-center border border-border'>
-              <Calendar className='w-7 h-7 text-muted-foreground' />
-            </div>
-            <DialogTitle className='text-xl font-bold text-foreground'>
-              Sin Horario Asignado
-            </DialogTitle>
-            <DialogDescription className='text-muted-foreground'>
-              {noScheduleRow
-                ? `${getFullName(noScheduleRow)} no tiene un horario activo asignado.`
-                : 'No hay un horario activo asignado para este empleado.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className='pt-2 grid grid-cols-1 gap-3'>
-            {noScheduleRow && (
+        {/* Diálogo Sin Horario Asignado */}
+        <Dialog open={noScheduleOpen} onOpenChange={setNoScheduleOpen}>
+          <DialogContent className='sm:max-w-[500px] bg-card border-border text-card-foreground'>
+            <DialogHeader className='text-center space-y-2'>
+              <div className='mx-auto w-14 h-14 bg-muted rounded-full flex items-center justify-center border border-border'>
+                <Calendar className='w-7 h-7 text-muted-foreground' />
+              </div>
+              <DialogTitle className='text-xl font-bold text-foreground'>
+                Sin Horario Asignado
+              </DialogTitle>
+              <DialogDescription className='text-muted-foreground'>
+                {noScheduleRow
+                  ? `${getFullName(noScheduleRow)} no tiene un horario activo asignado.`
+                  : 'No hay un horario activo asignado para este empleado.'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className='pt-2 grid grid-cols-1 gap-3'>
+              {noScheduleRow && (
+                <Button
+                  onClick={() => {
+                    if (!noScheduleRow) return;
+                    const url = `/horarios/asignados/registrar?id=${noScheduleRow.id}&nombre=${encodeURIComponent(
+                      getFullName(noScheduleRow)
+                    )}`;
+                    window.location.href = url;
+                  }}
+                  className='w-full justify-center'
+                >
+                  Asignar Horario
+                </Button>
+              )}
               <Button
-                onClick={() => {
-                  if (!noScheduleRow) return;
-                  const url = `/horarios/asignados/registrar?id=${noScheduleRow.id}&nombre=${encodeURIComponent(
-                    getFullName(noScheduleRow)
-                  )}`;
-                  window.location.href = url;
-                }}
-                className='w-full justify-center'
+                variant='outline'
+                onClick={() => setNoScheduleOpen(false)}
+                className='w-full'
               >
-                Asignar Horario
+                Cerrar
               </Button>
-            )}
-            <Button
-              variant='outline'
-              onClick={() => setNoScheduleOpen(false)}
-              className='w-full'
-            >
-              Cerrar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    </RequirePermission>
   );
 }

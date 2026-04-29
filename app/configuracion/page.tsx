@@ -1,13 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Megaphone, Users, Shield, Key } from 'lucide-react';
-import PublicidadManager from '@/components/configuracion/PublicidadManager';
+import { Users, Shield, Key } from 'lucide-react';
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
 import { Can } from '@/app/components/auth/can';
-import { useState } from 'react';
-
-type ConfigSection = 'publicidad' | 'usuarios';
 
 const adminCards = [
   {
@@ -40,9 +36,6 @@ const adminCards = [
 ];
 
 export default function ConfiguracionPage() {
-  const [activeSection, setActiveSection] =
-    useState<ConfigSection>('publicidad');
-
   return (
     <div className='min-h-screen bg-background'>
       <div className='p-6 md:p-8'>
@@ -59,44 +52,7 @@ export default function ConfiguracionPage() {
             </div>
           </EnhancedCard>
 
-          {/* Tarjeta de publicidad (inline, sección existente) */}
-          <EnhancedCard
-            variant='bordered'
-            padding='md'
-            hover
-            role='button'
-            tabIndex={0}
-            onClick={() => setActiveSection('publicidad')}
-            className={`cursor-pointer ${activeSection === 'publicidad' ? 'ring-2 ring-primary/60 border-primary/60 bg-primary/5' : ''}`}
-          >
-            <div className='flex items-center space-x-3'>
-              <div className='p-2 bg-blue-100 rounded-lg dark:bg-blue-900/30'>
-                <Megaphone className='h-5 w-5 text-blue-600 dark:text-blue-400' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-foreground'>Publicidad</h3>
-                <p className='text-sm text-muted-foreground'>
-                  Configuración de anuncios en el carrusel
-                </p>
-              </div>
-            </div>
-          </EnhancedCard>
-
-          {activeSection === 'publicidad' && (
-            <div className='animate-in fade-in slide-in-from-bottom-4 duration-500'>
-              <EnhancedCard variant='default' padding='md'>
-                <div className='flex items-center gap-2 mb-8 border-b pb-4'>
-                  <Megaphone className='h-6 w-6 text-primary' />
-                  <h2 className='text-xl font-bold text-foreground'>
-                    Gestión de Publicidad
-                  </h2>
-                </div>
-                <PublicidadManager />
-              </EnhancedCard>
-            </div>
-          )}
-
-          {/* Sección de administración del sistema (links a subpáginas) */}
+          {/* Administración del sistema */}
           <div>
             <h2 className='text-lg font-semibold text-foreground mb-3'>
               Administración del sistema

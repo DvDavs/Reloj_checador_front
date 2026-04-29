@@ -124,7 +124,7 @@ const navItems: NavItemData[] = [
     icon: <Clock size={20} />,
     text: 'Chequeos',
     keywords: ['chequeos', 'registros', 'entradas', 'salidas', 'correccion'],
-    permission: 'asistencia:read-all',
+    permission: 'chequeo:read',
   },
   {
     id: 'reportes',
