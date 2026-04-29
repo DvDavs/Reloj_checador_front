@@ -317,12 +317,10 @@ function RolesSection() {
         description: `${role.nombre} fue desactivado.`,
       });
       fetchRoles();
-    } catch {
-      toast({
-        title: 'Error',
-        description: 'No se pudo desactivar el rol.',
-        variant: 'destructive',
-      });
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message || 'No se pudo desactivar el rol.';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
     }
   };
 
@@ -335,12 +333,9 @@ function RolesSection() {
         description: `${deleteTarget.nombre} fue eliminado.`,
       });
       fetchRoles();
-    } catch {
-      toast({
-        title: 'Error',
-        description: 'No se pudo eliminar el rol.',
-        variant: 'destructive',
-      });
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'No se pudo eliminar el rol.';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
     } finally {
       setDeleteTarget(null);
     }
