@@ -64,34 +64,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const storedPermissions = localStorage.getItem('userPermissions');
           const storedUsername = localStorage.getItem('username');
 
-          console.log(
-            '[AuthContext] 🔄 initializeAuth - storedPermissions en localStorage:',
-            storedPermissions
-          );
-          if (storedPermissions) {
-            const parsedPermissions = JSON.parse(storedPermissions);
-            console.log(
-              '[AuthContext] 🔄 initializeAuth - parsedPermissions:',
-              parsedPermissions
-            );
-            console.log(
-              '[AuthContext] 🔄 initializeAuth - tipo del primer permiso:',
-              parsedPermissions.length > 0 ? typeof parsedPermissions[0] : 'N/A'
-            );
-          }
-
           if (storedToken && storedRoles) {
             const parsedRoles = JSON.parse(storedRoles);
             const parsedPermissions: string[] = storedPermissions
               ? JSON.parse(storedPermissions)
               : [];
             const permissionsSet = new Set(parsedPermissions);
-            console.log(
-              '[AuthContext] 🔄 initializeAuth - Set reconstruido. Tamaño:',
-              permissionsSet.size,
-              'Contenido:',
-              Array.from(permissionsSet)
-            );
 
             setToken(storedToken);
             setUser({
@@ -102,9 +80,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             apiClient.defaults.headers.common['Authorization'] =
               `Bearer ${storedToken}`;
           } else if (storedToken && !storedRoles) {
-            // Stale cookie with no localStorage data — clear and redirect to login
             Cookies.remove('authToken', { path: '/' });
             localStorage.removeItem('authToken');
+            localStorage.removeItem('userRoles');
             localStorage.removeItem('userPermissions');
             localStorage.removeItem('username');
             window.location.replace('/login');
@@ -127,7 +105,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const timeoutId = setTimeout(() => {
-      console.warn('Auth initialization timeout, forcing completion');
       setIsLoading(false);
     }, 2000);
 
@@ -139,44 +116,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [mounted]);
 
   const login = async (credentials: LoginRequest) => {
-    console.log('[AuthContext] 🔐 Iniciando login con credenciales:', {
-      username: credentials.username,
-    });
-
     const response = await apiClient.post<LoginResponse>(
       '/api/auth/login',
       credentials
     );
 
-    console.log(
-      '[AuthContext] 📡 Respuesta completa del servidor:',
-      response.data
-    );
-
     const { token: authToken, roles, permissions, username } = response.data;
-
-    console.log('[AuthContext] 🔑 roles extraídos:', roles);
-    console.log('[AuthContext] 🔑 permissions extraídos:', permissions);
-    console.log(
-      '[AuthContext] 🔑 Tipo de permissions:',
-      typeof permissions,
-      Array.isArray(permissions) ? '(es array)' : '(NO es array)'
-    );
-
-    if (permissions && permissions.length > 0) {
-      console.log('[AuthContext] 🔑 Primer permiso:', permissions[0]);
-      console.log(
-        '[AuthContext] 🔑 Tipo del primer permiso:',
-        typeof permissions[0]
-      );
-    }
 
     localStorage.setItem('userRoles', JSON.stringify(roles));
     localStorage.setItem('userPermissions', JSON.stringify(permissions ?? []));
-    console.log(
-      '[AuthContext] 💾 userPermissions guardado en localStorage:',
-      localStorage.getItem('userPermissions')
-    );
     if (username) {
       localStorage.setItem('username', username);
     }
@@ -218,25 +166,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    if (!cookieSaved) {
-      console.warn(
-        '⚠️ La cookie no se pudo guardar, pero el token está en localStorage'
-      );
-    }
-
     const permissionsSet = new Set(permissions ?? []);
-    console.log(
-      '[AuthContext] 🧩 Set de permisos creado. Tamaño:',
-      permissionsSet.size
-    );
-    console.log(
-      '[AuthContext] 🧩 Contenido del Set:',
-      Array.from(permissionsSet)
-    );
-    console.log(
-      '[AuthContext] 🧩 Tipo del primer elemento del Set (si existe):',
-      permissionsSet.size > 0 ? typeof Array.from(permissionsSet)[0] : 'N/A'
-    );
 
     setToken(authToken);
     setUser({

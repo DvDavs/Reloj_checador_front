@@ -21,6 +21,12 @@ export function Can({
   const { hasPermission, hasAnyPermission, hasAllPermissions, hasRole } =
     useAuth();
 
+  if (process.env.NODE_ENV === 'development' && !role && !permission) {
+    console.warn(
+      '[Can] No permission or role provided — renders children unconditionally. Add `permission` or `role` prop to gate access.'
+    );
+  }
+
   let allowed = true;
 
   if (role) {

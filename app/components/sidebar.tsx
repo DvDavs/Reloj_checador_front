@@ -314,11 +314,16 @@ export default function Sidebar() {
 
   const filterByPermission = (items: NavItemData[]): NavItemData[] =>
     items
-      .filter((item) => !item.permission || hasPermission(item.permission))
       .map((item) => ({
         ...item,
         submenu: item.submenu ? filterByPermission(item.submenu) : undefined,
-      }));
+      }))
+      .filter((item) => {
+        if (item.permission && !hasPermission(item.permission)) return false;
+        if (item.submenu !== undefined && item.submenu.length === 0)
+          return false;
+        return true;
+      });
 
   const effectiveNavItems: NavItemData[] = useMemo(
     () => (isLauncherRoute ? launcherNavItems : filterByPermission(navItems)),

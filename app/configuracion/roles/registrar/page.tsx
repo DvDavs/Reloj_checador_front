@@ -20,16 +20,14 @@ export default function RegistrarRolPage() {
 
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [selectedPermisos, setSelectedPermisos] = useState<Set<number>>(
-    new Set()
-  );
+  const [selectedPermisos, setSelectedPermisos] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (nombre.trim().length < 2) e.nombre = 'Mínimo 2 caracteres';
-    if (selectedPermisos.size === 0)
+    if (selectedPermisos.length === 0)
       e.permisos = 'Seleccioná al menos un permiso';
     return e;
   };
@@ -47,7 +45,7 @@ export default function RegistrarRolPage() {
       await createRole({
         nombre: nombre.trim(),
         descripcion: descripcion.trim() || undefined,
-        permisoIds: [...selectedPermisos],
+        permisoIds: selectedPermisos,
       });
       toast({
         title: 'Rol creado',
@@ -114,8 +112,8 @@ export default function RegistrarRolPage() {
               <p className='text-sm text-destructive mb-3'>{errors.permisos}</p>
             )}
             <PermissionsSelector
-              selected={selectedPermisos}
-              onChange={setSelectedPermisos}
+              selected={new Set(selectedPermisos)}
+              onChange={(set) => setSelectedPermisos([...set])}
             />
           </EnhancedCard>
 

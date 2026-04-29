@@ -36,7 +36,7 @@ export default function EditarUsuarioPage() {
         })
       )
       .finally(() => setIsLoading(false));
-  }, [id]);
+  }, [id, toast]);
 
   const validate = () => {
     const e: Record<string, string> = {};

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); deps={**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; print\\('jose' in deps, deps.get\\('jose','NOT FOUND'\\)\\)\")",
+      "Bash(pnpm add *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); where.exe pnpm)",
+      "PowerShell(npm install *)"
+    ]
+  }
+}

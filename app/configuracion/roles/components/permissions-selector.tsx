@@ -62,26 +62,19 @@ export function PermissionsSelector({
 
         return (
           <div key={modulo} className='border rounded-lg overflow-hidden'>
-            <div
-              className='flex items-center gap-3 px-4 py-3 bg-muted cursor-pointer'
-              onClick={() => toggleModule(perms)}
-            >
+            {/* CORRECCIÓN: Se eliminó el onClick del <div> para evitar el loop infinito de eventos. 
+                Se aplicó "flex-1" al Label para mantener el área clickeable amplia. */}
+            <div className='flex items-center gap-3 px-4 py-3 bg-muted'>
               <Checkbox
                 id={`mod-${modulo}`}
-                checked={allSelected}
-                data-state={
-                  someSelected && !allSelected
-                    ? 'indeterminate'
-                    : allSelected
-                      ? 'checked'
-                      : 'unchecked'
+                checked={
+                  someSelected && !allSelected ? 'indeterminate' : allSelected
                 }
                 onCheckedChange={() => toggleModule(perms)}
-                onClick={(e) => e.stopPropagation()}
               />
               <Label
                 htmlFor={`mod-${modulo}`}
-                className='font-semibold capitalize cursor-pointer'
+                className='font-semibold capitalize cursor-pointer flex-1'
               >
                 {modulo}
                 <span className='ml-2 text-xs text-muted-foreground font-normal'>
@@ -103,7 +96,11 @@ export function PermissionsSelector({
                     onCheckedChange={() => togglePermission(perm.id)}
                     className='mt-0.5'
                   />
-                  <Label htmlFor={`perm-${perm.id}`} className='cursor-pointer'>
+                  {/* CORRECCIÓN: Agregado "flex-1" para que toda la fila active el checkbox sin problemas */}
+                  <Label
+                    htmlFor={`perm-${perm.id}`}
+                    className='cursor-pointer flex-1'
+                  >
                     <span className='font-mono text-sm'>{perm.nombre}</span>
                     {perm.descripcion && (
                       <p className='text-xs text-muted-foreground'>

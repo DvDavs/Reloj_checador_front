@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Search, Edit, Plus } from 'lucide-react';
 import { BreadcrumbNav } from '@/app/components/shared/breadcrumb-nav';
+import { Can } from '@/app/components/auth/can';
 import { CorreccionRegistrosForm } from '@/components/admin/CorreccionRegistrosForm';
 import { RegistroManualForm } from '@/components/admin/RegistroManualForm';
 
@@ -104,7 +105,9 @@ export default function ChequeosPage() {
                     Utilice los filtros para encontrar y corregir registros de
                     entrada y salida.
                   </p>
-                  <CorreccionRegistrosForm />
+                  <Can permission='asistencia:correct'>
+                    <CorreccionRegistrosForm />
+                  </Can>
                 </div>
               </div>
             ) : (

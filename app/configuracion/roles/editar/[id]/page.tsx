@@ -43,7 +43,7 @@ export default function EditarRolPage() {
         })
       )
       .finally(() => setIsLoading(false));
-  }, [id]);
+  }, [id, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
