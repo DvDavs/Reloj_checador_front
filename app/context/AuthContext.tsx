@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (storedToken) {
               try {
                 Cookies.set('authToken', storedToken, {
-                  expires: 1,
+                  expires: 30,
                   path: '/',
                   sameSite: 'lax',
                 });
@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const isHttps = window.location.protocol === 'https:';
 
     const cookieOptions: Cookies.CookieAttributes = {
-      expires: 1,
+      expires: 30,
       path: '/',
     };
 

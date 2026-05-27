@@ -135,6 +135,21 @@ export const setupInterceptors = (logout: () => void) => {
           return Promise.reject(error);
         }
 
+        // GARANTÍA DEL KIOSCO: estando en el reloj checador (u otras rutas
+        // públicas) NUNCA debemos cerrar sesión ni redirigir a /login. El
+        // kiosco funciona sin sesión de usuario (sus llamadas usan endpoints
+        // públicos / X-API-Key), así que un 401 aquí se ignora para auth.
+        const currentPath =
+          typeof window !== 'undefined' ? window.location.pathname : '';
+        const isKioskOrPublicPath = [
+          '/reloj-checador',
+          '/lanzador',
+          '/login',
+        ].some((p) => currentPath.startsWith(p));
+        if (isKioskOrPublicPath) {
+          return Promise.reject(error);
+        }
+
         // Solo hacer logout si es un error de autenticación real en endpoints protegidos
         const isAuthEndpoint = error.config?.url?.includes('/auth/');
         const isApiEndpoint = error.config?.url?.includes('/api/');
