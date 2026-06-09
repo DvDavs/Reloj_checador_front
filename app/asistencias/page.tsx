@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { format, parse, subDays } from 'date-fns';
+import { differenceInCalendarDays, format, parse, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Eye,
@@ -129,7 +129,21 @@ export default function ControlAsistenciaPage() {
 
   // No cargar por defecto: esperar a que el usuario presione Buscar
 
+  const MAX_RANGO_DIAS = 30;
+
   const runSearch = useCallback(async () => {
+    // Validación de rango de fechas
+    if (fechaDesde && fechaHasta) {
+      if (fechaHasta < fechaDesde) {
+        setError('La fecha fin no puede ser anterior a la fecha inicio.');
+        return;
+      }
+      if (differenceInCalendarDays(fechaHasta, fechaDesde) > MAX_RANGO_DIAS) {
+        setError(`El rango de fechas no puede superar ${MAX_RANGO_DIAS} días.`);
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -552,13 +566,29 @@ export default function ControlAsistenciaPage() {
                         <Calendar
                           mode='single'
                           selected={fechaDesde}
-                          onSelect={(d) => setFechaDesde(d || undefined)}
+                          onSelect={(d) => {
+                            setFechaDesde(d || undefined);
+                            // Si la fecha fin queda fuera del nuevo rango permitido, la resetea
+                            if (
+                              d &&
+                              fechaHasta &&
+                              differenceInCalendarDays(fechaHasta, d) >
+                                MAX_RANGO_DIAS
+                            ) {
+                              setFechaHasta(undefined);
+                            }
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
                   <div className='space-y-2'>
-                    <Label>Fecha Fin</Label>
+                    <Label>
+                      Fecha Fin{' '}
+                      <span className='text-xs text-muted-foreground font-normal'>
+                        (máx. {MAX_RANGO_DIAS} días desde inicio)
+                      </span>
+                    </Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -580,6 +610,17 @@ export default function ControlAsistenciaPage() {
                         <Calendar
                           mode='single'
                           selected={fechaHasta}
+                          disabled={(d) => {
+                            if (fechaDesde) {
+                              if (d < fechaDesde) return true;
+                              if (
+                                differenceInCalendarDays(d, fechaDesde) >
+                                MAX_RANGO_DIAS
+                              )
+                                return true;
+                            }
+                            return false;
+                          }}
                           onSelect={(d) => setFechaHasta(d || undefined)}
                         />
                       </PopoverContent>
