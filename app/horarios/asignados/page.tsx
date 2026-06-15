@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
@@ -48,6 +48,10 @@ export default function HorariosAsignadosPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Client-side sort over current page (#3)
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Modal state
   const [selectedItem, setSelectedItem] = useState<HorarioAsignadoDto | null>(
@@ -100,8 +104,9 @@ export default function HorariosAsignadosPage() {
         setRows(content);
       }
     } catch (err: any) {
+      // #5: solo exponer mensaje del backend; evitar exponer err.message de red
       const msg =
-        err.response?.data?.message || err.message || 'Error desconocido';
+        err.response?.data?.message ?? 'Error al comunicarse con el servidor';
       setError(`Error al cargar horarios asignados: ${msg}`);
       setRows([]);
     } finally {
@@ -109,25 +114,71 @@ export default function HorariosAsignadosPage() {
     }
   }, []);
 
+  // #2: cleanup debounce al desmontar para evitar llamadas sobre componente desmontado
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   // Carga inicial
   useEffect(() => {
     fetchPage(1, '');
   }, [fetchPage]);
 
-  // Abrir detalle desde URL highlight
+  // #6 + #7: Abrir detalle desde URL highlight — valida ID numérico y hace fetch si no está en página
   useEffect(() => {
     const highlightId = searchParams.get('highlight');
-    if (highlightId && rows.length > 0 && !isLoading) {
-      const target = rows.find((item) => item.id.toString() === highlightId);
-      if (target) {
-        setSelectedItem(target);
-        setIsDetailsOpen(true);
-        const url = new URL(window.location.href);
-        url.searchParams.delete('highlight');
-        window.history.replaceState({}, '', url.toString());
-      }
+    if (!highlightId || !/^\d+$/.test(highlightId) || isLoading) return;
+
+    const numericId = parseInt(highlightId, 10);
+
+    const openAndClean = (item: HorarioAsignadoDto) => {
+      setSelectedItem(item);
+      setIsDetailsOpen(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('highlight');
+      window.history.replaceState({}, '', url.toString());
+    };
+
+    const inPage = rows.find((item) => item.id === numericId);
+    if (inPage) {
+      openAndClean(inPage);
+      return;
+    }
+
+    // #7: item no está en la página actual — fetch directo por ID
+    if (rows.length > 0) {
+      apiClient
+        .get<HorarioAsignadoDto>(`/api/horarios-asignados/${numericId}`)
+        .then((r) => {
+          if (r.data) openAndClean(r.data);
+        })
+        .catch(() => {});
     }
   }, [searchParams, rows, isLoading]);
+
+  // #3: sort client-side sobre la página actual
+  const handleSort = useCallback((field: string) => {
+    setSortField((prev) => {
+      if (prev === field) {
+        setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+        return prev;
+      }
+      setSortDirection('asc');
+      return field;
+    });
+  }, []);
+
+  const sortedRows = useMemo(() => {
+    if (!sortField) return rows;
+    return [...rows].sort((a, b) => {
+      const aVal = (a as any)[sortField] ?? '';
+      const bVal = (b as any)[sortField] ?? '';
+      const cmp = String(aVal).localeCompare(String(bVal), 'es-MX');
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [rows, sortField, sortDirection]);
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -142,6 +193,12 @@ export default function HorariosAsignadosPage() {
     setPage(newPage);
     fetchPage(newPage, searchTerm);
   };
+
+  // #8: useCallback con dependencias explícitas para evitar closure stale
+  const onRefresh = useCallback(
+    () => fetchPage(page, searchTerm),
+    [fetchPage, page, searchTerm]
+  );
 
   const handleDelete = async () => {
     if (!selectedItem) return;
@@ -195,7 +252,7 @@ export default function HorariosAsignadosPage() {
               <PageHeader
                 title='Horarios Asignados'
                 isLoading={isLoading}
-                onRefresh={() => fetchPage(page, searchTerm)}
+                onRefresh={onRefresh}
                 actions={
                   <Can permission='horario:assign'>
                     <Link href='/horarios/asignados/registrar'>
@@ -241,24 +298,54 @@ export default function HorariosAsignadosPage() {
                     <Table>
                       <TableHeader>
                         <TableRow className='enhanced-table-header hover:bg-muted/60'>
-                          <TableHead className='font-semibold text-foreground'>
+                          <SortableHeader
+                            field='numTarjetaTrabajador'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
                             Tarjeta
-                          </TableHead>
-                          <TableHead className='font-semibold text-foreground'>
+                          </SortableHeader>
+                          <SortableHeader
+                            field='empleadoNombre'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
                             Empleado
-                          </TableHead>
-                          <TableHead className='font-semibold text-foreground'>
+                          </SortableHeader>
+                          <SortableHeader
+                            field='horarioNombre'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
                             Horario
-                          </TableHead>
-                          <TableHead className='font-semibold text-foreground'>
+                          </SortableHeader>
+                          <SortableHeader
+                            field='tipoHorarioNombre'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
                             Tipo Horario
-                          </TableHead>
-                          <TableHead className='font-semibold text-foreground'>
+                          </SortableHeader>
+                          <SortableHeader
+                            field='fechaInicio'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
                             Fecha Inicio
-                          </TableHead>
-                          <TableHead className='font-semibold text-foreground'>
+                          </SortableHeader>
+                          <SortableHeader
+                            field='fechaFin'
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                          >
                             Fecha Fin
-                          </TableHead>
+                          </SortableHeader>
                           <TableHead className='font-semibold text-foreground'>
                             Estado
                           </TableHead>
@@ -268,8 +355,8 @@ export default function HorariosAsignadosPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {rows.length > 0 ? (
-                          rows.map((item) => (
+                        {sortedRows.length > 0 ? (
+                          sortedRows.map((item) => (
                             <TableRow
                               key={item.id}
                               className='enhanced-table-row'
