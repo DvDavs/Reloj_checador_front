@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { PageLayout } from '@/app/components/shared/page-layout';
 import { EnhancedTable } from '@/app/components/shared/enhanced-table';
 import { EnhancedBadge } from '@/app/components/shared/enhanced-badge';
 import { ActionButtons } from '@/app/components/shared/action-buttons';
-import { useTableState } from '@/app/hooks/use-table-state';
+import { useDebounce } from '@/app/hooks/use-debounce';
 import type { EmpleadoDto } from '@/app/lib/types/timeClockTypes';
 import { EmployeeAvatar } from '@/app/components/shared/EmployeeAvatar';
 import { DetailsDialog } from '@/app/horarios/asignados/components/details-dialog';
@@ -24,25 +24,30 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 
-interface EmployeeDisplayData {
-  id: number;
-  tarjeta: number | string;
-  nombre: string;
-  rfc: string;
-  curp: string;
-  departamento: string;
-  estado: string;
-}
+const PAGE_SIZE = 20;
 
-const ITEMS_PER_PAGE = 10;
+interface EmpleadosPaginadosResponse {
+  content: EmpleadoDto[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
 
 export default function EmpleadosPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [allEmployees, setAllEmployees] = useState<EmpleadoDto[]>([]);
+  const [empleados, setEmpleados] = useState<EmpleadoDto[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 350);
+
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmpleadoDto | null>(
     null
@@ -55,46 +60,24 @@ export default function EmpleadosPage() {
   const [noScheduleRow, setNoScheduleRow] = useState<EmpleadoDto | null>(null);
   const [isResolvingSchedule, setIsResolvingSchedule] = useState(false);
 
-  const {
-    paginatedData,
-    searchTerm,
-    currentPage,
-    sortField,
-    sortDirection,
-    totalPages,
-    handleSearch,
-    handleSort,
-    handlePageChange,
-  } = useTableState({
-    data: allEmployees,
-    itemsPerPage: ITEMS_PER_PAGE,
-    searchFields: [
-      'tarjeta',
-      'primerNombre',
-      'segundoNombre',
-      'primerApellido',
-      'segundoApellido',
-      'rfc',
-      'curp',
-      'nombramiento',
-      'departamentoNombre',
-      'academiaNombre',
-    ],
-    defaultSortField: 'tarjeta',
-  });
-
-  const getFullName = useCallback(
-    (emp: EmpleadoDto | null): string =>
-      emp?.nombreCompleto || 'Nombre no disponible',
-    []
-  );
-
-  const fetchEmployees = useCallback(async () => {
+  const fetchEmployees = useCallback(async (page: number, search: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get<EmpleadoDto[]>(`/api/empleados`);
-      setAllEmployees(response.data || []);
+      const params = new URLSearchParams({
+        page: String(page),
+        size: String(PAGE_SIZE),
+      });
+      if (search.trim()) params.set('search', search.trim());
+
+      const response = await apiClient.get<EmpleadosPaginadosResponse>(
+        `/api/empleados?${params}`
+      );
+      const data = response.data;
+      setEmpleados(data.content || []);
+      setTotalElements(data.totalElements ?? 0);
+      setTotalPages(data.totalPages ?? 0);
+      setCurrentPage(data.number ?? page);
     } catch (err: any) {
       const errorMsg =
         err.response?.data?.message ||
@@ -106,27 +89,24 @@ export default function EmpleadosPage() {
     }
   }, []);
 
+  // Reset to page 0 when search changes
   useEffect(() => {
-    fetchEmployees();
-  }, [fetchEmployees]);
+    setCurrentPage(0);
+    fetchEmployees(0, debouncedSearch);
+  }, [debouncedSearch, fetchEmployees]);
 
-  const mapEmployeeToDisplay = useCallback(
-    (emp: EmpleadoDto): EmployeeDisplayData => {
-      const departamentoDisplay = emp.departamentoNombre || 'N/A';
-
-      const estado = emp.estatusId === 1 ? 'Activo' : 'Inactivo';
-
-      return {
-        id: emp.id,
-        tarjeta: emp.tarjeta ?? 'N/A',
-        nombre: getFullName(emp),
-        rfc: emp.rfc ?? 'N/A',
-        curp: emp.curp ?? 'N/A',
-        departamento: departamentoDisplay,
-        estado: estado,
-      };
+  const handlePageChange = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+      fetchEmployees(page, debouncedSearch);
     },
-    [getFullName]
+    [debouncedSearch, fetchEmployees]
+  );
+
+  const getFullName = useCallback(
+    (emp: EmpleadoDto | null): string =>
+      emp?.nombreCompleto || 'Nombre no disponible',
+    []
   );
 
   const handleEdit = (employeeId: number) => {
@@ -184,118 +164,121 @@ export default function EmpleadosPage() {
     }
   };
 
-  // Definir las columnas de la tabla
-  const columns = [
-    {
-      key: 'avatar',
-      label: '',
-      className: 'w-0',
-      render: (value: any, row: EmpleadoDto) => (
-        <EmployeeAvatar
-          empleadoId={row.id}
-          nombre={getFullName(row)}
-          fotoUrl={(row as any).fotoUrl}
-          tieneFoto={(row as any).tieneFoto}
-          size={36}
-        />
-      ),
-    },
-    {
-      key: 'tarjeta',
-      label: 'No. Tarjeta',
-      sortable: true,
-      className: 'font-semibold text-foreground',
-      render: (value: any) => (
-        <span className='bg-muted px-3 py-1 rounded-full text-sm font-mono text-muted-foreground'>
-          {value ?? 'N/A'}
-        </span>
-      ),
-    },
-    {
-      key: 'nombreCompleto',
-      label: 'Nombre Completo',
-      sortable: true,
-      className: 'font-medium text-foreground',
-      render: (value: any, row: EmpleadoDto) => getFullName(row),
-    },
-    {
-      key: 'rfc',
-      label: 'RFC',
-      sortable: true,
-      className: 'text-muted-foreground font-mono text-sm',
-      render: (value: any) => value ?? 'N/A',
-    },
-    {
-      key: 'departamentoNombre',
-      label: 'Departamento',
-      sortable: true,
-      className: 'text-muted-foreground',
-      render: (value: any, row: EmpleadoDto) => (
-        <EnhancedBadge variant='info' size='sm'>
-          {value || 'N/A'}
-        </EnhancedBadge>
-      ),
-    },
-    {
-      key: 'estatusId',
-      label: 'Estado',
-      sortable: true,
-      render: (value: any) => (
-        <EnhancedBadge
-          variant={value === 1 ? 'success' : 'secondary'}
-          size='md'
-        >
-          {value === 1 ? 'Activo' : 'Inactivo'}
-        </EnhancedBadge>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'Acciones',
-      className: 'text-right',
-      render: (value: any, row: EmpleadoDto) => (
-        <div className='flex justify-end items-center gap-2'>
-          <ActionButtons
-            buttons={[
-              {
-                icon: <Eye className='h-4 w-4' />,
-                onClick: () => handleViewDetails(row),
-                variant: 'view',
-                title: 'Ver Detalles',
-              },
-              {
-                icon: <Edit className='h-4 w-4' />,
-                onClick: () => handleEdit(row.id),
-                variant: 'edit',
-                title: 'Editar Empleado',
-              },
-              {
-                icon: <Fingerprint className='h-4 w-4' />,
-                onClick: () =>
-                  router.push(
-                    `/empleados/asignar-huella?id=${row.id}&nombre=${encodeURIComponent(getFullName(row))}`
-                  ),
-                variant: 'custom',
-                title: 'Asignar Huella',
-                className: 'action-button-fingerprint',
-              },
-            ]}
+  const columns = useMemo(
+    () => [
+      {
+        key: 'avatar',
+        label: '',
+        className: 'w-0',
+        render: (_value: any, row: EmpleadoDto) => (
+          <EmployeeAvatar
+            empleadoId={row.id}
+            nombre={getFullName(row)}
+            fotoUrl={(row as any).fotoUrl}
+            tieneFoto={(row as any).tieneFoto}
+            size={36}
           />
-          <span className='mx-1 text-muted-foreground'>|</span>
-          <Button
-            variant='ghost'
-            size='icon'
-            title='Ver Horario'
-            aria-label='Ver Horario'
-            onClick={() => handleViewSchedule(row)}
-            disabled={isResolvingSchedule}
+        ),
+      },
+      {
+        key: 'tarjeta',
+        label: 'No. Tarjeta',
+        sortable: true,
+        className: 'font-semibold text-foreground',
+        render: (value: any) => (
+          <span className='bg-muted px-3 py-1 rounded-full text-sm font-mono text-muted-foreground'>
+            {value ?? 'N/A'}
+          </span>
+        ),
+      },
+      {
+        key: 'nombreCompleto',
+        label: 'Nombre Completo',
+        sortable: true,
+        className: 'font-medium text-foreground',
+        render: (_value: any, row: EmpleadoDto) => getFullName(row),
+      },
+      {
+        key: 'rfc',
+        label: 'RFC',
+        sortable: true,
+        className: 'text-muted-foreground font-mono text-sm',
+        render: (value: any) => value ?? 'N/A',
+      },
+      {
+        key: 'departamentoNombre',
+        label: 'Departamento',
+        sortable: true,
+        className: 'text-muted-foreground',
+        render: (value: any) => (
+          <EnhancedBadge variant='info' size='sm'>
+            {value || 'N/A'}
+          </EnhancedBadge>
+        ),
+      },
+      {
+        key: 'estatusId',
+        label: 'Estado',
+        sortable: true,
+        render: (value: any) => (
+          <EnhancedBadge
+            variant={value === 1 ? 'success' : 'secondary'}
+            size='md'
           >
-            <Calendar className='h-4 w-4' />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+            {value === 1 ? 'Activo' : 'Inactivo'}
+          </EnhancedBadge>
+        ),
+      },
+      {
+        key: 'actions',
+        label: 'Acciones',
+        className: 'text-right',
+        render: (_value: any, row: EmpleadoDto) => (
+          <div className='flex justify-end items-center gap-2'>
+            <ActionButtons
+              buttons={[
+                {
+                  icon: <Eye className='h-4 w-4' />,
+                  onClick: () => handleViewDetails(row),
+                  variant: 'view',
+                  title: 'Ver Detalles',
+                },
+                {
+                  icon: <Edit className='h-4 w-4' />,
+                  onClick: () => handleEdit(row.id),
+                  variant: 'edit',
+                  title: 'Editar Empleado',
+                },
+                {
+                  icon: <Fingerprint className='h-4 w-4' />,
+                  onClick: () =>
+                    router.push(
+                      `/empleados/asignar-huella?id=${row.id}&nombre=${encodeURIComponent(getFullName(row))}`
+                    ),
+                  variant: 'custom',
+                  title: 'Asignar Huella',
+                  className: 'action-button-fingerprint',
+                },
+              ]}
+            />
+            <span className='mx-1 text-muted-foreground'>|</span>
+            <Button
+              variant='ghost'
+              size='icon'
+              title='Ver Horario'
+              aria-label='Ver Horario'
+              onClick={() => handleViewSchedule(row)}
+              disabled={isResolvingSchedule}
+            >
+              <Calendar className='h-4 w-4' />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [getFullName, isResolvingSchedule]
+  );
 
   return (
     <>
@@ -303,13 +286,13 @@ export default function EmpleadosPage() {
         title='Gestión de Empleados'
         isLoading={isLoading}
         error={error}
-        onRefresh={fetchEmployees}
-        searchValue={searchTerm}
-        onSearchChange={handleSearch}
+        onRefresh={() => fetchEmployees(currentPage, debouncedSearch)}
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
         searchPlaceholder='Buscar por No. Tarjeta, nombre, RFC, departamento...'
-        currentPage={currentPage}
+        currentPage={currentPage + 1}
         totalPages={totalPages}
-        onPageChange={handlePageChange}
+        onPageChange={(p) => handlePageChange(p - 1)}
         actions={
           <Link href='/empleados/registrar'>
             <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
@@ -321,10 +304,7 @@ export default function EmpleadosPage() {
       >
         <EnhancedTable
           columns={columns}
-          data={paginatedData}
-          sortField={sortField}
-          sortDirection={sortDirection}
-          onSort={handleSort}
+          data={empleados}
           emptyState={{
             icon: <UserPlus className='h-8 w-8' />,
             title: 'No se encontraron empleados',
@@ -343,7 +323,6 @@ export default function EmpleadosPage() {
         />
       )}
 
-      {/* Detalles del horario */}
       <DetailsDialog
         isOpen={isScheduleDetailsOpen}
         onClose={() => {
@@ -353,7 +332,6 @@ export default function EmpleadosPage() {
         item={selectedScheduleItem}
       />
 
-      {/* Diálogo Sin Horario Asignado */}
       <Dialog open={noScheduleOpen} onOpenChange={setNoScheduleOpen}>
         <DialogContent className='sm:max-w-[500px] bg-card border-border text-card-foreground'>
           <DialogHeader className='text-center space-y-2'>

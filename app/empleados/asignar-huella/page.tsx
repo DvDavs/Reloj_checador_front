@@ -197,8 +197,11 @@ function AsignarHuellaContent() {
         : `/api/empleados`;
 
       const response = await apiClient.get(endpoint);
+      const list = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.content ?? []);
 
-      const data = response.data.map((emp: any) => ({
+      const data = list.map((emp: any) => ({
         id: emp.id.toString(),
         nombre: `${emp.primerNombre || ''} ${emp.segundoNombre || ''} ${
           emp.primerApellido || ''
@@ -225,7 +228,10 @@ function AsignarHuellaContent() {
     setGeneralError(null);
     try {
       const response = await apiClient.get('/api/empleados');
-      const data = response.data.map((emp: any) => ({
+      const list = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.content ?? []);
+      const data = list.map((emp: any) => ({
         id: emp.id.toString(),
         nombre: `${emp.primerNombre || ''} ${emp.segundoNombre || ''} ${
           emp.primerApellido || ''
