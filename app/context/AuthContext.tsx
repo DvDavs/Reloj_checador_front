@@ -10,25 +10,26 @@ import React, {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { LoginRequest, LoginResponse } from '@/lib/types/authTypes';
+import { AuthUser, LoginRequest, LoginResponse } from '@/lib/types/authTypes';
 import { apiClient, setupInterceptors } from '@/lib/apiClient';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: { roles: Set<string>; username?: string } | null;
+  user: AuthUser | null;
   token: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  hasPermission: (permission: string) => boolean;
+  hasAnyPermission: (...permissions: string[]) => boolean;
+  hasAllPermissions: (...permissions: string[]) => boolean;
+  hasRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<{
-    roles: Set<string>;
-    username?: string;
-  } | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -60,35 +61,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           const storedRoles = localStorage.getItem('userRoles');
+          const storedPermissions = localStorage.getItem('userPermissions');
           const storedUsername = localStorage.getItem('username');
 
           if (storedToken && storedRoles) {
+            const parsedRoles = JSON.parse(storedRoles);
+            const parsedPermissions: string[] = storedPermissions
+              ? JSON.parse(storedPermissions)
+              : [];
+            const permissionsSet = new Set(parsedPermissions);
+
             setToken(storedToken);
             setUser({
-              roles: new Set(JSON.parse(storedRoles)),
-              username: storedUsername || undefined,
+              username: storedUsername || '',
+              roles: new Set(parsedRoles),
+              permissions: permissionsSet,
             });
             apiClient.defaults.headers.common['Authorization'] =
               `Bearer ${storedToken}`;
+          } else if (storedToken && !storedRoles) {
+            Cookies.remove('authToken', { path: '/' });
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userRoles');
+            localStorage.removeItem('userPermissions');
+            localStorage.removeItem('username');
+            window.location.replace('/login');
+            return;
           }
         }
       } catch (error) {
         if (typeof window !== 'undefined') {
-          Cookies.remove('authToken');
+          Cookies.remove('authToken', { path: '/' });
           localStorage.removeItem('authToken');
           localStorage.removeItem('userRoles');
+          localStorage.removeItem('userPermissions');
           localStorage.removeItem('username');
+          window.location.replace('/login');
+          return;
         }
       } finally {
         setIsLoading(false);
       }
     };
 
-    // Timeout de seguridad para evitar carga infinita
     const timeoutId = setTimeout(() => {
-      console.warn('Auth initialization timeout, forcing completion');
       setIsLoading(false);
-    }, 2000); // 2 segundos máximo
+    }, 2000);
 
     initializeAuth().finally(() => {
       clearTimeout(timeoutId);
@@ -102,9 +120,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       '/api/auth/login',
       credentials
     );
-    const { token: authToken, roles, username } = response.data;
+
+    const { token: authToken, roles, permissions, username } = response.data;
 
     localStorage.setItem('userRoles', JSON.stringify(roles));
+    localStorage.setItem('userPermissions', JSON.stringify(permissions ?? []));
     if (username) {
       localStorage.setItem('username', username);
     }
@@ -146,17 +166,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    if (!cookieSaved) {
-      console.warn(
-        '⚠️ La cookie no se pudo guardar, pero el token está en localStorage'
-      );
-      console.warn(
-        '⚠️ El middleware puede no funcionar correctamente sin la cookie'
-      );
-    }
+    const permissionsSet = new Set(permissions ?? []);
 
     setToken(authToken);
-    setUser({ roles: new Set(roles), username });
+    setUser({
+      username,
+      roles: new Set(roles),
+      permissions: permissionsSet,
+    });
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
 
     setTimeout(() => {
@@ -166,6 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(() => {
     localStorage.removeItem('userRoles');
+    localStorage.removeItem('userPermissions');
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
     Cookies.remove('authToken', { path: '/' });
@@ -182,13 +200,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [logout, mounted]);
 
-  const value = {
+  const hasPermission = useCallback(
+    (permission: string) => user?.permissions.has(permission) ?? false,
+    [user]
+  );
+
+  const hasAnyPermission = useCallback(
+    (...permissions: string[]) =>
+      permissions.some((p) => user?.permissions.has(p) ?? false),
+    [user]
+  );
+
+  const hasAllPermissions = useCallback(
+    (...permissions: string[]) =>
+      permissions.every((p) => user?.permissions.has(p) ?? false),
+    [user]
+  );
+
+  const hasRole = useCallback(
+    (role: string) => user?.roles.has(role) ?? false,
+    [user]
+  );
+
+  const value: AuthContextType = {
     isAuthenticated: !!token,
     user,
     token,
     login,
     logout,
     isLoading,
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    hasRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

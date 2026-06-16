@@ -10,6 +10,7 @@ import { LoadingState } from '@/app/components/shared/loading-state';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { EmployeeForm } from '@/app/components/shared/employee-form';
 import { FormLayout } from '@/app/components/shared/form-layout';
+import { RequirePermission } from '@/app/components/auth/require-permission';
 import PhotoUpload from '@/app/components/shared/PhotoUpload';
 import {
   uploadEmpleadoFoto,
@@ -255,82 +256,88 @@ export default function EditarEmpleadoPage() {
   }
 
   return (
-    <FormLayout
-      title='Editar Empleado'
-      description='Modifique los datos necesarios y guarde los cambios.'
-      breadcrumbs={[
-        { label: 'Empleados', href: '/empleados' },
-        { label: 'Editar Empleado' },
-      ]}
-      backHref='/empleados'
-      formIcon={<Edit className='h-5 w-5 text-primary' />}
-      formTitle='Información del Empleado'
-      formDescription='Actualice los campos que necesite modificar.'
-      error={error}
-      isSubmitting={isSubmitting}
-      footerNote='Los campos marcados con * son obligatorios'
-      actions={
-        <>
-          <Link href='/empleados'>
+    <RequirePermission permission='empleado:write'>
+      <FormLayout
+        title='Editar Empleado'
+        description='Modifique los datos necesarios y guarde los cambios.'
+        breadcrumbs={[
+          { label: 'Empleados', href: '/empleados' },
+          { label: 'Editar Empleado' },
+        ]}
+        backHref='/empleados'
+        formIcon={<Edit className='h-5 w-5 text-primary' />}
+        formTitle='Información del Empleado'
+        formDescription='Actualice los campos que necesite modificar.'
+        error={error}
+        isSubmitting={isSubmitting}
+        footerNote='Los campos marcados con * son obligatorios'
+        actions={
+          <>
+            <Link href='/empleados'>
+              <Button
+                type='button'
+                variant='outline'
+                disabled={isSubmitting}
+                className='border-2 border-border hover:border-primary hover:bg-primary/5'
+              >
+                Cancelar
+              </Button>
+            </Link>
             <Button
-              type='button'
-              variant='outline'
-              disabled={isSubmitting}
-              className='border-2 border-border hover:border-primary hover:bg-primary/5'
+              type='submit'
+              form='employee-edit-form'
+              className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
+              disabled={isSubmitting || isLoading}
             >
-              Cancelar
+              {isSubmitting ? (
+                <>
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  Actualizando...
+                </>
+              ) : (
+                <>
+                  <Save className='mr-2 h-4 w-4' />
+                  Guardar Cambios
+                </>
+              )}
             </Button>
-          </Link>
-          <Button
-            type='submit'
-            form='employee-edit-form'
-            className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
-            disabled={isSubmitting || isLoading}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                Actualizando...
-              </>
-            ) : (
-              <>
-                <Save className='mr-2 h-4 w-4' />
-                Guardar Cambios
-              </>
-            )}
-          </Button>
-        </>
-      }
-    >
-      <form id='employee-edit-form' onSubmit={handleSubmit}>
-        <EmployeeForm
-          formData={formData}
-          onChange={handleChange}
-          onSelectChange={handleSelectChange}
-          onSwitchChange={handleSwitchChange}
-          isSubmitting={isSubmitting}
-          noneValue={NONE_VALUE_SELECT}
-        />
-        <div className='mt-6'>
-          <PhotoUpload
-            onFileSelected={(f) => {
-              if (f) {
-                // Nueva foto seleccionada
-                setFotoState((s) => ({ ...s, pendingFile: f, hasPhoto: true }));
-              } else {
-                // Foto eliminada
-                setFotoState((s) => ({
-                  ...s,
-                  pendingFile: null,
-                  hasPhoto: false,
-                }));
-              }
-            }}
-            initialPreviewUrl={fotoState.fotoUrl || null}
-            disabled={isSubmitting}
+          </>
+        }
+      >
+        <form id='employee-edit-form' onSubmit={handleSubmit}>
+          <EmployeeForm
+            formData={formData}
+            onChange={handleChange}
+            onSelectChange={handleSelectChange}
+            onSwitchChange={handleSwitchChange}
+            isSubmitting={isSubmitting}
+            noneValue={NONE_VALUE_SELECT}
           />
-        </div>
-      </form>
-    </FormLayout>
+          <div className='mt-6'>
+            <PhotoUpload
+              onFileSelected={(f) => {
+                if (f) {
+                  // Nueva foto seleccionada
+                  setFotoState((s) => ({
+                    ...s,
+                    pendingFile: f,
+                    hasPhoto: true,
+                  }));
+                } else {
+                  // Foto eliminada
+                  setFotoState((s) => ({
+                    ...s,
+                    pendingFile: null,
+                    hasPhoto: false,
+                  }));
+                }
+              }}
+              initialPreviewUrl={fotoState.fotoUrl || null}
+              disabled={isSubmitting}
+            />
+          </div>
+        </form>
+      </FormLayout>
+    </RequirePermission>
   );
 }

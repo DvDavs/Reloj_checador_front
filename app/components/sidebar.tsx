@@ -17,6 +17,11 @@ import {
   Search,
   Calendar,
   LogOut,
+  Settings,
+  Shield,
+  FileText,
+  Key,
+  Megaphone,
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/use-sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -32,11 +37,11 @@ interface NavItemData {
   icon: React.ReactNode;
   text: string;
   keywords: string[];
+  permission?: string;
   submenu?: NavItemData[];
   disabled?: boolean;
 }
 const navItems: NavItemData[] = [
-  // 1. Dashboard Principal
   {
     id: 'home',
     href: '/',
@@ -44,8 +49,6 @@ const navItems: NavItemData[] = [
     text: 'Inicio',
     keywords: ['inicio', 'home', 'dashboard', 'principal'],
   },
-
-  // 2. Gestión de Reloj Checador (Acciones Clave)
   {
     id: 'reloj',
     href: '/admin',
@@ -53,14 +56,13 @@ const navItems: NavItemData[] = [
     text: 'Reloj Checador',
     keywords: ['reloj', 'checador', 'lanzar', 'sesion'],
   },
-
-  // 3. Gestión de Personal
   {
     id: 'empleados',
     href: '/empleados',
     icon: <Users size={20} />,
     text: 'Empleados',
     keywords: ['empleados', 'personal', 'trabajadores'],
+    permission: 'empleado:read',
     submenu: [
       {
         id: 'empleados-lista',
@@ -75,6 +77,7 @@ const navItems: NavItemData[] = [
         icon: <UserPlus size={18} />,
         text: 'Registrar Empleado',
         keywords: ['registrar', 'nuevo', 'agregar'],
+        permission: 'empleado:write',
       },
       {
         id: 'empleados-huella',
@@ -82,29 +85,26 @@ const navItems: NavItemData[] = [
         icon: <Fingerprint size={18} />,
         text: 'Asignar Huella',
         keywords: ['huella', 'biometrico', 'dactilar'],
+        permission: 'empleado:manage-fingerprints',
       },
     ],
   },
-
-  // 4. Gestión de Horarios
   {
     id: 'horarios',
     href: '/horarios/asignados',
     icon: <Calendar size={20} />,
     text: 'Horarios',
     keywords: ['horarios', 'turnos', 'jornadas', 'calendario'],
+    permission: 'horario:read',
   },
-
-  // 7. Control de Asistencia (Nueva vista principal)
   {
     id: 'control-asistencia',
     href: '/asistencias',
     icon: <ClipboardList size={20} />,
     text: 'Control de Asistencia',
     keywords: ['control', 'asistencia', 'consolidacion', 'filtros', 'tabla'],
+    permission: 'asistencia:read-all',
   },
-
-  // 8. Justificaciones (Nueva vista)
   {
     id: 'justificaciones',
     href: '/justificaciones',
@@ -117,22 +117,64 @@ const navItems: NavItemData[] = [
       'departamental',
       'masiva',
     ],
+    permission: 'justificacion:read',
   },
-
-  // 9. Chequeos (Estatus de registros)
   {
     id: 'chequeos',
     href: '/chequeos',
     icon: <Clock size={20} />,
     text: 'Chequeos',
     keywords: ['chequeos', 'registros', 'entradas', 'salidas', 'correccion'],
+    permission: 'chequeo:read',
   },
   {
     id: 'reportes',
     href: '/reportes',
-    icon: <ClipboardList size={20} />,
+    icon: <FileText size={20} />,
     text: 'Reportes',
     keywords: ['reportes', 'export', 'excel', 'csv', 'pdf', 'word'],
+    permission: 'reporte:generate',
+  },
+  {
+    id: 'configuracion',
+    href: '/configuracion',
+    icon: <Settings size={20} />,
+    text: 'Configuración',
+    keywords: ['configuracion', 'ajustes', 'settings', 'usuarios', 'roles'],
+    submenu: [
+      {
+        id: 'config-usuarios',
+        href: '/configuracion?section=usuarios',
+        icon: <Users size={18} />,
+        text: 'Usuarios',
+        keywords: ['usuarios', 'cuentas', 'accesos'],
+        permission: 'usuario:read',
+      },
+      {
+        id: 'config-roles',
+        href: '/configuracion?section=roles',
+        icon: <Shield size={18} />,
+        text: 'Roles',
+        keywords: ['roles', 'permisos', 'rbac'],
+        permission: 'rol:read',
+      },
+      {
+        id: 'config-permisos',
+        href: '/configuracion?section=permisos',
+        icon: <Key size={18} />,
+        text: 'Permisos',
+        keywords: ['permisos', 'autoridades'],
+        permission: 'rol:read',
+      },
+      {
+        id: 'config-publicidad',
+        href: '/configuracion?section=publicidad',
+        icon: <Megaphone size={18} />,
+        text: 'Publicidad',
+        keywords: ['publicidad', 'anuncios', 'carrusel', 'ads'],
+        permission: 'publicidad:read',
+      },
+    ],
   },
 ];
 
@@ -276,12 +318,26 @@ export default function Sidebar() {
   const { isCollapsed, toggleCollapsed } = useSidebar();
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, hasPermission } = useAuth();
   const isLauncherRoute = pathname.startsWith('/lanzador');
 
+  const filterByPermission = (items: NavItemData[]): NavItemData[] =>
+    items
+      .map((item) => ({
+        ...item,
+        submenu: item.submenu ? filterByPermission(item.submenu) : undefined,
+      }))
+      .filter((item) => {
+        if (item.permission && !hasPermission(item.permission)) return false;
+        if (item.submenu !== undefined && item.submenu.length === 0)
+          return false;
+        return true;
+      });
+
   const effectiveNavItems: NavItemData[] = useMemo(
-    () => (isLauncherRoute ? launcherNavItems : navItems),
-    [isLauncherRoute]
+    () => (isLauncherRoute ? launcherNavItems : filterByPermission(navItems)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isLauncherRoute, user]
   );
 
   // Actualizar submenús abiertos basado en la ruta actual
@@ -492,11 +548,9 @@ export default function Sidebar() {
                       {user?.username ?? 'Usuario autenticado'}
                     </p>
                     <p className='text-xs text-[hsl(var(--muted-foreground))] truncate'>
-                      {user?.roles.has('ROLE_ADMIN')
-                        ? 'Rol: Administrador'
-                        : user?.roles.has('ROLE_DISPOSITIVO')
-                          ? 'Rol: Dispositivo'
-                          : 'Sesión activa'}
+                      {user?.roles && user.roles.size > 0
+                        ? Array.from(user.roles)[0]
+                        : 'Sesión activa'}
                     </p>
                   </div>
                   <Button

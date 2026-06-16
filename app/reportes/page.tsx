@@ -37,6 +37,7 @@ import { apiClient } from '@/lib/apiClient';
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
 import { DepartmentSearchableSelect } from '@/app/components/shared/department-searchable-select';
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
+import { RequirePermission } from '@/app/components/auth/require-permission';
 
 // Tipos y DTOs (asumiendo que existen o se definen aquí)
 // Aligned with app/asistencias/page.tsx types
@@ -269,251 +270,298 @@ export default function ReportesPage() {
   };
 
   return (
-    <div className='min-h-screen bg-background'>
-      <div className='p-6 md:p-8'>
-        <div className='max-w-7xl mx-auto space-y-6'>
-          {/* Replaced PageLayout with a div for consistent styling */}
-          <EnhancedCard variant='elevated' padding='lg'>
-            <div className='space-y-1'>
-              <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
-                Reportes
-              </h1>
-              <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
+    <RequirePermission permission='reporte:generate'>
+      <div className='min-h-screen bg-background'>
+        <div className='p-6 md:p-8'>
+          <div className='max-w-7xl mx-auto space-y-6'>
+            {/* Replaced PageLayout with a div for consistent styling */}
+            <EnhancedCard variant='elevated' padding='lg'>
+              <div className='space-y-1'>
+                <h1 className='text-2xl md:text-3xl font-bold text-foreground tracking-tight'>
+                  Reportes
+                </h1>
+                <div className='h-1 w-16 bg-gradient-to-r from-primary to-accent rounded-full'></div>
+              </div>
+            </EnhancedCard>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-6'>
+              {/* Tab selection removed as per request */}
             </div>
-          </EnhancedCard>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-6'>
-            {/* Tab selection removed as per request */}
-          </div>
-          <EnhancedCard variant='bordered' padding='lg' className='mt-6'>
-            <div className='space-y-4'>
-              <div className='flex items-center gap-2 mb-4'>
-                <Filter className='h-5 w-5 text-primary' />
-                <h3 className='text-lg font-semibold text-foreground'>
-                  Filtros de Búsqueda
-                </h3>
-              </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div className='space-y-2'>
-                  <Label>Filtrar por</Label>
-                  <Select
-                    value={modoFiltro}
-                    onValueChange={(val) => setModoFiltro(val as any)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder='Selecciona cómo filtrar' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='departamento'>Departamento</SelectItem>
-                      <SelectItem value='usuario'>Usuario</SelectItem>
-                      <SelectItem value='global'>Global</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <EnhancedCard variant='bordered' padding='lg' className='mt-6'>
+              <div className='space-y-4'>
+                <div className='flex items-center gap-2 mb-4'>
+                  <Filter className='h-5 w-5 text-primary' />
+                  <h3 className='text-lg font-semibold text-foreground'>
+                    Filtros de Búsqueda
+                  </h3>
                 </div>
 
-                <div
-                  className={cn(
-                    'space-y-2',
-                    modoFiltro === 'global' &&
-                      'opacity-50 pointer-events-none grayscale'
-                  )}
-                >
-                  {modoFiltro === 'usuario' ? (
-                    <>
-                      <Label
-                        className={
-                          validationErrors.empleado ? 'text-destructive' : ''
-                        }
-                      >
-                        Empleado
-                      </Label>
-                      <div
-                        className={cn(
-                          validationErrors.empleado &&
-                            'rounded-md ring-2 ring-destructive'
-                        )}
-                      >
-                        <EmployeeSearch
-                          value={empleado}
-                          onChange={setEmpleado}
-                          placeholder='Buscar empleado...'
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <Label
-                        className={
-                          validationErrors.departamento
-                            ? 'text-destructive'
-                            : ''
-                        }
-                      >
-                        Departamento
-                      </Label>
-                      <div
-                        className={cn(
-                          validationErrors.departamento &&
-                            'rounded-md ring-2 ring-destructive'
-                        )}
-                      >
-                        <DepartmentSearchableSelect
-                          value={departamento}
-                          onChange={setDepartamento}
-                          placeholder='Selecciona departamento'
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div className='space-y-2'>
-                  <Label
-                    className={
-                      validationErrors.fechaDesde ? 'text-destructive' : ''
-                    }
-                  >
-                    Fecha Inicio
-                  </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !fechaDesde && 'text-muted-foreground',
-                          validationErrors.fechaDesde &&
-                            'border-destructive ring-destructive'
-                        )}
-                      >
-                        <CalendarIcon className='mr-2 h-4 w-4' />
-                        {fechaDesde ? (
-                          format(fechaDesde, 'PPP', { locale: es })
-                        ) : (
-                          <span>Seleccionar fecha</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className='w-auto p-0'>
-                      <Calendar
-                        mode='single'
-                        selected={fechaDesde}
-                        onSelect={(d) => setFechaDesde(d || undefined)}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className='space-y-2'>
-                  <Label
-                    className={
-                      validationErrors.fechaHasta ? 'text-destructive' : ''
-                    }
-                  >
-                    Fecha Fin
-                  </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !fechaHasta && 'text-muted-foreground',
-                          validationErrors.fechaHasta &&
-                            'border-destructive ring-destructive'
-                        )}
-                      >
-                        <CalendarIcon className='mr-2 h-4 w-4' />
-                        {fechaHasta ? (
-                          format(fechaHasta, 'PPP', { locale: es })
-                        ) : (
-                          <span>Seleccionar fecha</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className='w-auto p-0'>
-                      <Calendar
-                        mode='single'
-                        selected={fechaHasta}
-                        onSelect={(d) => setFechaHasta(d || undefined)}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div className='space-y-4 col-span-1 md:col-span-2'>
-                  <Label>Estatus</Label>
-                  <div className='flex flex-wrap gap-4'>
-                    <div className='flex items-center space-x-2'>
-                      <input
-                        type='radio'
-                        id='cat_todos'
-                        name='categoriaEstatus'
-                        checked={categoriaEstatus === 'TODOS'}
-                        onChange={() => {
-                          setCategoriaEstatus('TODOS');
-                          setTiposAsistenciaSeleccionados([]);
-                        }}
-                        className='h-4 w-4 border-gray-300 text-primary focus:ring-primary'
-                      />
-                      <Label
-                        htmlFor='cat_todos'
-                        className='font-normal cursor-pointer'
-                      >
-                        Todos
-                      </Label>
-                    </div>
-                    <div className='flex items-center space-x-2'>
-                      <input
-                        type='radio'
-                        id='cat_asistencia'
-                        name='categoriaEstatus'
-                        checked={categoriaEstatus === 'ASISTENCIA'}
-                        onChange={() => {
-                          setCategoriaEstatus('ASISTENCIA');
-                          const asistenciaKeys = estatusOptions
-                            .filter((o) => !FALTAS_KEYS.includes(o.clave))
-                            .map((o) => o.clave);
-                          setTiposAsistenciaSeleccionados(asistenciaKeys);
-                        }}
-                        className='h-4 w-4 border-gray-300 text-primary focus:ring-primary'
-                      />
-                      <Label
-                        htmlFor='cat_asistencia'
-                        className='font-normal cursor-pointer'
-                      >
-                        Asistencia
-                      </Label>
-                    </div>
-                    <div className='flex items-center space-x-2'>
-                      <input
-                        type='radio'
-                        id='cat_falta'
-                        name='categoriaEstatus'
-                        checked={categoriaEstatus === 'FALTA'}
-                        onChange={() => {
-                          setCategoriaEstatus('FALTA');
-                          setTiposAsistenciaSeleccionados(FALTAS_KEYS);
-                        }}
-                        className='h-4 w-4 border-gray-300 text-primary focus:ring-primary'
-                      />
-                      <Label
-                        htmlFor='cat_falta'
-                        className='font-normal cursor-pointer'
-                      >
-                        Falta
-                      </Label>
-                    </div>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <Label>Filtrar por</Label>
+                    <Select
+                      value={modoFiltro}
+                      onValueChange={(val) => setModoFiltro(val as any)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder='Selecciona cómo filtrar' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='departamento'>
+                          Departamento
+                        </SelectItem>
+                        <SelectItem value='usuario'>Usuario</SelectItem>
+                        <SelectItem value='global'>Global</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  {categoriaEstatus === 'ASISTENCIA' && (
-                    <div className='mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 p-4 border rounded-md bg-muted/20'>
-                      {estatusOptions
-                        .filter((o) => !FALTAS_KEYS.includes(o.clave))
-                        .map((opt) => (
+                  <div
+                    className={cn(
+                      'space-y-2',
+                      modoFiltro === 'global' &&
+                        'opacity-50 pointer-events-none grayscale'
+                    )}
+                  >
+                    {modoFiltro === 'usuario' ? (
+                      <>
+                        <Label
+                          className={
+                            validationErrors.empleado ? 'text-destructive' : ''
+                          }
+                        >
+                          Empleado
+                        </Label>
+                        <div
+                          className={cn(
+                            validationErrors.empleado &&
+                              'rounded-md ring-2 ring-destructive'
+                          )}
+                        >
+                          <EmployeeSearch
+                            value={empleado}
+                            onChange={setEmpleado}
+                            placeholder='Buscar empleado...'
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Label
+                          className={
+                            validationErrors.departamento
+                              ? 'text-destructive'
+                              : ''
+                          }
+                        >
+                          Departamento
+                        </Label>
+                        <div
+                          className={cn(
+                            validationErrors.departamento &&
+                              'rounded-md ring-2 ring-destructive'
+                          )}
+                        >
+                          <DepartmentSearchableSelect
+                            value={departamento}
+                            onChange={setDepartamento}
+                            placeholder='Selecciona departamento'
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <Label
+                      className={
+                        validationErrors.fechaDesde ? 'text-destructive' : ''
+                      }
+                    >
+                      Fecha Inicio
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !fechaDesde && 'text-muted-foreground',
+                            validationErrors.fechaDesde &&
+                              'border-destructive ring-destructive'
+                          )}
+                        >
+                          <CalendarIcon className='mr-2 h-4 w-4' />
+                          {fechaDesde ? (
+                            format(fechaDesde, 'PPP', { locale: es })
+                          ) : (
+                            <span>Seleccionar fecha</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className='w-auto p-0'>
+                        <Calendar
+                          mode='single'
+                          selected={fechaDesde}
+                          onSelect={(d) => setFechaDesde(d || undefined)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className='space-y-2'>
+                    <Label
+                      className={
+                        validationErrors.fechaHasta ? 'text-destructive' : ''
+                      }
+                    >
+                      Fecha Fin
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !fechaHasta && 'text-muted-foreground',
+                            validationErrors.fechaHasta &&
+                              'border-destructive ring-destructive'
+                          )}
+                        >
+                          <CalendarIcon className='mr-2 h-4 w-4' />
+                          {fechaHasta ? (
+                            format(fechaHasta, 'PPP', { locale: es })
+                          ) : (
+                            <span>Seleccionar fecha</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className='w-auto p-0'>
+                        <Calendar
+                          mode='single'
+                          selected={fechaHasta}
+                          onSelect={(d) => setFechaHasta(d || undefined)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='space-y-4 col-span-1 md:col-span-2'>
+                    <Label>Estatus</Label>
+                    <div className='flex flex-wrap gap-4'>
+                      <div className='flex items-center space-x-2'>
+                        <input
+                          type='radio'
+                          id='cat_todos'
+                          name='categoriaEstatus'
+                          checked={categoriaEstatus === 'TODOS'}
+                          onChange={() => {
+                            setCategoriaEstatus('TODOS');
+                            setTiposAsistenciaSeleccionados([]);
+                          }}
+                          className='h-4 w-4 border-gray-300 text-primary focus:ring-primary'
+                        />
+                        <Label
+                          htmlFor='cat_todos'
+                          className='font-normal cursor-pointer'
+                        >
+                          Todos
+                        </Label>
+                      </div>
+                      <div className='flex items-center space-x-2'>
+                        <input
+                          type='radio'
+                          id='cat_asistencia'
+                          name='categoriaEstatus'
+                          checked={categoriaEstatus === 'ASISTENCIA'}
+                          onChange={() => {
+                            setCategoriaEstatus('ASISTENCIA');
+                            const asistenciaKeys = estatusOptions
+                              .filter((o) => !FALTAS_KEYS.includes(o.clave))
+                              .map((o) => o.clave);
+                            setTiposAsistenciaSeleccionados(asistenciaKeys);
+                          }}
+                          className='h-4 w-4 border-gray-300 text-primary focus:ring-primary'
+                        />
+                        <Label
+                          htmlFor='cat_asistencia'
+                          className='font-normal cursor-pointer'
+                        >
+                          Asistencia
+                        </Label>
+                      </div>
+                      <div className='flex items-center space-x-2'>
+                        <input
+                          type='radio'
+                          id='cat_falta'
+                          name='categoriaEstatus'
+                          checked={categoriaEstatus === 'FALTA'}
+                          onChange={() => {
+                            setCategoriaEstatus('FALTA');
+                            setTiposAsistenciaSeleccionados(FALTAS_KEYS);
+                          }}
+                          className='h-4 w-4 border-gray-300 text-primary focus:ring-primary'
+                        />
+                        <Label
+                          htmlFor='cat_falta'
+                          className='font-normal cursor-pointer'
+                        >
+                          Falta
+                        </Label>
+                      </div>
+                    </div>
+
+                    {categoriaEstatus === 'ASISTENCIA' && (
+                      <div className='mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 p-4 border rounded-md bg-muted/20'>
+                        {estatusOptions
+                          .filter((o) => !FALTAS_KEYS.includes(o.clave))
+                          .map((opt) => (
+                            <div
+                              key={opt.clave}
+                              className='flex items-center space-x-2'
+                            >
+                              <input
+                                type='checkbox'
+                                id={`sub_${opt.clave}`}
+                                checked={tiposAsistenciaSeleccionados.includes(
+                                  opt.clave
+                                )}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setTiposAsistenciaSeleccionados([
+                                      ...tiposAsistenciaSeleccionados,
+                                      opt.clave,
+                                    ]);
+                                  } else {
+                                    setTiposAsistenciaSeleccionados(
+                                      tiposAsistenciaSeleccionados.filter(
+                                        (k) => k !== opt.clave
+                                      )
+                                    );
+                                  }
+                                }}
+                                className='h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary'
+                              />
+                              <Label
+                                htmlFor={`sub_${opt.clave}`}
+                                className='text-sm font-normal cursor-pointer'
+                              >
+                                {opt.nombre}
+                              </Label>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+
+                    {categoriaEstatus === 'FALTA' && (
+                      <div className='mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 p-4 border rounded-md bg-muted/20'>
+                        {[
+                          { clave: 'FC', nombre: 'Falta Completa' },
+                          { clave: 'FE', nombre: 'Falta Entrada' },
+                          { clave: 'FS', nombre: 'Falta Salida' },
+                        ].map((opt) => (
                           <div
                             key={opt.clave}
                             className='flex items-center space-x-2'
@@ -548,96 +596,53 @@ export default function ReportesPage() {
                             </Label>
                           </div>
                         ))}
-                    </div>
-                  )}
-
-                  {categoriaEstatus === 'FALTA' && (
-                    <div className='mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 p-4 border rounded-md bg-muted/20'>
-                      {[
-                        { clave: 'FC', nombre: 'Falta Completa' },
-                        { clave: 'FE', nombre: 'Falta Entrada' },
-                        { clave: 'FS', nombre: 'Falta Salida' },
-                      ].map((opt) => (
-                        <div
-                          key={opt.clave}
-                          className='flex items-center space-x-2'
-                        >
-                          <input
-                            type='checkbox'
-                            id={`sub_${opt.clave}`}
-                            checked={tiposAsistenciaSeleccionados.includes(
-                              opt.clave
-                            )}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setTiposAsistenciaSeleccionados([
-                                  ...tiposAsistenciaSeleccionados,
-                                  opt.clave,
-                                ]);
-                              } else {
-                                setTiposAsistenciaSeleccionados(
-                                  tiposAsistenciaSeleccionados.filter(
-                                    (k) => k !== opt.clave
-                                  )
-                                );
-                              }
-                            }}
-                            className='h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary'
-                          />
-                          <Label
-                            htmlFor={`sub_${opt.clave}`}
-                            className='text-sm font-normal cursor-pointer'
-                          >
-                            {opt.nombre}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                <div className='flex flex-col sm:flex-row sm:items-end gap-4 mt-6 pt-4 border-t'>
+                  <div className='space-y-2 w-full sm:w-48'>
+                    <Label>Formato de Descarga</Label>
+                    <Select value={formato} onValueChange={setFormato}>
+                      <SelectTrigger>
+                        <SelectValue placeholder='Selecciona formato' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='xlsx'>Excel (.xlsx)</SelectItem>
+                        <SelectItem value='pdf'>PDF (.pdf)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className='flex gap-4 w-full sm:w-auto flex-1 justify-start'>
+                    <Button
+                      variant='outline'
+                      onClick={handleClearFilters}
+                      className='border-2 border-border hover:border-primary hover:bg-primary/5 w-full sm:w-auto'
+                    >
+                      Limpiar
+                    </Button>
+                    <Button
+                      onClick={downloadReport}
+                      className='w-full sm:w-auto'
+                      aria-label='Generar y descargar reporte'
+                    >
+                      <Download className='mr-2 h-5 w-5' />
+                      Exportar Reporte
+                    </Button>
+                  </div>
+                </div>
+
+                {error && (
+                  <Alert variant='destructive' className='mt-4'>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
               </div>
-
-              <div className='flex flex-col sm:flex-row sm:items-end gap-4 mt-6 pt-4 border-t'>
-                <div className='space-y-2 w-full sm:w-48'>
-                  <Label>Formato de Descarga</Label>
-                  <Select value={formato} onValueChange={setFormato}>
-                    <SelectTrigger>
-                      <SelectValue placeholder='Selecciona formato' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='xlsx'>Excel (.xlsx)</SelectItem>
-                      <SelectItem value='pdf'>PDF (.pdf)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className='flex gap-4 w-full sm:w-auto flex-1 justify-start'>
-                  <Button
-                    variant='outline'
-                    onClick={handleClearFilters}
-                    className='border-2 border-border hover:border-primary hover:bg-primary/5 w-full sm:w-auto'
-                  >
-                    Limpiar
-                  </Button>
-                  <Button
-                    onClick={downloadReport}
-                    className='w-full sm:w-auto'
-                    aria-label='Generar y descargar reporte'
-                  >
-                    <Download className='mr-2 h-5 w-5' />
-                    Exportar Reporte
-                  </Button>
-                </div>
-              </div>
-
-              {error && (
-                <Alert variant='destructive' className='mt-4'>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </EnhancedCard>
+            </EnhancedCard>
+          </div>
         </div>
       </div>
-    </div>
+    </RequirePermission>
   );
 }

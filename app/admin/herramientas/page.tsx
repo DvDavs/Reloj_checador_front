@@ -21,6 +21,7 @@ import { RegistroManualForm } from '@/components/admin/RegistroManualForm';
 import { CorreccionEstatusForm } from '@/components/admin/CorreccionEstatusForm';
 import { CorreccionRegistrosForm } from '@/components/admin/CorreccionRegistrosForm';
 import { ConsolidacionManualForm } from '@/components/admin/ConsolidacionManualForm';
+import { Can } from '@/app/components/auth/can';
 
 // Componente de carga (sin cambios)
 const LoadingComponent = ({ title }: { title: string }) => (
@@ -135,29 +136,31 @@ export default function HerramientasAdminPage() {
               </div>
 
               {/* Herramienta de Corrección de Registros (Detalle) */}
-              <div className='bg-card border rounded-lg p-6 flex flex-col'>
-                <div className='flex items-center gap-3 mb-4'>
-                  <ClipboardList className='h-6 w-6 text-primary' />
-                  <div>
-                    <h2 className='text-xl font-semibold'>
-                      Auditoría de Registros de Checada
-                    </h2>
-                    <p className='text-muted-foreground'>
-                      Vista cruda de checadas con filtros avanzados y edición
-                      puntual.
-                    </p>
+              <Can permission='asistencia:correct'>
+                <div className='bg-card border rounded-lg p-6 flex flex-col'>
+                  <div className='flex items-center gap-3 mb-4'>
+                    <ClipboardList className='h-6 w-6 text-primary' />
+                    <div>
+                      <h2 className='text-xl font-semibold'>
+                        Auditoría de Registros de Checada
+                      </h2>
+                      <p className='text-muted-foreground'>
+                        Vista cruda de checadas con filtros avanzados y edición
+                        puntual.
+                      </p>
+                    </div>
+                  </div>
+                  <div className='flex-grow'>
+                    <Suspense
+                      fallback={
+                        <LoadingComponent title='Corrección de Registros' />
+                      }
+                    >
+                      <CorreccionRegistrosForm />
+                    </Suspense>
                   </div>
                 </div>
-                <div className='flex-grow'>
-                  <Suspense
-                    fallback={
-                      <LoadingComponent title='Corrección de Registros' />
-                    }
-                  >
-                    <CorreccionRegistrosForm />
-                  </Suspense>
-                </div>
-              </div>
+              </Can>
             </div>
           </TabsContent>
 

@@ -55,6 +55,8 @@ import { useTableState } from '@/app/hooks/use-table-state';
 import { DataTable } from '@/app/components/shared/data-table';
 import { InlineJustificacionModal } from './components/InlineJustificacionModal';
 import { EmployeeSearch } from '@/app/components/shared/employee-search';
+import { RequirePermission } from '@/app/components/auth/require-permission';
+import { Can } from '@/app/components/auth/can';
 import type { EmpleadoSimpleDTO } from '@/app/horarios/asignados/registrar/types';
 import {
   Dialog,
@@ -128,59 +130,39 @@ export default function ControlAsistenciaPage() {
 
   const MAX_RANGO_DIAS = 30;
 
-  const runSearch = useCallback(async () => {
-    // Validación de rango de fechas
-    if (fechaDesde && fechaHasta) {
-      if (fechaHasta < fechaDesde) {
-        setError('La fecha fin no puede ser anterior a la fecha inicio.');
-        return;
-      }
-      if (differenceInCalendarDays(fechaHasta, fechaDesde) > MAX_RANGO_DIAS) {
-        setError(`El rango de fechas no puede superar ${MAX_RANGO_DIAS} días.`);
-        return;
-      }
-    }
+  const buildFilters = useCallback((): AsistenciaFilters => {
+    const filters: AsistenciaFilters = {
+      fechaInicio: fechaDesde ? format(fechaDesde, 'yyyy-MM-dd') : undefined,
+      fechaFin: fechaHasta ? format(fechaHasta, 'yyyy-MM-dd') : undefined,
+      departamentoClave: departamento?.clave,
+      estatusClave: estatusSeleccionado?.clave,
+    };
 
-    try {
-      setLoading(true);
-      setError(null);
-      const filters: AsistenciaFilters = {
-        fechaInicio: fechaDesde ? format(fechaDesde, 'yyyy-MM-dd') : undefined,
-        fechaFin: fechaHasta ? format(fechaHasta, 'yyyy-MM-dd') : undefined,
-        departamentoClave: departamento?.clave,
-        estatusClave: estatusSeleccionado?.clave,
-      };
-
-      // Resolver filtros de Empleado y Tarjeta separados
-      if (empleado?.id) {
-        filters.empleadoId = empleado.id;
-      } else if (tarjeta.trim()) {
-        const isNumeric = /^\d+$/.test(tarjeta.trim());
-        if (isNumeric) {
-          filters.numeroTarjeta = tarjeta.trim();
-        }
-      }
-      const result = await buscarAsistenciasConsolidadas(filters);
-      setAsistencias(result);
-      handlePageChange(1);
-    } catch (e: any) {
-      setError(e?.message || 'Error al buscar asistencias');
-      setAsistencias([]);
-    } finally {
-      setLoading(false);
+    // Resolver filtros de Empleado y Tarjeta separados
+    if (empleado?.id) {
+      filters.empleadoId = empleado.id;
+    } else if (tarjeta.trim() && /^\d+$/.test(tarjeta.trim())) {
+      filters.numeroTarjeta = tarjeta.trim();
     }
     return filters;
-  }, [
-    fechaDesde,
-    fechaHasta,
-    departamento,
-    estatusSeleccionado,
-    empleado,
-    tarjeta,
-  ]);
+  }, [fechaDesde, fechaHasta, departamento, estatusSeleccionado, empleado, tarjeta]);
 
   const runSearch = useCallback(
     async (targetPage: number = 0) => {
+      // Validación de rango de fechas
+      if (fechaDesde && fechaHasta) {
+        if (fechaHasta < fechaDesde) {
+          setError('La fecha fin no puede ser anterior a la fecha inicio.');
+          return;
+        }
+        if (differenceInCalendarDays(fechaHasta, fechaDesde) > MAX_RANGO_DIAS) {
+          setError(
+            `El rango de fechas no puede superar ${MAX_RANGO_DIAS} días.`
+          );
+          return;
+        }
+      }
+
       try {
         setLoading(true);
         setError(null);
@@ -203,7 +185,7 @@ export default function ControlAsistenciaPage() {
         setLoading(false);
       }
     },
-    [buildFilters]
+    [buildFilters, fechaDesde, fechaHasta]
   );
 
   const ensureJustificacionesLoaded = useCallback(async () => {
@@ -466,8 +448,9 @@ export default function ControlAsistenciaPage() {
   );
 
   return (
-    <div className='p-6 md:p-8'>
-      <div className='max-w-7xl mx-auto space-y-6'>
+    <RequirePermission permission='asistencia:read-all'>
+      <div className='p-6 md:p-8'>
+        <div className='max-w-7xl mx-auto space-y-6'>
         {/* Header mejorado */}
         <EnhancedCard variant='elevated' padding='lg'>
           <div className='space-y-1'>
@@ -510,35 +493,37 @@ export default function ControlAsistenciaPage() {
             </div>
           </EnhancedCard>
 
-          <EnhancedCard
-            variant='bordered'
-            padding='md'
-            hover
-            role='button'
-            tabIndex={0}
-            onClick={() => setActiveView('consolidacion')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setActiveView('consolidacion');
-              }
-            }}
-            className={`cursor-pointer ${activeView === 'consolidacion' ? 'ring-2 ring-primary/60 border-primary/60 bg-primary/5' : ''}`}
-          >
-            <div className='flex items-center space-x-3'>
-              <div className='p-2 bg-green-100 rounded-lg dark:bg-green-900/30'>
-                <DatabaseZap className='h-5 w-5 text-green-600 dark:text-green-400' />
+          <Can permission='asistencia:generate'>
+            <EnhancedCard
+              variant='bordered'
+              padding='md'
+              hover
+              role='button'
+              tabIndex={0}
+              onClick={() => setActiveView('consolidacion')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setActiveView('consolidacion');
+                }
+              }}
+              className={`cursor-pointer ${activeView === 'consolidacion' ? 'ring-2 ring-primary/60 border-primary/60 bg-primary/5' : ''}`}
+            >
+              <div className='flex items-center space-x-3'>
+                <div className='p-2 bg-green-100 rounded-lg dark:bg-green-900/30'>
+                  <DatabaseZap className='h-5 w-5 text-green-600 dark:text-green-400' />
+                </div>
+                <div>
+                  <h3 className='font-semibold text-foreground'>
+                    Generación de Asistencia
+                  </h3>
+                  <p className='text-sm text-muted-foreground'>
+                    Ejecute la Generación diaria por fecha
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className='font-semibold text-foreground'>
-                  Generación de Asistencia
-                </h3>
-                <p className='text-sm text-muted-foreground'>
-                  Ejecute la Generación diaria por fecha
-                </p>
-              </div>
-            </div>
-          </EnhancedCard>
+            </EnhancedCard>
+          </Can>
         </div>
 
         {activeView === 'gestion' ? (
@@ -1092,6 +1077,7 @@ export default function ControlAsistenciaPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
+      </div>
+    </RequirePermission>
   );
 }
