@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
@@ -14,7 +14,6 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { EnhancedBadge } from '@/app/components/shared/enhanced-badge';
 import { EnhancedCard } from '@/app/components/shared/enhanced-card';
 import { Eye, Edit, Trash2, UserPlus } from 'lucide-react';
@@ -23,16 +22,14 @@ import { DeleteConfirmationDialog } from './components/delete-confirmation-dialo
 import { useToast } from '@/components/ui/use-toast';
 import UnifiedEditModal from './components/unified-edit-modal';
 
-// Shared components
 import { PageHeader } from '@/app/components/shared/page-header';
 import { SearchInput } from '@/app/components/shared/search-input';
 import { LoadingState } from '@/app/components/shared/loading-state';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { SortableHeader } from '@/app/components/shared/sortable-header';
 import { PaginationWrapper } from '@/app/components/shared/pagination-wrapper';
-import { useTableState } from '@/app/hooks/use-table-state';
 
-const ITEMS_PER_PAGE = 10;
+const PAGE_SIZE = 10;
 
 export default function HorariosAsignadosPage() {
   const router = useRouter();
@@ -40,9 +37,19 @@ export default function HorariosAsignadosPage() {
   const { toast } = useToast();
 
   // Data state
-  const [allHorarios, setAllHorarios] = useState<HorarioAsignadoDto[]>([]);
+  const [rows, setRows] = useState<HorarioAsignadoDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Server-side pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Client-side sort over current page (#3)
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Modal state
   const [selectedItem, setSelectedItem] = useState<HorarioAsignadoDto | null>(
@@ -54,169 +61,180 @@ export default function HorariosAsignadosPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
 
-  // Table state using custom hook
-  const {
-    paginatedData,
-    searchTerm,
-    currentPage,
-    sortField,
-    sortDirection,
-    totalPages,
-    handleSearch,
-    handleSort,
-    handlePageChange,
-  } = useTableState({
-    data: allHorarios,
-    itemsPerPage: ITEMS_PER_PAGE,
-    searchFields: [
-      'empleadoNombre',
-      'horarioNombre',
-      'tipoHorarioNombre',
-      'numTarjetaTrabajador',
-    ],
-    defaultSortField: 'numTarjetaTrabajador',
-  });
-
-  const fetchHorariosAsignados = useCallback(async () => {
+  const fetchPage = useCallback(async (pageNum: number, filtro: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get<HorarioAsignadoDto[]>(
-        '/api/horarios-asignados'
-      );
-      const baseList = response.data || [];
-      // Enriquecer con número de tarjeta del trabajador
+      const params = new URLSearchParams();
+      params.append('page', String(pageNum - 1)); // backend es 0-based
+      params.append('size', String(PAGE_SIZE));
+      if (filtro.trim()) params.append('filtro', filtro.trim());
+
+      const response = await apiClient.get<{
+        content: HorarioAsignadoDto[];
+        totalPages: number;
+      }>(`/api/horarios-asignados?${params.toString()}`);
+
+      const content: HorarioAsignadoDto[] = response.data?.content ?? [];
+      setTotalPages(response.data?.totalPages ?? 1);
+
+      // Enriquecer solo los empleados de esta página (máximo PAGE_SIZE llamadas)
       try {
-        const uniqueEmpleadoIds = Array.from(
-          new Set(baseList.map((i) => i.empleadoId))
-        );
+        const uniqueIds = Array.from(new Set(content.map((i) => i.empleadoId)));
         const cardEntries = await Promise.all(
-          uniqueEmpleadoIds.map(async (empId) => {
+          uniqueIds.map(async (empId) => {
             try {
-              const empResp = await apiClient.get(`/api/empleados/${empId}`);
-              const tarjeta = empResp.data?.tarjeta ?? null;
-              return [empId, tarjeta] as const;
-            } catch (_) {
+              const r = await apiClient.get(`/api/empleados/${empId}`);
+              return [empId, r.data?.tarjeta ?? null] as const;
+            } catch {
               return [empId, null] as const;
             }
           })
         );
         const cardMap = new Map<number, string | number | null>(cardEntries);
-        const enriched = baseList.map((item) => ({
-          ...item,
-          numTarjetaTrabajador: cardMap.get(item.empleadoId) ?? null,
-        }));
-        setAllHorarios(enriched);
-      } catch (e) {
-        // Si falla el enriquecimiento, mostrar la lista base
-        setAllHorarios(baseList);
+        setRows(
+          content.map((item) => ({
+            ...item,
+            numTarjetaTrabajador: cardMap.get(item.empleadoId) ?? null,
+          }))
+        );
+      } catch {
+        setRows(content);
       }
     } catch (err: any) {
-      console.error('Error fetching horarios asignados:', err);
-      const errorMsg =
-        err.response?.data?.message ||
-        err.message ||
-        'No se pudo cargar la lista de horarios asignados.';
-      setError(
-        `Error al cargar horarios asignados: ${errorMsg}. Verifique la conexión con la API.`
-      );
-      setAllHorarios([]);
+      // #5: solo exponer mensaje del backend; evitar exponer err.message de red
+      const msg =
+        err.response?.data?.message ?? 'Error al comunicarse con el servidor';
+      setError(`Error al cargar horarios asignados: ${msg}`);
+      setRows([]);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+  // #2: cleanup debounce al desmontar para evitar llamadas sobre componente desmontado
   useEffect(() => {
-    fetchHorariosAsignados();
-  }, [fetchHorariosAsignados]);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
-  // Handle highlight parameter to auto-open details modal
+  // Carga inicial
+  useEffect(() => {
+    fetchPage(1, '');
+  }, [fetchPage]);
+
+  // #6 + #7: Abrir detalle desde URL highlight — valida ID numérico y hace fetch si no está en página
   useEffect(() => {
     const highlightId = searchParams.get('highlight');
-    if (highlightId && allHorarios.length > 0 && !isLoading) {
-      const targetItem = allHorarios.find(
-        (item) => item.id.toString() === highlightId
-      );
-      if (targetItem) {
-        handleViewDetails(targetItem);
-        // Clean up the URL parameter after opening the modal
-        const url = new URL(window.location.href);
-        url.searchParams.delete('highlight');
-        window.history.replaceState({}, '', url.toString());
-      }
+    if (!highlightId || !/^\d+$/.test(highlightId) || isLoading) return;
+
+    const numericId = parseInt(highlightId, 10);
+
+    const openAndClean = (item: HorarioAsignadoDto) => {
+      setSelectedItem(item);
+      setIsDetailsOpen(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('highlight');
+      window.history.replaceState({}, '', url.toString());
+    };
+
+    const inPage = rows.find((item) => item.id === numericId);
+    if (inPage) {
+      openAndClean(inPage);
+      return;
     }
-  }, [searchParams, allHorarios, isLoading]);
 
-  const handleViewDetails = (item: HorarioAsignadoDto) => {
-    setSelectedItem(item);
-    setIsDetailsOpen(true);
+    // #7: item no está en la página actual — fetch directo por ID
+    if (rows.length > 0) {
+      apiClient
+        .get<HorarioAsignadoDto>(`/api/horarios-asignados/${numericId}`)
+        .then((r) => {
+          if (r.data) openAndClean(r.data);
+        })
+        .catch(() => {});
+    }
+  }, [searchParams, rows, isLoading]);
+
+  // #3: sort client-side sobre la página actual
+  const handleSort = useCallback((field: string) => {
+    setSortField((prev) => {
+      if (prev === field) {
+        setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+        return prev;
+      }
+      setSortDirection('asc');
+      return field;
+    });
+  }, []);
+
+  const sortedRows = useMemo(() => {
+    if (!sortField) return rows;
+    return [...rows].sort((a, b) => {
+      const aVal = (a as any)[sortField] ?? '';
+      const bVal = (b as any)[sortField] ?? '';
+      const cmp = String(aVal).localeCompare(String(bVal), 'es-MX');
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [rows, sortField, sortDirection]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      fetchPage(1, value);
+    }, 400);
   };
 
-  const closeDetailsDialog = () => {
-    setSelectedItem(null);
-    setIsDetailsOpen(false);
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    fetchPage(newPage, searchTerm);
   };
 
-  const openDeleteDialog = (item: HorarioAsignadoDto) => {
-    setSelectedItem(item);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const closeDeleteDialog = () => {
-    setIsDeleteDialogOpen(false);
-  };
+  // #8: useCallback con dependencias explícitas para evitar closure stale
+  const onRefresh = useCallback(
+    () => fetchPage(page, searchTerm),
+    [fetchPage, page, searchTerm]
+  );
 
   const handleDelete = async () => {
     if (!selectedItem) return;
-
     setIsDeleting(true);
     try {
       await apiClient.delete(`/api/horarios-asignados/${selectedItem.id}`);
-
-      // Refetch the data for the current page
-      fetchHorariosAsignados();
       setIsDeleteDialogOpen(false);
-
       toast({
         title: 'Éxito',
         description: 'El horario ha sido desasignado correctamente.',
       });
+      fetchPage(page, searchTerm);
     } catch (err: any) {
-      console.error('Error deleting horario asignado:', err);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo desasignar el horario. Inténtelo de nuevo.',
+        description: 'No se pudo desasignar el horario.',
       });
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleEdit = (id: number) => {
-    setEditId(id);
-    setIsEditOpen(true);
-  };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    // Interpretar como fecha pura (YYYY-MM-DD) en horario local para evitar desfase por zona horaria
     const onlyDate = dateString.substring(0, 10);
     const [yStr, mStr, dStr] = onlyDate.split('-');
     const year = parseInt(yStr || '', 10);
     const month = parseInt(mStr || '', 10);
     const day = parseInt(dStr || '', 10);
     if (!year || !month || !day) {
-      // Fallback seguro si el formato no es el esperado
-      const fallback = new Date(dateString);
-      return fallback.toLocaleDateString('es-MX', {
+      return new Date(dateString).toLocaleDateString('es-MX', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       });
     }
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('es-MX', {
+    return new Date(year, month - 1, day).toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -225,15 +243,13 @@ export default function HorariosAsignadosPage() {
 
   return (
     <>
-      {/* Contenedor principal con mejor contraste y separación */}
       <div className='min-h-screen bg-background'>
         <div className='p-6 md:p-8'>
-          {/* Header con card elevado */}
           <EnhancedCard variant='elevated' padding='lg' className='mb-6'>
             <PageHeader
               title='Horarios Asignados'
               isLoading={isLoading}
-              onRefresh={fetchHorariosAsignados}
+              onRefresh={onRefresh}
               actions={
                 <Link href='/horarios/asignados/registrar'>
                   <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
@@ -245,7 +261,6 @@ export default function HorariosAsignadosPage() {
             />
           </EnhancedCard>
 
-          {/* Barra de búsqueda con card */}
           <EnhancedCard variant='default' padding='md' className='mb-6'>
             <SearchInput
               value={searchTerm}
@@ -273,7 +288,6 @@ export default function HorariosAsignadosPage() {
 
           {!isLoading && !error && (
             <>
-              {/* Tabla con mejor contraste y elevación */}
               <div className='enhanced-table-container mb-6'>
                 <div className='overflow-x-auto'>
                   <Table>
@@ -336,8 +350,8 @@ export default function HorariosAsignadosPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedData.length > 0 ? (
-                        paginatedData.map((item, index) => (
+                      {sortedRows.length > 0 ? (
+                        sortedRows.map((item) => (
                           <TableRow
                             key={item.id}
                             className='enhanced-table-row'
@@ -377,7 +391,10 @@ export default function HorariosAsignadosPage() {
                                 <Button
                                   variant='ghost'
                                   size='icon'
-                                  onClick={() => handleViewDetails(item)}
+                                  onClick={() => {
+                                    setSelectedItem(item);
+                                    setIsDetailsOpen(true);
+                                  }}
                                   title='Ver Detalles'
                                   className='action-button-view'
                                 >
@@ -386,7 +403,10 @@ export default function HorariosAsignadosPage() {
                                 <Button
                                   variant='ghost'
                                   size='icon'
-                                  onClick={() => handleEdit(item.id)}
+                                  onClick={() => {
+                                    setEditId(item.id);
+                                    setIsEditOpen(true);
+                                  }}
                                   title='Editar Horario'
                                   className='action-button-edit'
                                 >
@@ -395,7 +415,10 @@ export default function HorariosAsignadosPage() {
                                 <Button
                                   variant='ghost'
                                   size='icon'
-                                  onClick={() => openDeleteDialog(item)}
+                                  onClick={() => {
+                                    setSelectedItem(item);
+                                    setIsDeleteDialogOpen(true);
+                                  }}
                                   title='Desasignar Horario'
                                   className='action-button-delete'
                                 >
@@ -430,10 +453,9 @@ export default function HorariosAsignadosPage() {
                 </div>
               </div>
 
-              {/* Paginación con card */}
               <EnhancedCard variant='default' padding='md'>
                 <PaginationWrapper
-                  currentPage={currentPage}
+                  currentPage={page}
                   totalPages={totalPages}
                   onPageChange={handlePageChange}
                 />
@@ -445,13 +467,16 @@ export default function HorariosAsignadosPage() {
 
       <DetailsDialog
         isOpen={isDetailsOpen}
-        onClose={closeDetailsDialog}
+        onClose={() => {
+          setSelectedItem(null);
+          setIsDetailsOpen(false);
+        }}
         item={selectedItem}
       />
 
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
-        onClose={closeDeleteDialog}
+        onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDelete}
         isDeleting={isDeleting}
       />
@@ -460,9 +485,7 @@ export default function HorariosAsignadosPage() {
         isOpen={isEditOpen}
         assignmentId={editId}
         onClose={() => setIsEditOpen(false)}
-        onSaved={() => {
-          fetchHorariosAsignados();
-        }}
+        onSaved={() => fetchPage(page, searchTerm)}
       />
     </>
   );
