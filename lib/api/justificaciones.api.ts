@@ -213,15 +213,30 @@ export const createJustificacionMasiva = async (
 };
 
 /**
- * Lista todas las justificaciones registradas
+ * Lista justificaciones paginadas (sin requerir fechas).
+ * Acepta un rango opcional para limitar resultados al contexto actual de búsqueda.
  */
-export const listJustificaciones = async (): Promise<JustificacionItem[]> => {
+export const listJustificaciones = async (opts?: {
+  fechaInicio?: string;
+  fechaFin?: string;
+  empleadoId?: number;
+  size?: number;
+}): Promise<JustificacionItem[]> => {
   try {
-    const response = await apiClient.get('/api/justificaciones');
+    const params = new URLSearchParams();
+    params.append('page', '0');
+    params.append('size', (opts?.size ?? 100).toString());
+    if (opts?.fechaInicio) params.append('fechaInicio', opts.fechaInicio);
+    if (opts?.fechaFin) params.append('fechaFin', opts.fechaFin);
+    if (opts?.empleadoId)
+      params.append('empleadoId', opts.empleadoId.toString());
+
+    const response = await apiClient.get(
+      `/api/justificaciones/paginated?${params.toString()}`
+    );
     const backend = response.data || {};
     const items: any[] = backend.data || [];
 
-    // Mapear a un modelo plano y estable para la UI
     return items.map((j: any) => {
       const empleado = j.empleado || {};
       const tipo = j.tipoJustificacion || {};

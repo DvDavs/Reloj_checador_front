@@ -85,6 +85,10 @@ export default function ControlAsistenciaPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [asistencias, setAsistencias] = useState<AsistenciaRecord[]>([]);
+  const [serverTotalElements, setServerTotalElements] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(0);
+  const [serverCurrentPage, setServerCurrentPage] = useState(0);
+  const PAGE_SIZE = 20;
   const [justModalOpen, setJustModalOpen] = useState(false);
   const [selectedForJust, setSelectedForJust] =
     useState<AsistenciaRecord | null>(null);
@@ -101,20 +105,13 @@ export default function ControlAsistenciaPage() {
   >({});
   const [loadingJustificaciones, setLoadingJustificaciones] = useState(false);
 
-  // Tabla: paginación 50 por defecto
-  const {
-    paginatedData,
-    currentPage,
-    totalPages,
-    sortField,
-    sortDirection,
-    handleSort,
-    handlePageChange,
-  } = useTableState<AsistenciaRecord>({
-    data: asistencias,
-    itemsPerPage: 50,
-    defaultSortField: 'fecha',
-  });
+  // useTableState sólo para ordenamiento local de la página actual
+  const { paginatedData, sortField, sortDirection, handleSort } =
+    useTableState<AsistenciaRecord>({
+      data: asistencias,
+      itemsPerPage: PAGE_SIZE,
+      defaultSortField: 'fecha',
+    });
 
   // Carga estatus disponibles una vez
   const loadEstatusDisponibles = useCallback(async () => {
@@ -172,6 +169,7 @@ export default function ControlAsistenciaPage() {
     } finally {
       setLoading(false);
     }
+    return filters;
   }, [
     fechaDesde,
     fechaHasta,
@@ -179,8 +177,34 @@ export default function ControlAsistenciaPage() {
     estatusSeleccionado,
     empleado,
     tarjeta,
-    handlePageChange,
   ]);
+
+  const runSearch = useCallback(
+    async (targetPage: number = 0) => {
+      try {
+        setLoading(true);
+        setError(null);
+        setJustificacionesMap({});
+        const result = await buscarAsistenciasConsolidadas(
+          buildFilters(),
+          targetPage,
+          PAGE_SIZE
+        );
+        setAsistencias(result.content);
+        setServerTotalElements(result.totalElements);
+        setServerTotalPages(result.totalPages);
+        setServerCurrentPage(result.number);
+      } catch (e: any) {
+        setError(e?.message || 'Error al buscar asistencias');
+        setAsistencias([]);
+        setServerTotalPages(0);
+        setServerTotalElements(0);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [buildFilters]
+  );
 
   const ensureJustificacionesLoaded = useCallback(async () => {
     if (loadingJustificaciones || Object.keys(justificacionesMap).length > 0) {
@@ -188,7 +212,12 @@ export default function ControlAsistenciaPage() {
     }
     try {
       setLoadingJustificaciones(true);
-      const items = await listJustificaciones();
+      const items = await listJustificaciones({
+        fechaInicio: fechaDesde ? format(fechaDesde, 'yyyy-MM-dd') : undefined,
+        fechaFin: fechaHasta ? format(fechaHasta, 'yyyy-MM-dd') : undefined,
+        empleadoId: empleado?.id,
+        size: 200,
+      });
       const map = items.reduce(
         (acc, j) => {
           acc[j.id] = j;
@@ -202,7 +231,13 @@ export default function ControlAsistenciaPage() {
     } finally {
       setLoadingJustificaciones(false);
     }
-  }, [loadingJustificaciones, justificacionesMap]);
+  }, [
+    loadingJustificaciones,
+    justificacionesMap,
+    fechaDesde,
+    fechaHasta,
+    empleado,
+  ]);
 
   const asistenciasConJustificacion = useMemo(
     () => asistencias.some((a) => (a as any).justificacionId),
@@ -670,7 +705,7 @@ export default function ControlAsistenciaPage() {
 
                 <div className='flex gap-3'>
                   <Button
-                    onClick={runSearch}
+                    onClick={() => runSearch(0)}
                     disabled={loading}
                     className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
                   >
@@ -704,11 +739,9 @@ export default function ControlAsistenciaPage() {
                     Resultados de Asistencia
                   </h3>
                   <p className='text-muted-foreground text-sm'>
-                    Mostrando registros{' '}
-                    {asistencias.length > 0
-                      ? `${(currentPage - 1) * 50 + 1}-${Math.min(currentPage * 50, asistencias.length)}`
-                      : '0-0'}{' '}
-                    de {asistencias.length}
+                    {serverTotalElements > 0
+                      ? `Mostrando ${serverCurrentPage * PAGE_SIZE + 1}–${Math.min((serverCurrentPage + 1) * PAGE_SIZE, serverTotalElements)} de ${serverTotalElements} registros`
+                      : 'Sin resultados'}
                   </p>
                 </div>
 
@@ -726,25 +759,27 @@ export default function ControlAsistenciaPage() {
                   }}
                 />
 
-                {totalPages > 1 && (
+                {serverTotalPages > 1 && (
                   <div className='mt-6 flex justify-center'>
                     <div className='flex items-center space-x-2'>
                       <Button
                         variant='outline'
                         size='sm'
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
+                        onClick={() => runSearch(serverCurrentPage - 1)}
+                        disabled={loading || serverCurrentPage === 0}
                       >
                         Anterior
                       </Button>
                       <span className='text-sm text-muted-foreground'>
-                        Página {currentPage} de {totalPages}
+                        Página {serverCurrentPage + 1} de {serverTotalPages}
                       </span>
                       <Button
                         variant='outline'
                         size='sm'
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
+                        onClick={() => runSearch(serverCurrentPage + 1)}
+                        disabled={
+                          loading || serverCurrentPage >= serverTotalPages - 1
+                        }
                       >
                         Siguiente
                       </Button>
@@ -765,8 +800,7 @@ export default function ControlAsistenciaPage() {
           onOpenChange={setJustModalOpen}
           asistencia={selectedForJust}
           onSuccess={() => {
-            // volver a cargar los datos del rango actual
-            runSearch();
+            runSearch(serverCurrentPage);
           }}
         />
 

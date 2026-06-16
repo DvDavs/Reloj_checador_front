@@ -71,14 +71,14 @@ export function CorreccionEstatusForm() {
       setLoading((prev) => ({ ...prev, search: true }));
       setError(null);
       try {
-        const results = await buscarAsistenciasConsolidadas(filters);
-        setAllAsistencias(results);
+        const results = await buscarAsistenciasConsolidadas(filters, 0, 200);
+        setAllAsistencias(results.content);
         // Resetear la página a 1 en cada nueva búsqueda
         handlePageChange(1);
         setSelectedIds([]); // Limpiar selección en nueva búsqueda
         toast({
           title: 'Búsqueda completada',
-          description: `Se encontraron ${results.length} registros.`,
+          description: `Se encontraron ${results.totalElements} registros.`,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al buscar');

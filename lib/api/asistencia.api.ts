@@ -329,25 +329,35 @@ export const consolidarAsistenciaManual = async (
   }
 };
 
+export interface AsistenciasPaginadasResponse {
+  content: AsistenciaRecord[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
 /**
- * Busca asistencias consolidadas con filtros flexibles.
- * Ideal para la herramienta de corrección, permitiendo rangos de fecha y estatus opcional.
- * @param filters - Filtros de búsqueda.
- * @returns Promise con un array de registros de asistencia.
+ * Busca asistencias consolidadas con filtros flexibles y paginación server-side.
+ * Modelo idéntico a Chequeos: todos los filtros opcionales, orden DESC por fecha.
  */
 export const buscarAsistenciasConsolidadas = async (
-  filters: AsistenciaFilters
-): Promise<AsistenciaRecord[]> => {
+  filters: AsistenciaFilters,
+  page: number = 0,
+  size: number = 20
+): Promise<AsistenciasPaginadasResponse> => {
   try {
     const params = new URLSearchParams();
     if (filters.empleadoId)
       params.append('empleadoId', filters.empleadoId.toString());
-    // El backend espera 'departamentoId' para la clave numérica del departamento.
     if (filters.departamentoClave)
       params.append('departamentoId', filters.departamentoClave);
     if (filters.fechaInicio) params.append('desde', filters.fechaInicio);
     if (filters.fechaFin) params.append('hasta', filters.fechaFin);
     if (filters.estatusClave) params.append('estatus', filters.estatusClave);
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+
     // Búsqueda por número de tarjeta: resolver a empleadoId si viene
     if (filters.numeroTarjeta && !filters.empleadoId) {
       try {
@@ -358,17 +368,22 @@ export const buscarAsistenciasConsolidadas = async (
           params.set('empleadoId', String(resp.data.id));
         }
       } catch (_) {
-        // Si no se encuentra por tarjeta, la búsqueda no devolverá resultados por empleado
+        // no-op
       }
     }
 
-    // Llama al endpoint flexible del backend
     const response = await apiClient.get(
       `/api/asistencias?${params.toString()}`
     );
 
-    // Este endpoint devuelve directamente un array
-    return response.data;
+    const data = response.data;
+    return {
+      content: data.content ?? [],
+      totalElements: data.totalElements ?? 0,
+      totalPages: data.totalPages ?? 1,
+      number: data.number ?? 0,
+      size: data.size ?? size,
+    };
   } catch (error) {
     throw new Error(
       getApiErrorMessage(error, 'Error al buscar asistencias consolidadas.')
