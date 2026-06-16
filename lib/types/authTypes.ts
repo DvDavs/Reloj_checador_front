@@ -7,6 +7,13 @@ export interface LoginResponse {
   token: string;
   type: string;
   expiresIn: number;
-  roles: string[]; // Viene como un array de strings desde el backend
+  roles: string[];
+  permissions: string[];
   username: string;
+}
+
+export interface AuthUser {
+  username: string;
+  roles: Set<string>;
+  permissions: Set<string>;
 }

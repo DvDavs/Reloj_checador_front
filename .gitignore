@@ -34,3 +34,6 @@ next-env.d.ts
 
 # backend-resources
 backend-resources
+
+# Claude Code local settings
+.claude/settings.local.json

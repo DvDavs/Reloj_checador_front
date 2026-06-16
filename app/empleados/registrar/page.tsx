@@ -23,6 +23,7 @@ import { uploadEmpleadoFoto } from '@/lib/api/empleados-foto.api';
 
 // Componentes mejorados
 import { FormLayout } from '@/app/components/shared/form-layout';
+import { RequirePermission } from '@/app/components/auth/require-permission';
 
 interface EmpleadoBackend {
   id: number;
@@ -159,81 +160,83 @@ export default function RegistrarEmpleadoPage() {
   };
 
   return (
-    <>
-      <FormLayout
-        title='Registrar Nuevo Empleado'
-        description='Complete la información básica del empleado. La asignación de huella se realizará después.'
-        breadcrumbs={[
-          { label: 'Empleados', href: '/empleados' },
-          { label: 'Registrar Nuevo Empleado' },
-        ]}
-        backHref='/empleados'
-        formIcon={<UserPlus className='h-5 w-5 text-primary' />}
-        formTitle='Información del Empleado'
-        formDescription='Complete todos los campos requeridos para registrar el nuevo empleado.'
-        error={error}
-        isSubmitting={isSubmitting}
-        footerNote='Los campos marcados con * son obligatorios'
-        actions={
-          <>
-            <Link href='/empleados'>
+    <RequirePermission permission='empleado:write'>
+      <>
+        <FormLayout
+          title='Registrar Nuevo Empleado'
+          description='Complete la información básica del empleado. La asignación de huella se realizará después.'
+          breadcrumbs={[
+            { label: 'Empleados', href: '/empleados' },
+            { label: 'Registrar Nuevo Empleado' },
+          ]}
+          backHref='/empleados'
+          formIcon={<UserPlus className='h-5 w-5 text-primary' />}
+          formTitle='Información del Empleado'
+          formDescription='Complete todos los campos requeridos para registrar el nuevo empleado.'
+          error={error}
+          isSubmitting={isSubmitting}
+          footerNote='Los campos marcados con * son obligatorios'
+          actions={
+            <>
+              <Link href='/empleados'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  disabled={isSubmitting}
+                  className='border-2 border-border hover:border-primary hover:bg-primary/5'
+                >
+                  Cancelar
+                </Button>
+              </Link>
               <Button
-                type='button'
-                variant='outline'
+                type='submit'
+                form='employee-form'
+                className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
                 disabled={isSubmitting}
-                className='border-2 border-border hover:border-primary hover:bg-primary/5'
               >
-                Cancelar
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className='mr-2 h-4 w-4' />
+                    Guardar Empleado
+                  </>
+                )}
               </Button>
-            </Link>
-            <Button
-              type='submit'
-              form='employee-form'
-              className='bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className='mr-2 h-4 w-4' />
-                  Guardar Empleado
-                </>
-              )}
-            </Button>
-          </>
-        }
-      >
-        <form id='employee-form' onSubmit={handleSubmit}>
-          <EmployeeForm
-            formData={formData}
-            onChange={handleChange}
-            onSelectChange={handleSelectChange}
-            onSwitchChange={handleSwitchChange}
-            isSubmitting={isSubmitting}
-            noneValue={NONE_VALUE_SELECT}
-          />
-          <div className='mt-6'>
-            <PhotoUpload
-              onFileSelected={setSelectedPhoto}
-              disabled={isSubmitting}
+            </>
+          }
+        >
+          <form id='employee-form' onSubmit={handleSubmit}>
+            <EmployeeForm
+              formData={formData}
+              onChange={handleChange}
+              onSelectChange={handleSelectChange}
+              onSwitchChange={handleSwitchChange}
+              isSubmitting={isSubmitting}
+              noneValue={NONE_VALUE_SELECT}
             />
-          </div>
-        </form>
-      </FormLayout>
+            <div className='mt-6'>
+              <PhotoUpload
+                onFileSelected={setSelectedPhoto}
+                disabled={isSubmitting}
+              />
+            </div>
+          </form>
+        </FormLayout>
 
-      {createdEmployee && (
-        <PostRegistrationDialog
-          isOpen={isDialogOpen}
-          onClose={() => setIsDialogOpen(false)}
-          onAssignFingerprint={handleAssignFingerprint}
-          onContinueToDetails={handleContinueToDetails}
-          employeeName={getFullName(createdEmployee)}
-        />
-      )}
-    </>
+        {createdEmployee && (
+          <PostRegistrationDialog
+            isOpen={isDialogOpen}
+            onClose={() => setIsDialogOpen(false)}
+            onAssignFingerprint={handleAssignFingerprint}
+            onContinueToDetails={handleContinueToDetails}
+            employeeName={getFullName(createdEmployee)}
+          />
+        )}
+      </>
+    </RequirePermission>
   );
 }

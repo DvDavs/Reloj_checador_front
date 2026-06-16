@@ -28,6 +28,8 @@ import { LoadingState } from '@/app/components/shared/loading-state';
 import { ErrorState } from '@/app/components/shared/error-state';
 import { SortableHeader } from '@/app/components/shared/sortable-header';
 import { PaginationWrapper } from '@/app/components/shared/pagination-wrapper';
+import { RequirePermission } from '@/app/components/auth/require-permission';
+import { Can } from '@/app/components/auth/can';
 
 const PAGE_SIZE = 10;
 
@@ -242,7 +244,8 @@ export default function HorariosAsignadosPage() {
   };
 
   return (
-    <>
+    <RequirePermission permission='horario:read'>
+      <>
       <div className='min-h-screen bg-background'>
         <div className='p-6 md:p-8'>
           <EnhancedCard variant='elevated' padding='lg' className='mb-6'>
@@ -251,12 +254,14 @@ export default function HorariosAsignadosPage() {
               isLoading={isLoading}
               onRefresh={onRefresh}
               actions={
-                <Link href='/horarios/asignados/registrar'>
-                  <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
-                    <UserPlus className='mr-2 h-4 w-4' />
-                    Registrar
-                  </Button>
-                </Link>
+                <Can permission='horario:assign'>
+                  <Link href='/horarios/asignados/registrar'>
+                    <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
+                      <UserPlus className='mr-2 h-4 w-4' />
+                      Registrar
+                    </Button>
+                  </Link>
+                </Can>
               }
             />
           </EnhancedCard>
@@ -400,30 +405,34 @@ export default function HorariosAsignadosPage() {
                                 >
                                   <Eye className='h-4 w-4' />
                                 </Button>
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  onClick={() => {
-                                    setEditId(item.id);
-                                    setIsEditOpen(true);
-                                  }}
-                                  title='Editar Horario'
-                                  className='action-button-edit'
-                                >
-                                  <Edit className='h-4 w-4' />
-                                </Button>
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  onClick={() => {
-                                    setSelectedItem(item);
-                                    setIsDeleteDialogOpen(true);
-                                  }}
-                                  title='Desasignar Horario'
-                                  className='action-button-delete'
-                                >
-                                  <Trash2 className='h-4 w-4' />
-                                </Button>
+                                <Can permission='horario:write'>
+                                  <Button
+                                    variant='ghost'
+                                    size='icon'
+                                    onClick={() => {
+                                      setEditId(item.id);
+                                      setIsEditOpen(true);
+                                    }}
+                                    title='Editar Horario'
+                                    className='action-button-edit'
+                                  >
+                                    <Edit className='h-4 w-4' />
+                                  </Button>
+                                </Can>
+                                <Can permission='horario:assign'>
+                                  <Button
+                                    variant='ghost'
+                                    size='icon'
+                                    onClick={() => {
+                                      setSelectedItem(item);
+                                      setIsDeleteDialogOpen(true);
+                                    }}
+                                    title='Desasignar Horario'
+                                    className='action-button-delete'
+                                  >
+                                    <Trash2 className='h-4 w-4' />
+                                  </Button>
+                                </Can>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -487,6 +496,7 @@ export default function HorariosAsignadosPage() {
         onClose={() => setIsEditOpen(false)}
         onSaved={() => fetchPage(page, searchTerm)}
       />
-    </>
+      </>
+    </RequirePermission>
   );
 }

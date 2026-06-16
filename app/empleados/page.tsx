@@ -16,6 +16,8 @@ import { useDebounce } from '@/app/hooks/use-debounce';
 import type { EmpleadoDto } from '@/app/lib/types/timeClockTypes';
 import { EmployeeAvatar } from '@/app/components/shared/EmployeeAvatar';
 import { DetailsDialog } from '@/app/horarios/asignados/components/details-dialog';
+import { RequirePermission } from '@/app/components/auth/require-permission';
+import { Can } from '@/app/components/auth/can';
 import {
   Dialog,
   DialogContent,
@@ -243,24 +245,36 @@ export default function EmpleadosPage() {
                   variant: 'view',
                   title: 'Ver Detalles',
                 },
-                {
-                  icon: <Edit className='h-4 w-4' />,
-                  onClick: () => handleEdit(row.id),
-                  variant: 'edit',
-                  title: 'Editar Empleado',
-                },
-                {
-                  icon: <Fingerprint className='h-4 w-4' />,
-                  onClick: () =>
-                    router.push(
-                      `/empleados/asignar-huella?id=${row.id}&nombre=${encodeURIComponent(getFullName(row))}`
-                    ),
-                  variant: 'custom',
-                  title: 'Asignar Huella',
-                  className: 'action-button-fingerprint',
-                },
               ]}
             />
+            <Can permission='empleado:write'>
+              <ActionButtons
+                buttons={[
+                  {
+                    icon: <Edit className='h-4 w-4' />,
+                    onClick: () => handleEdit(row.id),
+                    variant: 'edit',
+                    title: 'Editar Empleado',
+                  },
+                ]}
+              />
+            </Can>
+            <Can permission='empleado:manage-fingerprints'>
+              <ActionButtons
+                buttons={[
+                  {
+                    icon: <Fingerprint className='h-4 w-4' />,
+                    onClick: () =>
+                      router.push(
+                        `/empleados/asignar-huella?id=${row.id}&nombre=${encodeURIComponent(getFullName(row))}`
+                      ),
+                    variant: 'custom',
+                    title: 'Asignar Huella',
+                    className: 'action-button-fingerprint',
+                  },
+                ]}
+              />
+            </Can>
             <span className='mx-1 text-muted-foreground'>|</span>
             <Button
               variant='ghost'
@@ -281,7 +295,8 @@ export default function EmpleadosPage() {
   );
 
   return (
-    <>
+    <RequirePermission permission='empleado:read'>
+      <>
       <PageLayout
         title='Gestión de Empleados'
         isLoading={isLoading}
@@ -294,12 +309,14 @@ export default function EmpleadosPage() {
         totalPages={totalPages}
         onPageChange={(p) => handlePageChange(p - 1)}
         actions={
-          <Link href='/empleados/registrar'>
-            <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
-              <UserPlus className='mr-2 h-4 w-4' />
-              Registrar
-            </Button>
-          </Link>
+          <Can permission='empleado:write'>
+            <Link href='/empleados/registrar'>
+              <Button className='h-10 px-6 bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200'>
+                <UserPlus className='mr-2 h-4 w-4' />
+                Registrar
+              </Button>
+            </Link>
+          </Can>
         }
       >
         <EnhancedTable
@@ -372,6 +389,7 @@ export default function EmpleadosPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+      </>
+    </RequirePermission>
   );
 }
