@@ -15,6 +15,7 @@ import {
   GripVertical,
   Eye,
   EyeOff,
+  Lightbulb,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -79,15 +80,15 @@ export default function PublicidadManager() {
   const handleFileChange = (file: File | null) => {
     setLocalError(null); // Limpiar error previo
     if (file) {
-      // Validar tamaño del archivo (4MB)
-      const MAX_SIZE = 4 * 1024 * 1024; // 4MB en bytes
+      // Validar tamaño del archivo (900KB)
+      const MAX_SIZE = 900 * 1024; // 900KB en bytes
       if (file.size > MAX_SIZE) {
         setLocalError(
-          `La imagen "${file.name}" es demasiado grande (Máximo 4MB).`
+          `La imagen "${file.name}" es demasiado grande (Máximo 900KB).`
         );
         toast({
           title: 'Archivo demasiado grande',
-          description: `El archivo "${file.name}" supera el límite de 4MB.`,
+          description: `El archivo "${file.name}" supera el límite de 900KB.`,
           variant: 'destructive',
         });
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -443,7 +444,7 @@ export default function PublicidadManager() {
                     </span>
                   </p>
                   <p className='text-sm text-slate-400'>
-                    Tipos permitidos: JPG, PNG, GIF, WEBP. Máximo 4MB.
+                    Tipos permitidos: JPG, PNG, GIF, WEBP. Máximo 900KB.
                   </p>
                   <AnimatePresence>
                     {localError && (
@@ -472,6 +473,31 @@ export default function PublicidadManager() {
             </p>
           </div>
         )}
+
+        {/* Tip Optimization */}
+        <div className='bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-center gap-3 text-sm text-blue-700'>
+          <Lightbulb className='h-5 w-5 shrink-0 text-blue-600' />
+          <p>
+            <strong>Tip:</strong> Para archivos grandes, optimiza tu imagen en{' '}
+            <a
+              href='https://squoosh.app/'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='font-bold underline hover:text-blue-900'
+            >
+              Squoosh.app
+            </a>{' '}
+            o{' '}
+            <a
+              href='https://imgto.xyz/'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='font-bold underline hover:text-blue-900'
+            >
+              imgto.xyz
+            </a>
+          </p>
+        </div>
 
         {/* Botones de Acción - Regresados a la posición inferior */}
         <div className='flex justify-between items-center gap-3'>
